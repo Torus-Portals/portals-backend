@@ -1,0 +1,18 @@
+[package]
+name = "torus-backend"
+version = "0.1.0"
+authors = ["Broch Stilley <brochington@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+actix-web = "1.0.5"
+actix-web-codegen = "0.1.2"
+diesel = { version = "1.4.2", features = ["postgres", "r2d2"] }
+dotenv = "0.14.1"
+serde = "1.0.98"
+serde_derive = "1.0.98"
+serde_json = "1.0.40"
+listenfd = "0.3.3"
+futures = "0.1"
