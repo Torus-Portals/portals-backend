@@ -6,30 +6,20 @@ extern crate serde_derive;
 
 extern crate futures;
 
-use actix_web::{ web, get, App, HttpResponse, HttpServer, Responder };
+use actix_web::{ App, HttpServer };
 use listenfd::ListenFd;
-use diesel::prelude::*;
-use diesel::r2d2::{ self, ConnectionManager };
 use dotenv::dotenv;
-use std::env;
+use db::create_pool;
 
 mod models;
 mod routes;
 mod schema;
-
-type Pool = r2d2::Pool<ConnectionManager<PgConnection>>;
+mod db;
 
 fn main() {
   dotenv().ok();
 
-  let db_url = env::var("DATABASE_URL").expect("DATABASE_URL env var must be set.");
-  println!("db_url: {}", &db_url);
-
-  let manager = ConnectionManager::<PgConnection>::new(db_url);
-
-  let pool = r2d2::Pool::builder()
-    .build(manager)
-    .expect("Failed to create db pool");
+  let pool = create_pool();
 
   let mut listenfd = ListenFd::from_env();
   let mut server = HttpServer::new(move || {
