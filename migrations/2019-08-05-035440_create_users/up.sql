@@ -5,5 +5,5 @@ CREATE TABLE Users (
   firstname VARCHAR(64) NOT NULL,
   lastname VARCHAR(64) NOT NULL,
   email VARCHAR(64) NOT NULL,
-  email_confirmed BOOLEAN NOT NULL DEFAULT false
+  orgs Int[] NOT NULL default '{}'::Int[]
 )
