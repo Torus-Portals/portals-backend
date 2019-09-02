@@ -17,6 +17,10 @@ https://cetra3.github.io/blog/face-detection-with-actix-web/
 TL;DR: then is used when you want to do something regardless of if the future was successful or not, and_then runs the closure only when the future succeeded, and or_else runs the closure only when the future failed.
 ```
 
+https://docs.rs/future-by-example/0.1.0/future_by_example/
+
+fut_ok wraps things in a future.
+
 ## Debugging
 
 ```
@@ -47,4 +51,11 @@ Don't forget to wrap cet from x5c with:
 -----BEGIN CERTIFICATE-----
     ...cert goes here...
 -----END CERTIFICATE-----
+```
+
+## Diesel
+
+```
+$ diesel migration redo
+$ diesel migration run
 ```

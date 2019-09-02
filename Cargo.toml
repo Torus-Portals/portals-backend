@@ -20,3 +20,6 @@ listenfd = "0.3.3"
 futures = "0.1"
 uuid = { version = "0.7.4", features = ["serde", "v4"] }
 jsonwebtoken = "6.0.1"
+reqwest = "0.9.20"
+url = "2.1.0"
+percent-encoding = "2.1.0"

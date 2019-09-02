@@ -1,6 +1,6 @@
 use actix_service::{ Service, Transform };
 use futures::future::{ ok as fut_ok, FutureResult, Either };
-use futures::{ Future, Poll };
+use futures::{ Poll };
 use actix_web::{
   dev,
   Error,
@@ -9,7 +9,10 @@ use actix_web::{
 
 use dev:: {ServiceRequest, ServiceResponse };
 
-use jwt;
+use jwt::{ Validation, decode, Algorithm, errors::ErrorKind };
+
+
+
 #[derive(Debug, Serialize, Deserialize)]
 struct Claims {
   sub: String,
@@ -60,7 +63,6 @@ where
   }
 
   fn call(&mut self, req: ServiceRequest) -> Self::Future {
-
     match req.headers().get("authorization") {
       Some(access_token_header_val) => {
         let key = req.app_data::<AuthDer>().unwrap();
@@ -68,45 +70,48 @@ where
         let access_token_str = access_token_header_val.to_str().unwrap();
         let acces_token: Vec<&str> = access_token_str.split_whitespace().collect();
 
-        // let validation = jwt::Validation::new(jwt::Algorithm::RS256);
-        let mut validation = jwt::Validation { 
-          algorithms: vec![jwt::Algorithm::RS256],
-          ..jwt::Validation::default()
+        let mut validation = Validation { 
+          algorithms: vec![Algorithm::RS256],
+          leeway: 120,
+          ..Validation::default()
         };
+        // TODO: Remove these hardcoded audiences. Pull from env?
         validation.set_audience(&[
             "http://localhost:8088",
             "https://torus-rocks.auth0.com/userinfo",
         ]);
 
-        let token_data = match jwt::decode::<Claims>(acces_token.get(1).unwrap(), &key.0, &validation) {
-          Ok(c) => c,
+        match decode::<Claims>(acces_token.get(1).unwrap(), &key.0, &validation) {
+          Ok(_) => {
+            Either::A(self.service.call(req))
+          },
           Err(err) => match err.kind() {
-            jwt::errors::ErrorKind::InvalidToken => panic!("Token is invalid"),
-            jwt::errors::ErrorKind::InvalidIssuer => panic!("Issuer is invalid"),
-            jwt::errors::ErrorKind::InvalidRsaKey => panic!("InvalidRsaKey"),
-            jwt::errors::ErrorKind::InvalidSignature => panic!("Invalid Signature"),
-            jwt::errors::ErrorKind::InvalidAudience => panic!("InvalidAudience"),
-            jwt::errors::ErrorKind::InvalidAlgorithm => panic!("InvalidAlgorithm"),
-            jwt::errors::ErrorKind::ImmatureSignature => panic!("ImmatureSignature"),
-            jwt::errors::ErrorKind::ExpiredSignature => panic!("ExpiredSignature"),
-            jwt::errors::ErrorKind::InvalidSubject => panic!("InvalidSubject"),
-            jwt::errors::ErrorKind::InvalidEcdsaKey => panic!("InvalidEcdsaKey"),
-            jwt::errors::ErrorKind::InvalidAlgorithmName => panic!("InvalidAlgorithmName"),
-            jwt::errors::ErrorKind::Json(_) => panic!("Json"),
-            jwt::errors::ErrorKind::Base64(a) => {
-              println!("a: {:#?}", a.clone());
-              panic!("Base64")
-            },
-            jwt::errors::ErrorKind::Crypto(_) => panic!("Crypto"),
-            jwt::errors::ErrorKind::Utf8(_) => panic!("Utf8"),
-            jwt::errors::ErrorKind::__Nonexhaustive => panic!("dunno..."),
-            // _ => panic!("some other errors"),
+            // TODO: Needs better error handling, but this works for now.
+            ErrorKind::InvalidToken => Either::B(fut_ok(req.into_response(HttpResponse::Unauthorized().finish().into_body()))),
+            // ErrorKind::InvalidToken => Either::B(ServiceResponse::new(req, HttpResponse::Unauthorized().finish().into_body())),
+            // ErrorKind::InvalidToken => panic!("Token is invalid"),
+            // ErrorKind::InvalidIssuer => panic!("Issuer is invalid"),
+            // ErrorKind::InvalidRsaKey => panic!("InvalidRsaKey"),
+            // ErrorKind::InvalidSignature => panic!("Invalid Signature"),
+            // ErrorKind::InvalidAudience => panic!("InvalidAudience"),
+            // ErrorKind::InvalidAlgorithm => panic!("InvalidAlgorithm"),
+            // ErrorKind::ImmatureSignature => panic!("ImmatureSignature"),
+            // ErrorKind::ExpiredSignature => panic!("ExpiredSignature"),
+            // ErrorKind::InvalidSubject => panic!("InvalidSubject"),
+            // ErrorKind::InvalidEcdsaKey => panic!("InvalidEcdsaKey"),
+            // ErrorKind::InvalidAlgorithmName => panic!("InvalidAlgorithmName"),
+            // ErrorKind::Json(_) => panic!("Json"),
+            // ErrorKind::Base64(a) => {
+            //   println!("a: {:#?}", a.clone());
+            //   panic!("Base64")
+            // },
+            // ErrorKind::Crypto(_) => panic!("Crypto"),
+            // ErrorKind::Utf8(_) => panic!("Utf8"),
+            // ErrorKind::__Nonexhaustive => panic!("dunno..."),
+            // _ => Either::B(fut_ok(req.error_response(err.into()))),
+            _ => Either::B(fut_ok(req.into_response(HttpResponse::Unauthorized().finish().into_body()))),
           }
-        };
-
-        println!("token data? {:#?}", token_data);
-
-        Either::A(self.service.call(req))
+        }
       },
       None => Either::B(fut_ok(req.into_response(
         HttpResponse::Found()

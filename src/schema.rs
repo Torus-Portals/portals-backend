@@ -8,9 +8,9 @@ table! {
 table! {
     users (id) {
         id -> Int4,
-        username -> Varchar,
-        firstname -> Varchar,
-        lastname -> Varchar,
+        auth0id -> Varchar,
+        name -> Varchar,
+        nickname -> Varchar,
         email -> Varchar,
         orgs -> Array<Int4>,
     }

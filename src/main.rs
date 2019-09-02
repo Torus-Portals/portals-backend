@@ -8,6 +8,8 @@ extern crate futures;
 
 extern crate jsonwebtoken as jwt;
 
+extern crate url;
+
 use actix_web::{ middleware as actix_middleware, App, HttpServer };
 use actix_cors::Cors;
 use listenfd::ListenFd;
@@ -22,6 +24,7 @@ mod routes;
 mod schema;
 mod middleware;
 mod db;
+mod services;
 
 use middleware::auth::Auth;
 use middleware::auth::AuthDer;
