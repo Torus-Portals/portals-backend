@@ -9,6 +9,7 @@ extern crate futures;
 extern crate jsonwebtoken as jwt;
 
 extern crate url;
+extern crate percent_encoding;
 
 use actix_web::{ middleware as actix_middleware, App, HttpServer };
 use actix_cors::Cors;
@@ -30,8 +31,6 @@ use middleware::auth::Auth;
 use middleware::auth::AuthDer;
 
 use crate::routes::{ users, orgs };
-
-// pub struct AuthDer (Vec<u8>);
 
 fn load_key(filename: &str) -> Vec<u8> {
   let mut buffer = Vec::<u8>::new();

@@ -11,7 +11,7 @@ actix-web = "1.0.5"
 actix-web-codegen = "0.1.2"
 actix-cors = "0.1.0"
 actix-service = "0.4.2"
-diesel = { version = "1.4.2", features = ["postgres", "r2d2"] }
+diesel = { version = "1.4.2", features = ["postgres", "r2d2", "chrono", "uuidv07"] }
 dotenv = "0.14.1"
 serde = "1.0.98"
 serde_derive = "1.0.98"
@@ -23,3 +23,4 @@ jsonwebtoken = "6.0.1"
 reqwest = "0.9.20"
 url = "2.1.0"
 percent-encoding = "2.1.0"
+chrono = { version = "0.4.9", features = ["serde"] }

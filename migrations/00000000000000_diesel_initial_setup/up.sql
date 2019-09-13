@@ -29,8 +29,11 @@ BEGIN
         NEW IS DISTINCT FROM OLD AND
         NEW.updated_at IS NOT DISTINCT FROM OLD.updated_at
     ) THEN
-        NEW.updated_at := current_timestamp;
+        NEW.updated_at = NOW();
     END IF;
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
+
+-- Add pgcrypto extension for uuid primary key generation
+CREATE EXTENSION pgcrypto;

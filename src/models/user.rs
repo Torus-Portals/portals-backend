@@ -1,17 +1,23 @@
 use crate::schema::users;
 use crate::futures::{ Future, future::ok as fut_ok };
 use actix_web::{ FromRequest, HttpRequest, error, dev };
+use chrono::naive::NaiveDateTime;
+use uuid::Uuid;
 
 use jwt::dangerous_unsafe_decode;
 
 #[derive(Serialize, Queryable)]
 pub struct User {
-  pub id: i32,
+  pub id: Uuid,
   pub auth0id: String,
   pub name: String,
   pub nickname: String,
   pub email: String,
-  pub orgs: Vec<i32>,
+  pub orgs: Vec<Uuid>,
+  pub created_at: NaiveDateTime,
+  pub created_by: Uuid,
+  pub updated_at: NaiveDateTime,
+  pub updated_by: Uuid,
 }
 
 #[derive(Serialize, Deserialize, Insertable)]
@@ -21,6 +27,8 @@ pub struct NewUser {
   pub name: String,
   pub nickname: String,
   pub email: String,
+  pub created_by: Uuid,
+  pub updated_by: Uuid,
 }
 
 impl FromRequest for NewUser {
@@ -42,7 +50,8 @@ pub struct UpdateUser {
   pub name: Option<String>,
   pub nickname: Option<String>,
   pub email: Option<String>,
-  pub orgs: Option<Vec<i32>>
+  pub orgs: Option<Vec<Uuid>>,
+  pub updated_by: Option<Uuid>,
 }
 
 impl FromRequest for UpdateUser {
