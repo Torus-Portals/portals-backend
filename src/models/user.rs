@@ -86,6 +86,7 @@ impl FromRequest for Auth0UserId {
     let access_token_str = access_token_header_val.to_str().unwrap();
     let access_token: Vec<&str> = access_token_str.split_whitespace().collect();
 
+    // Okay do dangerous_unsafe_decode here because the user has already verified in middleware.
     let decoded_token = dangerous_unsafe_decode::<Auth0UserClaims>(access_token.get(1).unwrap()).ok().unwrap();
 
     Box::new(

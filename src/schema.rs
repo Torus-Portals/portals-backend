@@ -12,6 +12,8 @@ table! {
 table! {
     portals (id) {
         id -> Uuid,
+        owners -> Array<Uuid>,
+        vendors -> Array<Uuid>,
         created_at -> Timestamptz,
         created_by -> Uuid,
         updated_at -> Timestamptz,

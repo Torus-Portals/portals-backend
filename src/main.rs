@@ -30,7 +30,7 @@ mod services;
 use middleware::auth::Auth;
 use middleware::auth::AuthDer;
 
-use crate::routes::{ users, orgs };
+use crate::routes::{ users, orgs, portals };
 
 fn load_key(filename: &str) -> Vec<u8> {
   let mut buffer = Vec::<u8>::new();
@@ -60,6 +60,7 @@ fn main() {
       )
       .service(users::get_user_routes())
       .service(orgs::get_org_routes())
+      .service(portals::get_portal_routes())
   });
 
   server = if let Some(listener) = listenfd.take_tcp_listener(0).unwrap() {
