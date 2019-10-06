@@ -1,13 +1,4 @@
-pub fn create_user(
-  new_user_json: web::Json<NewUser>, 
-  pool: web::Data<Pool>
-) -> impl Future<Item = HttpResponse, Error = Error> {
-  // println!("Hello!! {:#?}", &new_user);
-  // let new_user = NewUser::from_json()
-  // fut_ok(HttpResponse::Created().json(new_user_json.0))
 
-  ...
-}
 
 https://cetra3.github.io/blog/face-detection-with-actix-web/
 
@@ -58,4 +49,26 @@ Don't forget to wrap cet from x5c with:
 ```
 $ diesel migration redo
 $ diesel migration run
+```
+
+### Handling JSON and JSONB
+https://github.com/diesel-rs/diesel/issues/1950
+
+
+## Postgres
+
+Some helpful debugging stuff: https://postgresapp.com/documentation/troubleshooting.html
+
+### Postgres in Docker.
+
+#### Creating a new Docker Postgres instance.
+
+```
+# docker run --name torus_db -e POSTGRES_USER=brochstilley -e POSTGRES_PASSWORD=Hellothere123! -d -p 5432:5432 postgres
+```
+
+```
+// psql help (while in psql)
+postgres=# \l  // list databases
+postgres=# \du // list users and roles
 ```

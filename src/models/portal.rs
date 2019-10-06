@@ -7,8 +7,10 @@ use uuid::Uuid;
 #[derive(Serialize, Queryable)]
 pub struct Portal {
   pub id: Uuid,
-  owners: Vec<Uuid>,
-  vendors: Vec<Uuid>,
+  pub name: String,
+  pub org: Uuid,
+  pub owners: Vec<Uuid>,
+  pub vendors: Vec<Uuid>,
   pub created_at: NaiveDateTime,
   pub created_by: Uuid,
   pub updated_at: NaiveDateTime,
@@ -18,7 +20,15 @@ pub struct Portal {
 #[derive(Serialize, Deserialize, Insertable)]
 #[table_name = "portals"]
 pub struct NewPortal {
+  pub org: Uuid,
+  pub name: String,
   pub created_by: Uuid,
   pub updated_by: Uuid,
   pub owners: Vec<Uuid>,
+}
+
+#[derive(Serialize, Deserialize, JSONPayload)]
+pub struct NewPortalPayload {
+  pub org: Uuid,
+  pub name: String,
 }

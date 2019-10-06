@@ -4,6 +4,9 @@ extern crate diesel;
 #[macro_use]
 extern crate serde_derive;
 
+#[macro_use]
+extern crate json_payload_derive;
+
 extern crate futures;
 
 extern crate jsonwebtoken as jwt;
@@ -30,7 +33,7 @@ mod services;
 use middleware::auth::Auth;
 use middleware::auth::AuthDer;
 
-use crate::routes::{ users, orgs, portals };
+use crate::routes::{ users, orgs, portals, portalviews };
 
 fn load_key(filename: &str) -> Vec<u8> {
   let mut buffer = Vec::<u8>::new();
@@ -61,6 +64,7 @@ fn main() {
       .service(users::get_user_routes())
       .service(orgs::get_org_routes())
       .service(portals::get_portal_routes())
+      .service(portalviews::get_portalview_routes())
   });
 
   server = if let Some(listener) = listenfd.take_tcp_listener(0).unwrap() {

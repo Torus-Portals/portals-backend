@@ -14,21 +14,9 @@ pub struct Org {
   pub updated_by: Uuid,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, JSONPayload)]
 pub struct NewOrg {
   pub name: String,
-}
-
-impl FromRequest for NewOrg {
-  type Error = error::JsonPayloadError;
-  type Future = Box<dyn Future<Item = Self, Error = error::JsonPayloadError>>;
-  type Config = ();
-
-  fn from_request(req: &HttpRequest, payload: &mut dev::Payload) -> Self::Future {
-    Box::new(
-      dev::JsonBody::<Self>::new(req, payload, None)
-    )
-  }
 }
 
 #[derive(Serialize, Deserialize, Insertable)]
