@@ -1,6 +1,5 @@
 use diesel::prelude::*;
 use actix_web::{ web, HttpResponse, dev, Error };
-use futures::future::{ Future, ok as fut_ok };
 use uuid::Uuid;
 
 use crate::models::user::{ User, NewUser, UpdateUser, Auth0UserId };
@@ -15,12 +14,12 @@ pub struct UserIdPath {
   user_id: Uuid
 }
 
-pub fn create_user(
+async fn create_user(
   auth0_user_id: Auth0UserId,
   new_user: NewUser,
   pool: web::Data<Pool>
-) -> impl Future<Item = HttpResponse, Error = Error> {
-  web::block(move || -> Result<User, diesel::result::Error> {
+) -> Result<HttpResponse, Error> {
+  Ok(web::block(move || -> Result<User, diesel::result::Error> {
     use schema::users::dsl::*;
 
     let conn: &PgConnection = &pool.get().unwrap();
@@ -38,19 +37,18 @@ pub fn create_user(
       .values(new_user_with_created_by)
       .get_result::<User>(conn)
   })
-  .then(|res| match res {
-    Ok(user) => fut_ok(HttpResponse::Ok().json(user)),
-    Err(_) => fut_ok(HttpResponse::InternalServerError().into())
-  })
+  .await
+  .map(|user| HttpResponse::Ok().json(user))
+  .map_err(|_| HttpResponse::InternalServerError())?)
 }
 
-pub fn get_requesting_user(
+async fn get_requesting_user(
   auth0_user_id: Auth0UserId,
   pool: web::Data<Pool>
-) -> impl Future<Item = HttpResponse, Error = Error> {
+) -> Result<HttpResponse, Error> {
   let pool1 = pool.clone();
 
-  web::block(move || -> Result<User, diesel::result::Error> {
+  Ok(web::block(move || -> Result<User, diesel::result::Error> {
     use schema::users::dsl::*;
 
     let conn: &PgConnection = &pool1.get().unwrap();
@@ -88,23 +86,18 @@ pub fn get_requesting_user(
         }
       }
   })
-  .then(|res| match res {
-    Ok(user) => fut_ok(HttpResponse::Ok().json(user)),
-    Err(err) => {
-      println!("{:#?}", err);
-      fut_ok(HttpResponse::InternalServerError().into())
-    }
-    // Err(_) => fut_ok(HttpResponse::InternalServerError().into())
-  })
+  .await
+  .map(|user| HttpResponse::Ok().json(user))
+  .map_err(|_| HttpResponse::InternalServerError())?)
 }
 
-pub fn update_user(
+async fn update_user(
   auth0_user_id: Auth0UserId,
   path: web::Path<UserIdPath>,
   updated_user: UpdateUser,
   pool: web::Data<Pool>
-) -> impl Future<Item = HttpResponse, Error = Error> {
-  web::block(move || -> Result<User, diesel::result::Error> {
+) -> Result<HttpResponse, Error> {
+  Ok(web::block(move || -> Result<User, diesel::result::Error> {
     use schema::users::dsl::*;
 
     let conn: &PgConnection = &pool.get().unwrap();
@@ -121,36 +114,32 @@ pub fn update_user(
       .set(updated_user_with_updated_by)
       .get_result::<User>(conn)
   })
-  .then(|res| match res {
-    Ok(user) => fut_ok(HttpResponse::Ok().json(user)),
-    Err(_err) => {
-      fut_ok(HttpResponse::InternalServerError().into())
-    }
-  })
+  .await
+  .map(|user| HttpResponse::Ok().json(user))
+  .map_err(|_| HttpResponse::InternalServerError())?)
 }
 
-pub fn get_user_by_id(
+async fn get_user_by_id(
   path: web::Path<UserIdPath>,
   pool: web::Data<Pool>
-) -> impl Future<Item = HttpResponse, Error = Error> {
-  web::block(move || -> diesel::QueryResult<User> {
+) -> Result<HttpResponse, Error> {
+  Ok(web::block(move || -> diesel::QueryResult<User> {
     let conn: &PgConnection = &pool.get().unwrap();
 
     schema::users::table
       .filter(schema::users::dsl::id.eq(path.user_id))
       .get_result::<User>(conn)
   })
-  .then(|res| match res {
-    Ok(user) => fut_ok(HttpResponse::Ok().json(user)),
-    Err(_) => fut_ok(HttpResponse::InternalServerError().into())
-  })
+  .await
+  .map(|user| HttpResponse::Ok().json(user))
+  .map_err(|_| HttpResponse::InternalServerError())?)
 }
 
 
 pub fn get_user_routes() -> impl dev::HttpServiceFactory + 'static {
   web::scope("/users")
-    .route("", web::post().to_async(create_user))
-    .route("/user", web::get().to_async(get_requesting_user))
-    .route("/{user_id}", web::patch().to_async(update_user))
-    .route("/{user_id}", web::get().to_async(get_user_by_id))
+    .route("", web::post().to(create_user))
+    .route("/user", web::get().to(get_requesting_user))
+    .route("/{user_id}", web::patch().to(update_user))
+    .route("/{user_id}", web::get().to(get_user_by_id))
 }

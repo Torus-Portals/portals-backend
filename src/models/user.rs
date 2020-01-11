@@ -1,5 +1,5 @@
 use crate::schema::users;
-use crate::futures::{ Future, future::ok as fut_ok };
+use futures::future::{ ok, Ready};
 use actix_web::{ FromRequest, HttpRequest, error, dev };
 use chrono::naive::NaiveDateTime;
 use uuid::Uuid;
@@ -9,61 +9,63 @@ use jwt::dangerous_unsafe_decode;
 #[derive(Serialize, Queryable)]
 pub struct User {
   pub id: Uuid,
+
   pub auth0id: String,
+
   pub name: String,
+
   pub nickname: String,
+
   pub email: String,
+
   pub orgs: Vec<Uuid>,
+
+  #[serde(rename = "createdAt")]
   pub created_at: NaiveDateTime,
+
+  #[serde(rename = "createdBy")]
   pub created_by: Uuid,
+
+  #[serde(rename = "updatedAt")]
   pub updated_at: NaiveDateTime,
+
+  #[serde(rename = "updatedBy")]
   pub updated_by: Uuid,
 }
 
-#[derive(Serialize, Deserialize, Insertable)]
+#[derive(Serialize, Deserialize, Insertable, JSONPayload)]
 #[table_name = "users"]
 pub struct NewUser {
   pub auth0id: String,
+
   pub name: String,
+
   pub nickname: String,
+
   pub email: String,
+
+  #[serde(rename = "createdBy")]
   pub created_by: Uuid,
+
+  #[serde(rename = "updatedBy")]
   pub updated_by: Uuid,
 }
 
-impl FromRequest for NewUser {
-  type Error = error::JsonPayloadError;
-  type Future = Box<dyn Future<Item = Self, Error = error::JsonPayloadError>>;
-  type Config = ();
-
-  fn from_request(req: &HttpRequest, payload: &mut dev::Payload) -> Self::Future {
-    Box::new(
-      dev::JsonBody::<Self>::new(req, payload, None)
-    )
-  }
-}
-
-#[derive(Debug, Serialize, Deserialize, AsChangeset)]
+#[derive(Debug, Serialize, Deserialize, AsChangeset, JSONPayload)]
 #[table_name = "users"]
 pub struct UpdateUser {
   pub auth0id: Option<String>,
+
   pub name: Option<String>,
+
   pub nickname: Option<String>,
+
   pub email: Option<String>,
+
   pub orgs: Option<Vec<Uuid>>,
+
+  #[serde(rename = "updatedBy")]
   pub updated_by: Option<Uuid>,
-}
-
-impl FromRequest for UpdateUser {
-  type Error = error::JsonPayloadError;
-  type Future = Box<dyn Future<Item = Self, Error = error::JsonPayloadError>>;
-  type Config = ();
-
-  fn from_request(req: &HttpRequest, payload: &mut dev::Payload) -> Self::Future {
-    Box::new(
-      dev::JsonBody::<Self>::new(req, payload, None)
-    )
-  }
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -78,7 +80,7 @@ pub struct Auth0UserClaims {
 
 impl FromRequest for Auth0UserId {
   type Error = error::JsonPayloadError;
-  type Future = Box<dyn Future<Item = Self, Error = error::JsonPayloadError>>;
+  type Future = Ready<Result<Self, Self::Error>>;
   type Config = ();
 
   fn from_request(req: &HttpRequest, _payload: &mut dev::Payload) -> Self::Future {
@@ -89,8 +91,6 @@ impl FromRequest for Auth0UserId {
     // Okay do dangerous_unsafe_decode here because the user has already verified in middleware.
     let decoded_token = dangerous_unsafe_decode::<Auth0UserClaims>(access_token.get(1).unwrap()).ok().unwrap();
 
-    Box::new(
-      fut_ok(Auth0UserId { id: decoded_token.claims.sub.clone() })
-    )
+    ok(Auth0UserId { id: decoded_token.claims.sub.clone() })
   }
 }

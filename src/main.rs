@@ -3,6 +3,7 @@ extern crate diesel;
 
 #[macro_use]
 extern crate serde_derive;
+extern crate serde_json;
 
 #[macro_use]
 extern crate json_payload_derive;
@@ -29,11 +30,12 @@ mod schema;
 mod middleware;
 mod db;
 mod services;
+mod utils;
 
 use middleware::auth::Auth;
 use middleware::auth::AuthDer;
 
-use crate::routes::{ users, orgs, portals, portalviews };
+use crate::routes::{ users, orgs, portals, portalviews, blocks };
 
 fn load_key(filename: &str) -> Vec<u8> {
   let mut buffer = Vec::<u8>::new();
@@ -42,7 +44,8 @@ fn load_key(filename: &str) -> Vec<u8> {
   buffer
 }
 
-fn main() {
+#[actix_rt::main]
+async fn main() -> std::io::Result<()> {
   dotenv().ok();
 
   let pool = create_pool();
@@ -59,12 +62,13 @@ fn main() {
       .wrap(
         Cors::new()
           .allowed_origin("https://local.torus-dev.rocks:3001")
-          .allowed_methods(vec!["GET", "POST", "PATCH"])
+          .allowed_methods(vec!["GET", "POST", "PATCH"]).finish()
       )
       .service(users::get_user_routes())
       .service(orgs::get_org_routes())
       .service(portals::get_portal_routes())
       .service(portalviews::get_portalview_routes())
+      .service(blocks::get_block_routes())
   });
 
   server = if let Some(listener) = listenfd.take_tcp_listener(0).unwrap() {
@@ -73,5 +77,5 @@ fn main() {
     server.bind("127.0.0.1:8088").unwrap()
   };
 
-  server.run().unwrap();
+  server.run().await
 }

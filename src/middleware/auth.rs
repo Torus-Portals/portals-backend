@@ -1,6 +1,9 @@
+use std::pin::Pin;
+use std::task::{Context, Poll};
+
 use actix_service::{ Service, Transform };
-use futures::future::{ ok as fut_ok, FutureResult, Either };
-use futures::{ Poll };
+use futures::future::{ok, Ready };
+use futures::Future;
 use actix_web::{
   dev,
   Error,
@@ -35,10 +38,10 @@ where
   type Error = Error;
   type InitError = ();
   type Transform = AuthMiddleware<S>;
-  type Future = FutureResult<Self::Transform, Self::InitError>;
+  type Future = Ready<Result<Self::Transform, Self::InitError>>;
 
   fn new_transform(&self, service: S) -> Self::Future {
-    fut_ok(AuthMiddleware { service })
+    ok(AuthMiddleware { service })
   }
 }
 
@@ -56,10 +59,11 @@ where
   type Response = ServiceResponse<B>;
   type Error = Error;
   // type Future = Box<dyn Future<Item = Self::Response, Error = Self::Error>>;
-  type Future = Either<S::Future, FutureResult<Self::Response, Self::Error>>;
+  // type Future = Either<S::Future, FutureResult<Self::Response, Self::Error>>;
+  type Future = Pin<Box<dyn Future<Output = Result<Self::Response, Self::Error>>>>;
 
-  fn poll_ready(&mut self) -> Poll<(), Self::Error> {
-    self.service.poll_ready()
+  fn poll_ready(&mut self, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
+    self.service.poll_ready(cx)
   }
 
   fn call(&mut self, req: ServiceRequest) -> Self::Future {
@@ -83,11 +87,20 @@ where
 
         match decode::<Claims>(acces_token.get(1).unwrap(), &key.0, &validation) {
           Ok(_) => {
-            Either::A(self.service.call(req))
+            let fut = self.service.call(req);
+
+            Box::pin(async move {
+              let res = fut.await?;
+
+              Ok(res)
+            })
+            // let a = self.service.call(req).await;
+            // let thing = Either::Left(a);
+            // Box::pin(thing)
           },
           Err(err) => match err.kind() {
             // TODO: Needs better error handling, but this works for now.
-            ErrorKind::InvalidToken => Either::B(fut_ok(req.into_response(HttpResponse::Unauthorized().finish().into_body()))),
+            ErrorKind::InvalidToken => Box::pin(ok(req.into_response(HttpResponse::Unauthorized().finish().into_body()))),
             // ErrorKind::InvalidToken => Either::B(ServiceResponse::new(req, HttpResponse::Unauthorized().finish().into_body())),
             // ErrorKind::InvalidToken => panic!("Token is invalid"),
             // ErrorKind::InvalidIssuer => panic!("Issuer is invalid"),
@@ -109,11 +122,11 @@ where
             // ErrorKind::Utf8(_) => panic!("Utf8"),
             // ErrorKind::__Nonexhaustive => panic!("dunno..."),
             // _ => Either::B(fut_ok(req.error_response(err.into()))),
-            _ => Either::B(fut_ok(req.into_response(HttpResponse::Unauthorized().finish().into_body()))),
+            _ => Box::pin(ok(req.into_response(HttpResponse::Unauthorized().finish().into_body()))),
           }
         }
       },
-      None => Either::B(fut_ok(req.into_response(
+      None => Box::pin(ok(req.into_response(
         HttpResponse::Found()
         .finish()
         .into_body())))
