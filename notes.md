@@ -72,3 +72,9 @@ Some helpful debugging stuff: https://postgresapp.com/documentation/troubleshoot
 postgres=# \l  // list databases
 postgres=# \du // list users and roles
 ```
+
+```
+-- Might need to run drop table commands separate for each table.
+-- DROP TABLE __diesel_schema_migrations, orgs, portals, users, portalviews, blocks;
+-- DROP EXTENSION pgcrypto;
+```

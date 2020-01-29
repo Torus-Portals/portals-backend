@@ -15,6 +15,17 @@ table! {
 }
 
 table! {
+    cells (id) {
+        id -> Uuid,
+        data -> Jsonb,
+        created_at -> Timestamptz,
+        created_by -> Uuid,
+        updated_at -> Timestamptz,
+        updated_by -> Uuid,
+    }
+}
+
+table! {
     orgs (id) {
         id -> Uuid,
         name -> Text,
@@ -70,6 +81,7 @@ table! {
 
 allow_tables_to_appear_in_same_query!(
     blocks,
+    cells,
     orgs,
     portals,
     portalviews,

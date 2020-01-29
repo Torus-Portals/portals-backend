@@ -58,8 +58,6 @@ where
   type Request = ServiceRequest;
   type Response = ServiceResponse<B>;
   type Error = Error;
-  // type Future = Box<dyn Future<Item = Self::Response, Error = Self::Error>>;
-  // type Future = Either<S::Future, FutureResult<Self::Response, Self::Error>>;
   type Future = Pin<Box<dyn Future<Output = Result<Self::Response, Self::Error>>>>;
 
   fn poll_ready(&mut self, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
@@ -94,9 +92,6 @@ where
 
               Ok(res)
             })
-            // let a = self.service.call(req).await;
-            // let thing = Either::Left(a);
-            // Box::pin(thing)
           },
           Err(err) => match err.kind() {
             // TODO: Needs better error handling, but this works for now.

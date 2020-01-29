@@ -13,7 +13,7 @@ actix-web = "2.0.0"
 actix-web-codegen = "0.2.0"
 actix-cors = "0.2.0"
 actix-service = "1.0.2"
-diesel = { version = "1.4.2", features = ["postgres", "r2d2", "chrono", "uuidv07", "serde_json"] }
+diesel = { version = "1.4.3", features = ["postgres", "r2d2", "chrono", "uuidv07", "serde_json"] }
 dotenv = "0.14.1"
 serde = "1.0.104"
 serde_derive = "1.0.104"

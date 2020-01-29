@@ -35,7 +35,7 @@ mod utils;
 use middleware::auth::Auth;
 use middleware::auth::AuthDer;
 
-use crate::routes::{ users, orgs, portals, portalviews, blocks };
+use crate::routes::{ users, orgs, portals, portalviews, blocks, cells };
 
 fn load_key(filename: &str) -> Vec<u8> {
   let mut buffer = Vec::<u8>::new();
@@ -69,6 +69,7 @@ async fn main() -> std::io::Result<()> {
       .service(portals::get_portal_routes())
       .service(portalviews::get_portalview_routes())
       .service(blocks::get_block_routes())
+      .service(cells::get_cell_routes())
   });
 
   server = if let Some(listener) = listenfd.take_tcp_listener(0).unwrap() {
