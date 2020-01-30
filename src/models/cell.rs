@@ -8,6 +8,11 @@ use serde_json;
 pub struct Cell {
   pub id: Uuid,
 
+  #[serde(rename = "portalId")]
+  pub portal_id: Uuid,
+
+  pub dimensions: Vec<Uuid>,
+
   pub data: serde_json::Value,
 
   #[serde(rename = "createdAt")]
@@ -26,15 +31,27 @@ pub struct Cell {
 #[derive(Serialize, Deserialize, Insertable)] 
 #[table_name = "cells"]
 pub struct NewCell {
+  #[serde(rename = "portalId")]
+  pub portal_id: Uuid,
+
+  pub dimensions: Vec<Uuid>,
+
   pub data: serde_json::Value,
+
   #[serde(rename = "createdBy")]
   pub created_by: Uuid,
+
   #[serde(rename = "updatedBy")]
   pub updated_by: Uuid,
 }
 
 #[derive(Serialize, Deserialize, JSONPayload)]
 pub struct NewCellPayload {
+  #[serde(rename = "portalId")]
+  pub portal_id: Uuid,
+
+  pub dimensions: Vec<Uuid>,
+
   pub data: serde_json::Value,
 }
 

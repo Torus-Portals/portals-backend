@@ -24,6 +24,8 @@ async fn create_cells(
 
     let new_cells: Vec<NewCell> = new_cells_payload.0.into_iter().map(|cell_payload| {
       NewCell {
+        portal_id: cell_payload.portal_id,
+        dimensions: cell_payload.dimensions,
         data: cell_payload.data,
         created_by: user.id,
         updated_by: user.id,

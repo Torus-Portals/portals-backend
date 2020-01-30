@@ -17,7 +17,22 @@ table! {
 table! {
     cells (id) {
         id -> Uuid,
+        portal_id -> Uuid,
+        dimensions -> Array<Uuid>,
         data -> Jsonb,
+        created_at -> Timestamptz,
+        created_by -> Uuid,
+        updated_at -> Timestamptz,
+        updated_by -> Uuid,
+    }
+}
+
+table! {
+    dimensions (id) {
+        id -> Uuid,
+        name -> Text,
+        dimension_type -> Text,
+        meta -> Jsonb,
         created_at -> Timestamptz,
         created_by -> Uuid,
         updated_at -> Timestamptz,
@@ -82,6 +97,7 @@ table! {
 allow_tables_to_appear_in_same_query!(
     blocks,
     cells,
+    dimensions,
     orgs,
     portals,
     portalviews,
