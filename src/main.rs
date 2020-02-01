@@ -29,13 +29,22 @@ mod routes;
 mod schema;
 mod middleware;
 mod db;
+mod queries;
 mod services;
 mod utils;
 
 use middleware::auth::Auth;
 use middleware::auth::AuthDer;
 
-use crate::routes::{ users, orgs, portals, portalviews, blocks, cells };
+use crate::routes::{
+  users,
+  orgs,
+  portals,
+  portalviews,
+  blocks,
+  dimensions,
+  cells
+};
 
 fn load_key(filename: &str) -> Vec<u8> {
   let mut buffer = Vec::<u8>::new();
@@ -69,6 +78,7 @@ async fn main() -> std::io::Result<()> {
       .service(portals::get_portal_routes())
       .service(portalviews::get_portalview_routes())
       .service(blocks::get_block_routes())
+      .service(dimensions::get_dimension_routes())
       .service(cells::get_cell_routes())
   });
 

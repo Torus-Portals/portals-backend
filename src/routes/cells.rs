@@ -3,13 +3,14 @@ use actix_web::{ web, HttpResponse, dev, Error };
 
 use crate::db::Pool;
 use crate::utils::general::query_to_response;
-use crate::models::user::{ User, Auth0UserId };
 
+use crate::models::user::{ Auth0UserId };
 use crate::models::cell::{ Cell, NewCellsPayload, NewCell };
 
-use crate::schema::{ users, cells };
-use users::{ table as UserTable, dsl as UserQuery };
+use crate::schema::{ cells };
 use cells::{ table as CellTable };
+
+use crate::queries::user_queries::{ get_user };
 
 async fn create_cells(
   auth0_user_id: Auth0UserId,
@@ -19,8 +20,7 @@ async fn create_cells(
   query_to_response(move || -> diesel::QueryResult<Vec<Cell>> {
     let conn: &PgConnection = &pool.get().unwrap();
 
-    let user = UserTable.filter(UserQuery::auth0id.eq(&auth0_user_id.id))
-      .get_result::<User>(conn).ok().unwrap();
+    let user = get_user(auth0_user_id, conn)?;
 
     let new_cells: Vec<NewCell> = new_cells_payload.0.into_iter().map(|cell_payload| {
       NewCell {

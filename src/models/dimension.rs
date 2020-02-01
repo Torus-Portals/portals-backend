@@ -8,6 +8,9 @@ use serde_json;
 pub struct Dimension {
   pub id: Uuid,
 
+  #[serde(rename = "portalId")]
+  pub portal_id: Uuid,
+
   pub name: String,
 
   #[serde(rename = "dimensionType")]
@@ -31,7 +34,8 @@ pub struct Dimension {
 #[derive(Serialize, Deserialize, Insertable)]
 #[table_name = "dimensions"]
 pub struct NewDimension {
-  pub id: Uuid,
+  #[serde(rename = "portalId")]
+  pub portal_id: Uuid,
 
   pub name: String,
 
@@ -51,6 +55,9 @@ pub struct NewDimension {
 pub struct NewDimensionPayload {
   pub id: Uuid,
 
+  #[serde(rename = "portalId")]
+  pub portal_id: Uuid,
+
   pub name: String,
 
   #[serde(rename = "dimensionType")]
@@ -58,3 +65,6 @@ pub struct NewDimensionPayload {
 
   pub meta: serde_json::Value,
 }
+
+#[derive(Serialize, Deserialize, JSONPayload)]
+pub struct NewDimensionsPayload (pub Vec<NewDimensionPayload>);

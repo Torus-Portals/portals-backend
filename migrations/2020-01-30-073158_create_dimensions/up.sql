@@ -1,5 +1,6 @@
 CREATE TABLE dimensions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  portal_id UUID NOT NULL,
   name TEXT NOT NULL, 
   dimension_type TEXT NOT NULL,
   meta jsonb NOT NULL DEFAULT '{}'::jsonb,

@@ -55,6 +55,16 @@ $ diesel migration generate name_of_migration
 ### Handling JSON and JSONB
 https://github.com/diesel-rs/diesel/issues/1950
 
+### Dealing with a "error: EADDRINUSE: Address already in use"
+
+https://stackoverflow.com/questions/3855127/find-and-kill-process-locking-port-3000-on-mac
+
+```
+$ sudo lsof -i :8088
+// or
+$ sudo lsof -i tcp:8088
+```
+
 
 ## Postgres
 

@@ -30,6 +30,7 @@ table! {
 table! {
     dimensions (id) {
         id -> Uuid,
+        portal_id -> Uuid,
         name -> Text,
         dimension_type -> Text,
         meta -> Jsonb,
