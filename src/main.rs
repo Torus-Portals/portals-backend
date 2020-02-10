@@ -4,6 +4,7 @@ extern crate diesel;
 #[macro_use]
 extern crate serde_derive;
 extern crate serde_json;
+extern crate serde_qs as qs;
 
 #[macro_use]
 extern crate json_payload_derive;

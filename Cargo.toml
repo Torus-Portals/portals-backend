@@ -26,3 +26,4 @@ reqwest = "0.9.20"
 url = "2.1.0"
 percent-encoding = "2.1.0"
 chrono = { version = "0.4.9", features = ["serde"] }
+serde_qs = "0.5"

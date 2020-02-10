@@ -1,5 +1,7 @@
 use diesel::prelude::*;
-use actix_web::{ web, HttpResponse, dev, Error };
+use actix_web::{ web, HttpRequest, HttpResponse, dev, Error };
+use uuid::Uuid;
+use serde_qs as qs;
 
 use crate::db::Pool;
 use crate::utils::general::query_to_response;
@@ -8,7 +10,7 @@ use crate::models::user::{ Auth0UserId };
 use crate::models::cell::{ Cell, NewCellsPayload, NewCell };
 
 use crate::schema::{ cells };
-use cells::{ table as CellTable };
+use cells::{ table as CellTable, dsl as CellQuery };
 
 use crate::queries::user_queries::{ get_user };
 
@@ -39,7 +41,39 @@ async fn create_cells(
   .await
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
+struct DimensionsQuery {
+  dimensions: Vec<Uuid>,
+}
+
+async fn get_cells_by_dimensions(
+  // dimensions: QsQuery<DimensionsQuery>,
+  pool: web::Data<Pool>,
+  req: HttpRequest
+) -> Result<HttpResponse, Error> {
+  // TODO: this will crash the server if given non Uuid params.
+  //       Would be nice to have some better way to check query strings.
+  let query = qs::from_str::<DimensionsQuery>(req.query_string());
+
+  match query {
+    Ok(q) => {
+      query_to_response(move || -> diesel::QueryResult<Vec<Cell>> {
+        let conn: &PgConnection = &pool.get().unwrap();
+    
+        CellTable.filter(CellQuery::dimensions.is_contained_by(q.dimensions))
+        .get_results::<Cell>(conn)
+      })
+      .await
+    }
+    Err(err) => {
+      dbg!(err);
+      Ok(HttpResponse::Ok().finish().into_body()) 
+    }
+  }
+}
+
 pub fn get_cell_routes() -> impl dev::HttpServiceFactory + 'static {
   web::scope("/cells")
+    .route("/dimensions", web::get().to(get_cells_by_dimensions))
     .route("", web::post().to(create_cells))
 }

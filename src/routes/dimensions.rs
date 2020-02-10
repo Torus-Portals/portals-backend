@@ -6,7 +6,12 @@ use crate::db::Pool;
 use crate::utils::general::query_to_response;
 
 use crate::models::user::{ Auth0UserId };
-use crate::models::dimension::{ Dimension, NewDimension, NewDimensionsPayload };
+use crate::models::dimension::{
+  Dimension,
+  NewDimension,
+  NewDimensionPayload,
+  NewDimensionsPayload
+};
 
 use crate::schema::{ dimensions };
 
@@ -33,12 +38,39 @@ async fn get_portal_dimensions(
   .await
 }
 
+async fn create_dimension(
+  auth0_user_id: Auth0UserId,
+  new_dimension_payload: NewDimensionPayload,
+  pool: web::Data<Pool> 
+) -> Result<HttpResponse, Error> {
+  query_to_response(move || -> diesel::QueryResult<Dimension> {
+    let conn: &PgConnection = &pool.get().unwrap();
+
+    let user = get_user(auth0_user_id, conn)?;
+
+    let new_dimension = NewDimension {
+      portal_id: new_dimension_payload.portal_id,
+      name: new_dimension_payload.name,
+      dimension_type: new_dimension_payload.dimension_type,
+      meta: new_dimension_payload.meta,
+      created_by: user.id,
+      updated_by: user.id
+    };
+
+    diesel::insert_into(DimensionTable)
+      .values(new_dimension)
+      .get_result::<Dimension>(conn)
+  })
+  .await
+}
+
 async fn create_dimensions(
   auth0_user_id: Auth0UserId,
   new_dimensions_payload: NewDimensionsPayload,
   pool: web::Data<Pool> 
 ) -> Result<HttpResponse, Error> {
   query_to_response(move || -> diesel::QueryResult<Vec<Dimension>> {
+
     let conn: &PgConnection = &pool.get().unwrap();
 
     let user = get_user(auth0_user_id, conn)?;
@@ -64,5 +96,6 @@ async fn create_dimensions(
 pub fn get_dimension_routes() -> impl dev::HttpServiceFactory + 'static {
   web::scope("/dimensions")
     .route("", web::post().to(create_dimensions))
+    .route("/dimension", web::post().to(create_dimension))
     .route("/portal/{portal_id}", web::get().to(get_portal_dimensions))
 }

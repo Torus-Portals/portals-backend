@@ -53,8 +53,6 @@ pub struct NewDimension {
 
 #[derive(Serialize, Deserialize, JSONPayload)]
 pub struct NewDimensionPayload {
-  pub id: Uuid,
-
   #[serde(rename = "portalId")]
   pub portal_id: Uuid,
 
