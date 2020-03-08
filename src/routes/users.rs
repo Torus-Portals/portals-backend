@@ -64,7 +64,6 @@ async fn get_requesting_user(
           // If user isn't found in db, see if user is in auth0
           match get_auth0_user(&auth0_user_id.id) {
             Ok(auth0_user) => {
-              println!("Create a new user!!");
               let new_user = NewUser {
                 auth0id: auth0_user.user_id,
                 name: auth0_user.name,

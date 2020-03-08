@@ -11,6 +11,10 @@ pub struct Cell {
   #[serde(rename = "portalId")]
   pub portal_id: Uuid,
 
+  // NOTE: Should probably be good to make this an enum.
+  #[serde(rename = "cellType")]
+  pub cell_type: String,
+
   pub dimensions: Vec<Uuid>,
 
   pub data: serde_json::Value,
@@ -34,6 +38,9 @@ pub struct NewCell {
   #[serde(rename = "portalId")]
   pub portal_id: Uuid,
 
+  #[serde(rename = "cellType")]
+  pub cell_type: String,
+
   pub dimensions: Vec<Uuid>,
 
   pub data: serde_json::Value,
@@ -50,6 +57,9 @@ pub struct NewCellPayload {
   #[serde(rename = "portalId")]
   pub portal_id: Uuid,
 
+  #[serde(rename = "cellType")]
+  pub cell_type: String,
+
   pub dimensions: Vec<Uuid>,
 
   pub data: serde_json::Value,
@@ -57,3 +67,17 @@ pub struct NewCellPayload {
 
 #[derive(Serialize, Deserialize, JSONPayload)]
 pub struct NewCellsPayload (pub Vec<NewCellPayload>);
+
+#[derive(Debug, Serialize, Deserialize, AsChangeset, JSONPayload)]
+#[table_name = "cells"]
+pub struct UpdateCell {
+  #[serde(rename = "cellType")]
+  pub cell_type: Option<String>,
+
+  pub dimensions: Option<Vec<Uuid>>,
+
+  pub data: Option<serde_json::Value>,
+
+  #[serde(rename = "updatedBy")]
+  pub updated_by: Option<Uuid>,
+}

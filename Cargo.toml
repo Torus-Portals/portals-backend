@@ -27,3 +27,9 @@ url = "2.1.0"
 percent-encoding = "2.1.0"
 chrono = { version = "0.4.9", features = ["serde"] }
 serde_qs = "0.5"
+log = "0.4.8"
+env_logger = "0.7.1"
+
+[features]
+default = []
+local_dev = []

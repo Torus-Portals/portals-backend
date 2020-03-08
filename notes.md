@@ -89,3 +89,10 @@ postgres=# \du // list users and roles
 -- DROP TABLE __diesel_schema_migrations, orgs, portals, users, portalviews, blocks, dimensions, cells;
 -- DROP EXTENSION pgcrypto;
 ```
+
+## Just...some good articles
+http://bryce.fisher-fleig.org/blog/strategies-for-returning-references-in-rust/index.html
+
+
+## Local DB in aws
+DATABASE_URL=postgres://postgres:qwerty123456!@portals-local-1.cece4u7qvrsx.us-west-1.rds.amazonaws.com:5432/portals_main

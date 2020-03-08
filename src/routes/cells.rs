@@ -7,12 +7,17 @@ use crate::db::Pool;
 use crate::utils::general::query_to_response;
 
 use crate::models::user::{ Auth0UserId };
-use crate::models::cell::{ Cell, NewCellsPayload, NewCell };
+use crate::models::cell::{ Cell, NewCellsPayload, NewCell, UpdateCell };
 
 use crate::schema::{ cells };
 use cells::{ table as CellTable, dsl as CellQuery };
 
 use crate::queries::user_queries::{ get_user };
+
+#[derive(Deserialize)]
+pub struct CellIdPath {
+  cell_id: Uuid
+}
 
 async fn create_cells(
   auth0_user_id: Auth0UserId,
@@ -27,6 +32,7 @@ async fn create_cells(
     let new_cells: Vec<NewCell> = new_cells_payload.0.into_iter().map(|cell_payload| {
       NewCell {
         portal_id: cell_payload.portal_id,
+        cell_type: cell_payload.cell_type,
         dimensions: cell_payload.dimensions,
         data: cell_payload.data,
         created_by: user.id,
@@ -72,8 +78,31 @@ async fn get_cells_by_dimensions(
   }
 }
 
+async fn update_cell(
+  auth0_user_id: Auth0UserId,
+  path: web::Path<CellIdPath>,
+  pool: web::Data<Pool>,
+  update_cell: UpdateCell
+) -> Result<HttpResponse, Error> {
+  query_to_response(move || -> diesel::QueryResult<Cell> {
+    let conn: &PgConnection = &pool.get().unwrap();
+    let user = get_user(auth0_user_id, conn)?;
+
+    let updated_cell_with_updated_by = UpdateCell {
+      updated_by: Some(user.id),
+      ..update_cell
+    };
+
+    diesel::update(CellTable.filter(CellQuery::id.eq(path.cell_id)))
+      .set(updated_cell_with_updated_by)
+      .get_result::<Cell>(conn)
+  })
+  .await
+}
+
 pub fn get_cell_routes() -> impl dev::HttpServiceFactory + 'static {
   web::scope("/cells")
     .route("/dimensions", web::get().to(get_cells_by_dimensions))
+    .route("/{cell_id}", web::patch().to(update_cell))
     .route("", web::post().to(create_cells))
 }

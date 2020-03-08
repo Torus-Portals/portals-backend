@@ -18,6 +18,7 @@ table! {
     cells (id) {
         id -> Uuid,
         portal_id -> Uuid,
+        cell_type -> Text,
         dimensions -> Array<Uuid>,
         data -> Jsonb,
         created_at -> Timestamptz,
