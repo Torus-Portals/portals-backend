@@ -95,4 +95,4 @@ http://bryce.fisher-fleig.org/blog/strategies-for-returning-references-in-rust/i
 
 
 ## Local DB in aws
-DATABASE_URL=postgres://postgres:qwerty123456!@portals-local-1.cece4u7qvrsx.us-west-1.rds.amazonaws.com:5432/portals_main
+export DATABASE_URL="postgres://postgres:qwerty123456!@portals-dev-1.cece4u7qvrsx.us-west-1.rds.amazonaws.com:5432/portals_main"

@@ -1,4 +1,5 @@
 use reqwest;
+use std::env;
 
 use percent_encoding::{ utf8_percent_encode, NON_ALPHANUMERIC };
 
@@ -28,15 +29,27 @@ pub struct Auth0TokenResponse {
 // TODO: Should cache this token and only refetch it when it expires.
 // TODO: Move at least client_id/client_secret somewhere else as static.
 pub fn get_auth0_token() -> Result<Auth0TokenResponse, reqwest::Error> {
+  let client_id = env::var("AUTH0_CLIENT_ID")
+    .expect("Unable to get AUTH0_CLIENT_ID env var.");
+
+  let client_secret = env::var("AUTH0_CLIENT_SECRET")
+    .expect("Unable to get AUTH0_CLIENT_SECRET env var.");
+  
+  let audience = env::var("AUTH0_AUDIENCE")
+    .expect("AUTH0_AUDIENCE env var not found.");
+
+  let token_endpoint = env::var("https://torus-rocks.auth0.com/oauth/token")
+    .expect("AUTH0_TOKEN_ENDPOINT env var not found");
+
   let params = [
     ("grant_type", "client_credentials"),
-    ("client_id", "A1OENRL6JWt44fx8z4Oc6hD875N5mQ0S"),
-    ("client_secret", "kKBEs6WM_36CAHBmA4tYiUAhScExBv1gF0WSznosqignhLR1IMN3Kyal7updZg89"),
-    ("audience", "https://torus-rocks.auth0.com/api/v2/")
+    ("client_id", &client_id),
+    ("client_secret", &client_secret),
+    ("audience", &audience)
   ];
 
   let auth0_token_response: Auth0TokenResponse = reqwest::Client::new()
-    .post("https://torus-rocks.auth0.com/oauth/token")
+    .post(&token_endpoint)
     .form(&params)
     .send()?
     .json()?;
@@ -49,7 +62,9 @@ pub fn get_auth0_user(auth0id: &str) -> Result<Auth0User, reqwest::Error> {
 
   let auth_string = format!("{} {}", token.token_type, token.access_token);
 
-  let auth0_path = String::from("https://torus-rocks.auth0.com/api/v2/users/");
+  let auth0_path = env::var("AUTH0_USER_ENDPOINT")
+    .expect("AUTH0_USER_ENDPOINT env var not found.");
+  // let auth0_path = String::from("https://torus-rocks.auth0.com/api/v2/users/");
 
   let url = format!("{}{}", auth0_path, utf8_percent_encode(&auth0id, NON_ALPHANUMERIC).to_string());
 
