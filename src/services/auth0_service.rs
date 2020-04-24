@@ -38,7 +38,7 @@ pub fn get_auth0_token() -> Result<Auth0TokenResponse, reqwest::Error> {
   let audience = env::var("AUTH0_AUDIENCE")
     .expect("AUTH0_AUDIENCE env var not found.");
 
-  let token_endpoint = env::var("https://torus-rocks.auth0.com/oauth/token")
+  let token_endpoint = env::var("AUTH0_TOKEN_ENDPOINT")
     .expect("AUTH0_TOKEN_ENDPOINT env var not found");
 
   let params = [

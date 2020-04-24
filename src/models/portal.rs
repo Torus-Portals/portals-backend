@@ -50,3 +50,16 @@ pub struct NewPortalPayload {
   pub org: Uuid,
   pub name: String,
 }
+
+#[derive(Debug, Serialize, Deserialize, AsChangeset, JSONPayload)]
+#[table_name = "portals"]
+pub struct UpdatePortal {
+  pub name: Option<String>,
+
+  pub owners: Option<Vec<Uuid>>,
+
+  pub vendors: Option<Vec<Uuid>>,
+
+  #[serde(rename = "updatedBy")]
+  pub updated_by: Option<Uuid>,
+}
