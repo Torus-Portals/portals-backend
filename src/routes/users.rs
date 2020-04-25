@@ -9,6 +9,8 @@ use crate::schema;
 
 use crate::services::auth0_service::get_auth0_user;
 
+use crate::queries::user_queries::{ get_user };
+
 #[derive(Deserialize)]
 pub struct UserIdPath {
   user_id: Uuid
@@ -25,8 +27,8 @@ async fn create_user(
     let conn: &PgConnection = &pool.get().unwrap();
 
     // Try to find user by auth0 id from jwt
-    let user = users.filter(auth0id.eq(&auth0_user_id.id))
-      .get_result::<User>(conn).ok().unwrap();
+
+    let user = get_user(auth0_user_id, conn)?;
 
     let new_user_with_created_by = NewUser {
       created_by: user.id,

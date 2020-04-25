@@ -48,3 +48,15 @@ pub struct NewPortalView {
   #[serde(rename = "updatedBy")]
   pub updated_by: Uuid,
 }
+
+#[derive(Serialize, Deserialize, JSONPayload)]
+pub struct NewPortalViewPayload {
+  #[serde(rename = "portalId")]
+  pub portal_id: Uuid,
+
+  pub name: String,
+
+  pub egress: String,
+
+  pub access: String,
+}
