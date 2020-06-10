@@ -6,7 +6,7 @@ use uuid::Uuid;
 
 use jwt::dangerous_unsafe_decode;
 
-#[derive(Serialize, Queryable)]
+#[derive(Debug, Serialize, Queryable)]
 pub struct User {
   pub id: Uuid,
 
@@ -17,6 +17,9 @@ pub struct User {
   pub nickname: String,
 
   pub email: String,
+
+  // TODO: Maybe try to figure out how to use postgres enums with status.
+  pub status: String, 
 
   pub orgs: Vec<Uuid>,
 
@@ -33,7 +36,7 @@ pub struct User {
   pub updated_by: Uuid,
 }
 
-#[derive(Serialize, Deserialize, Insertable, JSONPayload)]
+#[derive(Debug, Serialize, Deserialize, Insertable, JSONPayload)]
 #[table_name = "users"]
 pub struct NewUser {
   pub auth0id: String,
@@ -43,6 +46,8 @@ pub struct NewUser {
   pub nickname: String,
 
   pub email: String,
+
+  pub status: String,
 
   #[serde(rename = "createdBy")]
   pub created_by: Uuid,
@@ -62,10 +67,20 @@ pub struct UpdateUser {
 
   pub email: Option<String>,
 
+  pub status: Option<String>,
+
   pub orgs: Option<Vec<Uuid>>,
 
   #[serde(rename = "updatedBy")]
   pub updated_by: Option<Uuid>,
+}
+
+#[derive(Serialize, Deserialize, JSONPayload)]
+pub struct InvitedUser {
+  pub email: String,
+  #[serde(rename = "portalId")]
+  pub portal_id: Uuid,
+  pub egress: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

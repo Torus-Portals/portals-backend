@@ -62,11 +62,32 @@ pub fn get_auth0_user(auth0id: &str) -> Result<Auth0User, reqwest::Error> {
 
   let auth_string = format!("{} {}", token.token_type, token.access_token);
 
-  let auth0_path = env::var("AUTH0_USER_ENDPOINT")
-    .expect("AUTH0_USER_ENDPOINT env var not found.");
-  // let auth0_path = String::from("https://torus-rocks.auth0.com/api/v2/users/");
+  let auth0_path = env::var("AUTH0_API_ENDPOINT")
+    .expect("AUTH0_API_ENDPOINT env var not found.");
 
-  let url = format!("{}{}", auth0_path, utf8_percent_encode(&auth0id, NON_ALPHANUMERIC).to_string());
+  let url = format!("{}users/{}", auth0_path, utf8_percent_encode(&auth0id, NON_ALPHANUMERIC).to_string());
+
+  println!("url is {}", &url);
+
+  let auth0_user: Auth0User = reqwest::Client::new()
+    .get(&url)
+    .header("Authorization", auth_string)
+    .send()?
+    .json()?;
+
+  Ok(auth0_user)
+}
+
+pub fn get_auth0_user_by_email(email: &str) -> Result<Auth0User, reqwest::Error> {
+  let token = get_auth0_token()?;
+
+  let auth_string = format!("{} {}", token.token_type, token.access_token);
+
+  let auth0_path = env::var("AUTH0_API_ENDPOINT")
+    .expect("AUTH0_API_ENDPOINT env var not found.");
+
+  // https://torus-rocks.auth0.com/api/v2/users-by-email?email=broch%40torus.rocks
+  let url = format!("{}users-by-email?email={}", auth0_path, utf8_percent_encode(&email, NON_ALPHANUMERIC).to_string());
 
   let auth0_user: Auth0User = reqwest::Client::new()
     .get(&url)

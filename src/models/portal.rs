@@ -4,7 +4,7 @@ use actix_web::{ FromRequest, HttpRequest, error, dev };
 use chrono::naive::NaiveDateTime;
 use uuid::Uuid;
 
-#[derive(Serialize, Queryable)]
+#[derive(Debug, Serialize, Queryable)]
 pub struct Portal {
   pub id: Uuid,
 

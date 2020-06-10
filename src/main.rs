@@ -16,11 +16,15 @@ extern crate jsonwebtoken as jwt;
 extern crate url;
 extern crate percent_encoding;
 
+extern crate rusoto_core;
+extern crate rusoto_ses;
+
 use actix_web::{ middleware as actix_middleware, App, HttpServer };
 use actix_cors::Cors;
 use listenfd::ListenFd;
 use dotenv::dotenv;
 use db::create_pool;
+
 
 use std::io::prelude::*;
 use std::fs::File;

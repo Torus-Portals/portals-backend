@@ -88,6 +88,7 @@ table! {
         name -> Text,
         nickname -> Text,
         email -> Text,
+        status -> Text,
         orgs -> Array<Uuid>,
         created_at -> Timestamptz,
         created_by -> Uuid,

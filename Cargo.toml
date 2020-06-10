@@ -29,6 +29,9 @@ chrono = { version = "0.4.9", features = ["serde"] }
 serde_qs = "0.5"
 log = "0.4.8"
 env_logger = "0.7.1"
+rusoto_core = "0.43.0"
+rusoto_ses = { version = "0.43.0", features = ["serialize_structs"] }
+time = "~0.2.14"
 
 [features]
 default = []
