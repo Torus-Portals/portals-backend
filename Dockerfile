@@ -1,5 +1,5 @@
 # BUILD
-FROM rust:1.41 as builder
+FROM rust:1.44 as builder
 
 WORKDIR /usr/src/torus-backend
 
@@ -24,7 +24,7 @@ EXPOSE 8088
 
 EXPOSE 5432
 
-# CMD ["./torus-backend"]
+CMD ["./torus-backend"]
 
 
 
