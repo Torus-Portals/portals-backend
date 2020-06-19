@@ -77,11 +77,18 @@ where
           leeway: 120,
           ..Validation::default()
         };
+
         // TODO: Remove these hardcoded audiences. Pull from env?
-        validation.set_audience(&[
-            "http://localhost:8088",
-            "https://torus-rocks.auth0.com/userinfo",
-        ]);
+        if cfg!(feature = "local_dev") {
+          validation.set_audience(&[
+              "http://localhost:8088",
+              "https://torus-rocks.auth0.com/userinfo",
+          ]);
+        } else {
+          validation.set_audience(&[
+              "https://portals-backend-1.caprover.portals-dev.rocks/",
+          ]);
+        }
 
         match decode::<Claims>(acces_token.get(1).unwrap(), &key.0, &validation) {
           Ok(_) => {
