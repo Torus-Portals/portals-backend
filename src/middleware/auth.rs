@@ -14,8 +14,6 @@ use dev:: {ServiceRequest, ServiceResponse };
 
 use jwt::{ Validation, decode, Algorithm, errors::ErrorKind };
 
-
-
 #[derive(Debug, Serialize, Deserialize)]
 struct Claims {
   sub: String,

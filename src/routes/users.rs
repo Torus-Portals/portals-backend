@@ -16,7 +16,7 @@ use crate::schema::{ users, portals };
 use users::{ table as UserTable, dsl as UserQuery };
 use portals::{ table as PortalTable, dsl as PortalQuery };
 
-use crate::services::auth0_service::{ get_auth0_user };
+use crate::services::auth0_service::{ get_auth0_user, get_auth0_token };
 use crate::services::email_service::{ send_invitation_email };
 
 use crate::queries::user_queries::{ get_user, get_user_by_email };
@@ -58,6 +58,8 @@ async fn get_requesting_user(
   pool: web::Data<Pool>
 ) -> Result<HttpResponse, Error> {
   let pool1 = pool.clone();
+
+  println!("Getting requesting_user");
 
   Ok(web::block(move || -> Result<User, diesel::result::Error> {
     let conn: &PgConnection = &pool1.get().unwrap();
