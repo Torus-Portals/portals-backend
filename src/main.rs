@@ -48,7 +48,8 @@ use crate::routes::{
   portalviews,
   blocks,
   dimensions,
-  cells
+  cells,
+  utility,
 };
 
 // TODO: Handle missing file better. 
@@ -110,6 +111,7 @@ async fn main() -> std::io::Result<()> {
       .service(blocks::get_block_routes())
       .service(dimensions::get_dimension_routes())
       .service(cells::get_cell_routes())
+      .service(utility::get_utility_routes())
   });
 
   server = if let Some(listener) = listenfd.take_tcp_listener(0).unwrap() {
