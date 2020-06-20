@@ -80,15 +80,22 @@ pub fn get_auth0_token() -> Result<Auth0TokenResponse, Auth0RequestError> {
   let client_id = env::var("AUTH0_CLIENT_ID")
     .expect("Unable to get AUTH0_CLIENT_ID env var.");
 
+  println!("client_id: {:?}", client_id);
 
   let client_secret = env::var("AUTH0_CLIENT_SECRET")
     .expect("Unable to get AUTH0_CLIENT_SECRET env var.");
   
+  println!("client_secret: {:?}", client_secret);
+  
   let audience = env::var("AUTH0_API_ENDPOINT")
     .expect("AUTH0_API_ENDPOINT env var not found.");
 
+  println!("client_secret: {:?}", audience);
+
   let token_endpoint = env::var("AUTH0_TOKEN_ENDPOINT")
     .expect("AUTH0_TOKEN_ENDPOINT env var not found");
+
+  println!("token_endpoint: {:?}", token_endpoint);
 
   let params = [
     ("grant_type", "client_credentials"),

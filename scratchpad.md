@@ -9,6 +9,9 @@ scp -i ./broch-1.pem ./portals-backend-dev.tar ubuntu@ec2-13-56-200-232.us-west-
 portals-dev-1.cece4u7qvrsx.us-west-1.rds.amazonaws.com -p 5432 -U "postgres" -W
 
 
+Building a docker image:
+$ docker build --tag <image-name> . // if in the same directory as the Dockerfile
+
 
 
 DATABASE_URL=postgres://brochstilley:Hellothere123!@localhost:5432/portals_main

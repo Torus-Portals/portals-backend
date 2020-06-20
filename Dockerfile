@@ -11,7 +11,7 @@ RUN cargo build --release
 # RUN
 FROM debian:buster-slim
 
-RUN apt-get update && apt-get -y install openssl postgresql-client-11
+RUN apt-get update && apt-get -y install openssl postgresql-client-11 ca-certificates
 
 WORKDIR /usr/local/bin/torus-backend
 
