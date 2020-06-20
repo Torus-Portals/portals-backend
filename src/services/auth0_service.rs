@@ -60,7 +60,6 @@ pub fn handle_auth0_response<T: DeserializeOwned>(mut resp: reqwest::Response) -
       Ok(json)
     },
     StatusCode::FORBIDDEN => {
-      println!("forbidden!!!");
       let p = resp.text()?;
 
       Err(Auth0RequestError {
@@ -68,7 +67,6 @@ pub fn handle_auth0_response<T: DeserializeOwned>(mut resp: reqwest::Response) -
       })
     },
     _ => {
-      println!("baad status code...");
       Err(Auth0RequestError {
         payload: String::from("other")
       })
@@ -79,7 +77,6 @@ pub fn handle_auth0_response<T: DeserializeOwned>(mut resp: reqwest::Response) -
 // TODO: Should cache this token and only refetch it when it expires.
 // TODO: Move at least client_id/client_secret somewhere else as static.
 pub fn get_auth0_token() -> Result<Auth0TokenResponse, Auth0RequestError> {
-// pub fn get_auth0_token() -> Result<Auth0TokenResponse, reqwest::Error> {
   let client_id = env::var("AUTH0_CLIENT_ID")
     .expect("Unable to get AUTH0_CLIENT_ID env var.");
 
@@ -88,9 +85,7 @@ pub fn get_auth0_token() -> Result<Auth0TokenResponse, Auth0RequestError> {
     .expect("Unable to get AUTH0_CLIENT_SECRET env var.");
   
   let audience = env::var("AUTH0_API_ENDPOINT")
-    .expect("AUTH0_AUDIENCE env var not found.");
-  // let audience = env::var("AUTH0_AUDIENCE")
-  //   .expect("AUTH0_AUDIENCE env var not found.");
+    .expect("AUTH0_API_ENDPOINT env var not found.");
 
   let token_endpoint = env::var("AUTH0_TOKEN_ENDPOINT")
     .expect("AUTH0_TOKEN_ENDPOINT env var not found");
@@ -111,7 +106,6 @@ pub fn get_auth0_token() -> Result<Auth0TokenResponse, Auth0RequestError> {
 }
 
 pub fn get_auth0_user(auth0id: &str) -> Result<Auth0User, Auth0RequestError> {
-// pub fn get_auth0_user(auth0id: &str) -> Result<Auth0User, reqwest::Error> {
   let token = get_auth0_token()?;
   println!("access_token?: {:?}", token);
 

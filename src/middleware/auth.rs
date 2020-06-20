@@ -77,16 +77,21 @@ where
         };
 
         // TODO: Remove these hardcoded audiences. Pull from env?
-        if cfg!(feature = "local_dev") {
-          validation.set_audience(&[
-              "http://localhost:8088",
-              "https://torus-rocks.auth0.com/userinfo",
-          ]);
-        } else {
-          validation.set_audience(&[
-              "https://portals-backend-1.caprover.portals-dev.rocks/",
-          ]);
-        }
+        validation.set_audience(&[
+            "http://localhost:8088",
+            "https://torus-rocks.auth0.com/userinfo",
+        ]);
+        // if cfg!(feature = "local_dev") {
+        //   validation.set_audience(&[
+        //       "http://localhost:8088",
+        //       "https://torus-rocks.auth0.com/userinfo",
+        //       "https://portals-backend-1.caprover.portals-dev.rocks/",
+        //   ]);
+        // } else {
+        //   validation.set_audience(&[
+        //       "https://portals-backend-1.caprover.portals-dev.rocks/",
+        //   ]);
+        // }
 
         match decode::<Claims>(acces_token.get(1).unwrap(), &key.0, &validation) {
           Ok(_) => {
@@ -98,31 +103,56 @@ where
               Ok(res)
             })
           },
-          Err(err) => match err.kind() {
-            // TODO: Needs better error handling, but this works for now.
-            ErrorKind::InvalidToken => Box::pin(ok(req.into_response(HttpResponse::Unauthorized().finish().into_body()))),
-            // ErrorKind::InvalidToken => Either::B(ServiceResponse::new(req, HttpResponse::Unauthorized().finish().into_body())),
-            // ErrorKind::InvalidToken => panic!("Token is invalid"),
-            // ErrorKind::InvalidIssuer => panic!("Issuer is invalid"),
-            // ErrorKind::InvalidRsaKey => panic!("InvalidRsaKey"),
-            // ErrorKind::InvalidSignature => panic!("Invalid Signature"),
-            // ErrorKind::InvalidAudience => panic!("InvalidAudience"),
-            // ErrorKind::InvalidAlgorithm => panic!("InvalidAlgorithm"),
-            // ErrorKind::ImmatureSignature => panic!("ImmatureSignature"),
-            // ErrorKind::ExpiredSignature => panic!("ExpiredSignature"),
-            // ErrorKind::InvalidSubject => panic!("InvalidSubject"),
-            // ErrorKind::InvalidEcdsaKey => panic!("InvalidEcdsaKey"),
-            // ErrorKind::InvalidAlgorithmName => panic!("InvalidAlgorithmName"),
-            // ErrorKind::Json(_) => panic!("Json"),
-            // ErrorKind::Base64(a) => {
-            //   println!("a: {:#?}", a.clone());
-            //   panic!("Base64")
-            // },
-            // ErrorKind::Crypto(_) => panic!("Crypto"),
-            // ErrorKind::Utf8(_) => panic!("Utf8"),
-            // ErrorKind::__Nonexhaustive => panic!("dunno..."),
-            // _ => Either::B(fut_ok(req.error_response(err.into()))),
-            _ => Box::pin(ok(req.into_response(HttpResponse::Unauthorized().finish().into_body()))),
+          Err(err) => {
+            match err.kind() {
+              // TODO: Needs better error handling, but this works for now.
+              ErrorKind::InvalidToken => {
+                Box::pin(
+                  ok(
+                    req.into_response(
+                      HttpResponse::Unauthorized()
+                      .body(String::from(err.to_string()))
+                      // .finish()
+                      .into_body()
+                    )
+                  )
+                )
+              },
+              // ErrorKind::InvalidToken => Box::pin(ok(req.into_response(HttpResponse::Unauthorized().finish().into_body()))),
+              // ErrorKind::InvalidToken => Either::B(ServiceResponse::new(req, HttpResponse::Unauthorized().finish().into_body())),
+              // ErrorKind::InvalidToken => panic!("Token is invalid"),
+              // ErrorKind::InvalidIssuer => panic!("Issuer is invalid"),
+              // ErrorKind::InvalidRsaKey => panic!("InvalidRsaKey"),
+              // ErrorKind::InvalidSignature => panic!("Invalid Signature"),
+              // ErrorKind::InvalidAudience => panic!("InvalidAudience"),
+              // ErrorKind::InvalidAlgorithm => panic!("InvalidAlgorithm"),
+              // ErrorKind::ImmatureSignature => panic!("ImmatureSignature"),
+              // ErrorKind::ExpiredSignature => panic!("ExpiredSignature"),
+              // ErrorKind::InvalidSubject => panic!("InvalidSubject"),
+              // ErrorKind::InvalidEcdsaKey => panic!("InvalidEcdsaKey"),
+              // ErrorKind::InvalidAlgorithmName => panic!("InvalidAlgorithmName"),
+              // ErrorKind::Json(_) => panic!("Json"),
+              // ErrorKind::Base64(a) => {
+              //   println!("a: {:#?}", a.clone());
+              //   panic!("Base64")
+              // },
+              // ErrorKind::Crypto(_) => panic!("Crypto"),
+              // ErrorKind::Utf8(_) => panic!("Utf8"),
+              // ErrorKind::__Nonexhaustive => panic!("dunno..."),
+              // _ => Either::B(fut_ok(req.error_response(err.into()))),
+              _ => {
+                Box::pin(
+                  ok(
+                    req.into_response(
+                      HttpResponse::Unauthorized()
+                      .body(String::from(err.to_string()))
+                      // .finish()
+                      .into_body()
+                    )
+                  )
+                )
+              },
+            }
           }
         }
       },
