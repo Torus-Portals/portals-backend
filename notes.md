@@ -63,6 +63,8 @@ https://stackoverflow.com/questions/3855127/find-and-kill-process-locking-port-3
 $ sudo lsof -i :8088
 // or
 $ sudo lsof -i tcp:8088
+// the kill
+$ kill <pid>
 ```
 
 

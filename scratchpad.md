@@ -62,12 +62,31 @@ psql -h portals-dev-1.cece4u7qvrsx.us-west-1.rds.amazonaws.com -p 5432 -U "postg
 export DATABASE_URL='postgres://postgres:qwerty123456!@portals-local-1.cece4u7qvrsx.us-west-1.rds.amazonaws.com:5432/portals_main'
 
 
-
 docker run --rm -i -t \
 --publish 8088:8088 \
 --publish 5432:5432 \
--e DATABASE_URL='postgres://postgres:qwerty123456!@portals-dev-1.cece4u7qvrsx.us-west-1.rds.amazonaws.com:5432/portals_main'  \
+-e DATABASE_URL='postgres://postgres:FvMaZaSN2SawdHAG@portals-dev-2.cece4u7qvrsx.us-west-1.rds.amazonaws.com:5432/portals_main'  \
 -e PORTALS_MAIN_HOST=0.0.0.0:8088 \
--e 
---name pb1-no-cmd \
-portals-backend-no-cmd:latest
+-e AUTH0_CLIENT_ID=6FfqedcEuzXzu2Pn1bSi1mCVjcG04skm \
+-e AUTH0_CLIENT_SECRET=WAa5rBV8QaCJuB5jAy6ppixcPkq2M1YqjDW5lfqh725FCUYmoCOvQNE_C2duFF8L \
+-e AUTH0_AUDIENCE=https://portals-backend-1.caprover.portals-dev.rocks/ \
+-e AUTH0_TOKEN_ENDPOINT=https://torus-rocks.auth0.com/oauth/token \
+-e AUTH0_USER_ENDPOINT=https://torus-rocks.auth0.com/api/v2/users/ \
+-e AUTH0_API_ENDPOINT=https://torus-rocks.auth0.com/api/v2/ \
+--name p-test-cert-1 \
+portals-be-cert-test:latest
+
+
+docker run -d -it \
+--publish 8088:8088 \
+--publish 5432:5432 \
+-e DATABASE_URL='postgres://postgres:FvMaZaSN2SawdHAG@portals-dev-2.cece4u7qvrsx.us-west-1.rds.amazonaws.com:5432/portals_main'  \
+-e PORTALS_MAIN_HOST=0.0.0.0:8088 \
+-e AUTH0_CLIENT_ID=6FfqedcEuzXzu2Pn1bSi1mCVjcG04skm \
+-e AUTH0_CLIENT_SECRET=WAa5rBV8QaCJuB5jAy6ppixcPkq2M1YqjDW5lfqh725FCUYmoCOvQNE_C2duFF8L \
+-e AUTH0_AUDIENCE=https://portals-backend-1.caprover.portals-dev.rocks/ \
+-e AUTH0_TOKEN_ENDPOINT=https://torus-rocks.auth0.com/oauth/token \
+-e AUTH0_USER_ENDPOINT=https://torus-rocks.auth0.com/api/v2/users/ \
+-e AUTH0_API_ENDPOINT=https://torus-rocks.auth0.com/api/v2/ \
+--name p-test-cert-1 \
+portals-be-cert-test:latest

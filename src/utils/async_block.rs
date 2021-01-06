@@ -11,7 +11,7 @@ pub enum BlockError {
 }
 
 impl From<DieselError> for BlockError {
-  fn from(err: DieselError) -> Self {
+  fn from(_err: DieselError) -> Self {
     BlockError::DBQueryError("crap".to_string())
   }
 }
@@ -29,13 +29,13 @@ pub async fn async_block<F, I>(func: F) -> Result<HttpResponse, Error>
         I: Send + Serialize + 'static {
   Ok(web::block(func)
   .await
-  .map(|block_resp| {
+  .map(| block_resp| {
     match block_resp {
       BlockResponse::JSON(json) => HttpResponse::Ok().json(json),
       BlockResponse::Empty => HttpResponse::Ok().finish(),
     }
   })
-  .map_err(|err: BlockingError<BlockError> | -> HttpResponse {
+  .map_err(| err: BlockingError<BlockError> | -> HttpResponse {
     match err {
       BlockingError::Error(block_err) => {
         match block_err {

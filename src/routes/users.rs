@@ -5,7 +5,7 @@ use uuid::Uuid;
 
 use std::convert::From;
 
-use crate::utils::general::query_to_response;
+// use crate::utils::general::query_to_response;
 use crate::utils::async_block::{ async_block, BlockError, BlockResponse, BlockResult };
 
 use crate::models::user::{ User, NewUser, UpdateUser, InvitedUser, Auth0UserId };
