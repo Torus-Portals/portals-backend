@@ -8,21 +8,22 @@ edition = "2018"
 
 [dependencies]
 json_payload_derive = { path = "./proc_macros/json_payload_derive" }
-actix-rt = "1.0.0"
-actix-web = "2.0.0"
-actix-web-codegen = "0.2.0"
-actix-cors = "0.2.0"
-actix-service = "1.0.2"
-diesel = { version = "1.4.3", features = ["postgres", "r2d2", "chrono", "uuidv07", "serde_json"] }
+actix-web = "4.0.0-beta.4"
+actix-web-codegen = "0.5.0-beta.1"
+actix-cors = "0.6.0-beta.1"
+actix-utils = "3.0.0-beta.4"
+actix-service = "2.0.0-beta.5"
+actix-web-httpauth = "0.6.0-beta.1"
+# diesel = { version = "1.4.3", features = ["postgres", "r2d2", "chrono", "uuidv07", "serde_json"] }
 dotenv = "0.14.1"
 serde = "1.0.104"
 serde_derive = "1.0.104"
 serde_json = "1.0.44"
 listenfd = "0.3.3"
 futures = "0.3.1"
-uuid = { version = "0.7.4", features = ["serde", "v4"] }
-jsonwebtoken = "6.0.1"
-reqwest = "0.9.20"
+uuid = { version = "0.8.2", features = ["serde", "v4"] }
+jsonwebtoken = "7.2.0"
+reqwest = "0.11.2"
 url = "2.1.0"
 percent-encoding = "2.1.0"
 chrono = { version = "0.4.9", features = ["serde"] }
@@ -31,7 +32,11 @@ log = "0.4.8"
 env_logger = "0.7.1"
 rusoto_core = "0.44.0"
 rusoto_ses = { version = "0.44.0", features = ["serialize_structs"] }
-time = "~0.2.14"
+time = "0.2.26"
+juniper = { git = "https://github.com/graphql-rust/juniper" }
+juniper_actix = "0.2.3"
+sqlx = { version = "0.5.1", features = ["postgres", "uuid", "json", "chrono", "runtime-actix-native-tls"] }
+
 
 [features]
 default = []

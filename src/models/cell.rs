@@ -1,10 +1,9 @@
-use crate::schema::cells;
-use actix_web::{ FromRequest, HttpRequest, error, dev };
+use actix_web::{dev, error, FromRequest, HttpRequest};
 use chrono::naive::NaiveDateTime;
-use uuid::Uuid;
 use serde_json;
+use uuid::Uuid;
 
-#[derive(Serialize, Queryable)]
+#[derive(Serialize)]
 pub struct Cell {
   pub id: Uuid,
 
@@ -32,8 +31,7 @@ pub struct Cell {
   pub updated_by: Uuid,
 }
 
-#[derive(Serialize, Deserialize, Insertable)] 
-#[table_name = "cells"]
+#[derive(Serialize, Deserialize)]
 pub struct NewCell {
   #[serde(rename = "portalId")]
   pub portal_id: Uuid,
@@ -66,10 +64,9 @@ pub struct NewCellPayload {
 }
 
 #[derive(Serialize, Deserialize, JSONPayload)]
-pub struct NewCellsPayload (pub Vec<NewCellPayload>);
+pub struct NewCellsPayload(pub Vec<NewCellPayload>);
 
-#[derive(Debug, Serialize, Deserialize, AsChangeset, JSONPayload)]
-#[table_name = "cells"]
+#[derive(Debug, Serialize, Deserialize, JSONPayload)]
 pub struct UpdateCell {
   #[serde(rename = "cellType")]
   pub cell_type: Option<String>,

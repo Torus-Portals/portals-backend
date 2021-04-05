@@ -1,11 +1,9 @@
-use crate::schema::blocks;
-// use crate::futures::{ future::ok as fut_ok };
 use actix_web::{ FromRequest, HttpRequest, error, dev };
 use chrono::naive::NaiveDateTime;
 use uuid::Uuid;
 use serde_json;
 
-#[derive(Serialize, Queryable)]
+#[derive(Serialize)]
 pub struct Block {
   pub id: Uuid,
 
@@ -37,8 +35,7 @@ pub struct Block {
   pub updated_by: Uuid,
 }
 
-#[derive(Serialize, Deserialize, Insertable)] 
-#[table_name = "blocks"]
+#[derive(Serialize, Deserialize)] 
 pub struct NewBlock {
   pub block_type: String,
   pub portal_id: Uuid,

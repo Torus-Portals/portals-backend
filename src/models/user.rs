@@ -1,12 +1,11 @@
-use crate::schema::users;
-use futures::future::{ ok, Ready};
-use actix_web::{ FromRequest, HttpRequest, error, dev };
-use chrono::naive::NaiveDateTime;
+use actix_web::{dev, error, FromRequest, HttpRequest};
+use chrono::{DateTime, NaiveDateTime, Utc};
+use futures::future::{ok, Ready};
 use uuid::Uuid;
 
-use jwt::dangerous_unsafe_decode;
+use jwt::dangerous_insecure_decode;
 
-#[derive(Debug, Serialize, Queryable)]
+#[derive(Debug, Serialize)]
 pub struct User {
   pub id: Uuid,
 
@@ -19,25 +18,24 @@ pub struct User {
   pub email: String,
 
   // TODO: Maybe try to figure out how to use postgres enums with status.
-  pub status: String, 
+  pub status: String,
 
   pub orgs: Vec<Uuid>,
 
   #[serde(rename = "createdAt")]
-  pub created_at: NaiveDateTime,
+  pub created_at: DateTime<Utc>,
 
   #[serde(rename = "createdBy")]
   pub created_by: Uuid,
 
   #[serde(rename = "updatedAt")]
-  pub updated_at: NaiveDateTime,
+  pub updated_at: DateTime<Utc>,
 
   #[serde(rename = "updatedBy")]
   pub updated_by: Uuid,
 }
 
-#[derive(Debug, Serialize, Deserialize, Insertable, JSONPayload)]
-#[table_name = "users"]
+#[derive(Debug, Serialize, Deserialize, JSONPayload)]
 pub struct NewUser {
   pub auth0id: String,
 
@@ -56,8 +54,7 @@ pub struct NewUser {
   pub updated_by: Uuid,
 }
 
-#[derive(Debug, Serialize, Deserialize, AsChangeset, JSONPayload)]
-#[table_name = "users"]
+#[derive(Debug, Serialize, Deserialize, JSONPayload)]
 pub struct UpdateUser {
   pub auth0id: Option<String>,
 
@@ -85,12 +82,12 @@ pub struct InvitedUser {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Auth0UserId {
-  pub id: String
+  pub id: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Auth0UserClaims {
-  pub sub: String
+  pub sub: String,
 }
 
 impl FromRequest for Auth0UserId {
@@ -104,8 +101,12 @@ impl FromRequest for Auth0UserId {
     let access_token: Vec<&str> = access_token_str.split_whitespace().collect();
 
     // Okay do dangerous_unsafe_decode here because the user has already verified in middleware.
-    let decoded_token = dangerous_unsafe_decode::<Auth0UserClaims>(access_token.get(1).unwrap()).ok().unwrap();
+    let decoded_token = dangerous_insecure_decode::<Auth0UserClaims>(access_token.get(1).unwrap())
+      .ok()
+      .unwrap();
 
-    ok(Auth0UserId { id: decoded_token.claims.sub.clone() })
+    ok(Auth0UserId {
+      id: decoded_token.claims.sub.clone(),
+    })
   }
 }

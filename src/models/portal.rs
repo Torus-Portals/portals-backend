@@ -1,10 +1,8 @@
-use crate::schema::portals;
-// use crate::futures::{ Future, future::ok as fut_ok };
 use actix_web::{ FromRequest, HttpRequest, error, dev };
 use chrono::naive::NaiveDateTime;
 use uuid::Uuid;
 
-#[derive(Debug, Serialize, Queryable)]
+#[derive(Debug, Serialize)]
 pub struct Portal {
   pub id: Uuid,
 
@@ -29,8 +27,7 @@ pub struct Portal {
   pub updated_by: Uuid,
 }
 
-#[derive(Serialize, Deserialize, Insertable)]
-#[table_name = "portals"]
+#[derive(Serialize, Deserialize)]
 pub struct NewPortal {
   pub org: Uuid,
 
@@ -51,8 +48,7 @@ pub struct NewPortalPayload {
   pub name: String,
 }
 
-#[derive(Debug, Serialize, Deserialize, AsChangeset, JSONPayload)]
-#[table_name = "portals"]
+#[derive(Debug, Serialize, Deserialize, JSONPayload)]
 pub struct UpdatePortal {
   pub name: Option<String>,
 

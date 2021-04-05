@@ -1,10 +1,9 @@
-use crate::schema::dimensions;
-use actix_web::{ FromRequest, HttpRequest, error, dev };
+use actix_web::{dev, error, FromRequest, HttpRequest};
 use chrono::naive::NaiveDateTime;
-use uuid::Uuid;
 use serde_json;
+use uuid::Uuid;
 
-#[derive(Serialize, Queryable)]
+#[derive(Serialize)]
 pub struct Dimension {
   pub id: Uuid,
 
@@ -31,8 +30,7 @@ pub struct Dimension {
   pub updated_by: Uuid,
 }
 
-#[derive(Serialize, Deserialize, Insertable)]
-#[table_name = "dimensions"]
+#[derive(Serialize, Deserialize)]
 pub struct NewDimension {
   #[serde(rename = "portalId")]
   pub portal_id: Uuid,
@@ -65,4 +63,4 @@ pub struct NewDimensionPayload {
 }
 
 #[derive(Serialize, Deserialize, JSONPayload)]
-pub struct NewDimensionsPayload (pub Vec<NewDimensionPayload>);
+pub struct NewDimensionsPayload(pub Vec<NewDimensionPayload>);

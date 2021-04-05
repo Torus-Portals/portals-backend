@@ -1,10 +1,8 @@
-use crate::schema::portalviews;
-// use crate::futures::{ Future, future::ok as fut_ok };
 use actix_web::{ FromRequest, HttpRequest, error, dev };
 use chrono::naive::NaiveDateTime;
 use uuid::Uuid;
 
-#[derive(Serialize, Queryable)]
+#[derive(Serialize)]
 pub struct PortalView {
   pub id: Uuid,
 
@@ -30,8 +28,7 @@ pub struct PortalView {
   pub updated_by: Uuid,
 }
 
-#[derive(Serialize, Deserialize, Insertable, JSONPayload)]
-#[table_name="portalviews"]
+#[derive(Serialize, Deserialize, JSONPayload)]
 pub struct NewPortalView {
   #[serde(rename = "portalId")]
   pub portal_id: Uuid,
