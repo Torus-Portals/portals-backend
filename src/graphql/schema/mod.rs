@@ -1,18 +1,16 @@
-use juniper::{graphql_object, EmptySubscription, RootNode, DefaultScalarValue};
+use juniper::{graphql_object, EmptySubscription, RootNode, DefaultScalarValue, FieldResult};
 use uuid::Uuid;
 
-pub mod query;
-pub mod mutation;
 pub mod org;
 pub mod misc;
 
-use query::Query;
-use mutation::Mutation;
 use super::context::GQLContext;
 
 use crate::models::org::{NewOrg, Org};
 
 pub type Schema = RootNode<'static, Query, Mutation, EmptySubscription<GQLContext>, DefaultScalarValue>;
+
+pub struct Query;
 
 // Have to split the impls up in this weird way do to the graphql macro here:
 // https://users.rust-lang.org/t/can-i-add-functions-from-modules-to-a-struct/33791/4
@@ -23,18 +21,21 @@ impl Query {
     }
 
     // Org
-    async fn orgs(ctx: &GQLContext) -> Vec<Org> {
+    async fn org(ctx: &GQLContext, id: Uuid) -> FieldResult<Org> {
+      Query::org_impl(ctx, id).await
+    }
+
+    async fn orgs(ctx: &GQLContext) -> FieldResult<Vec<Org>> {
       Query::orgs_impl(ctx).await
     }
 
-    async fn org(ctx: &GQLContext, id: Uuid) -> Org {
-      Query::org_impl(ctx, id).await
-    }
 }
+
+pub struct Mutation;
 
 #[graphql_object(context = GQLContext)]
 impl Mutation {
-  async fn create_org(ctx: &GQLContext, new_org: NewOrg) -> Org {
+  async fn create_org(ctx: &GQLContext, new_org: NewOrg) -> FieldResult<Org> {
     Mutation::create_org_impl(ctx, new_org).await
   }
 }

@@ -16,7 +16,6 @@ extern crate url;
 extern crate rusoto_core;
 extern crate rusoto_ses;
 
-mod db;
 mod graphql;
 mod middleware;
 mod models;
