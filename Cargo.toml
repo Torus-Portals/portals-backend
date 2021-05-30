@@ -37,7 +37,8 @@ time = "0.2.26"
 juniper = { git = "https://github.com/graphql-rust/juniper" }
 juniper_actix = "0.2.3"
 sqlx = { version = "0.5.1", features = ["postgres", "uuid", "json", "chrono", "runtime-actix-native-tls"] }
-
+strum = "0.20.0"
+strum_macros = "0.20.1"
 
 [features]
 default = []

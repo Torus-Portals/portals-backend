@@ -1,5 +1,5 @@
 # BUILD
-FROM rust:1.44 as builder
+FROM rust:1.52 as builder
 
 WORKDIR /usr/src/torus-backend
 

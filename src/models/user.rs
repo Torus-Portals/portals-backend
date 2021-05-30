@@ -1,5 +1,5 @@
 use actix_web::{dev, error, FromRequest, HttpRequest};
-use chrono::{DateTime, NaiveDateTime, Utc};
+use chrono::{DateTime, Utc};
 use futures::future::{ok, Ready};
 use uuid::Uuid;
 

@@ -15,15 +15,16 @@ pub async fn validator(req: ServiceRequest, credentials: BearerAuth) -> Result<S
   let key = req.app_data::<DecodingKey>().unwrap();
 
   let mut validation = Validation {
-    algorithms: vec![Algorithm::RS256],
+    algorithms: vec![Algorithm::HS256],
     leeway: 120,
     ..Validation::default()
   };
 
   // TODO: Remove these hardcoded audiences. Pull from env?
   validation.set_audience(&[
-    "http://localhost:8088",
-    "https://torus-rocks.auth0.com/userinfo",
+    // "http://localhost:8088",
+    // "https://torus-rocks.auth0.com/userinfo",
+    "a7781863-554e-4849-9be4-020aa067a2cc"
   ]);
 
   match decode::<Claims>(credentials.token(), &key, &validation) {
