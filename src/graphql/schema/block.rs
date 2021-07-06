@@ -1,25 +1,25 @@
 use chrono::{DateTime, Utc};
-use juniper::{FieldError, FieldResult, GraphQLObject, GraphQLUnion, GraphQLEnum};
+use juniper::{FieldError, FieldResult, GraphQLEnum, GraphQLObject, GraphQLUnion};
 use serde_json;
-use uuid::Uuid;
 use std::str::FromStr;
 use strum_macros::EnumString;
+use uuid::Uuid;
 
 // use super::Mutation;
 use super::Query;
 use crate::graphql::context::GQLContext;
-use crate::services::db::block_service::{DBBlock};
+use crate::services::db::block_service::DBBlock;
 
 // #[derive(From, Debug, GraphQLUnion)]
 #[derive(Debug, GraphQLUnion, Serialize, Deserialize)]
 pub enum GQLBlocks {
   BasicTable(BasicTableBlock),
-  Empty(EmptyBlock)
+  Empty(EmptyBlock),
 }
 
 #[derive(Debug, Serialize, Deserialize, GraphQLEnum, EnumString)]
 pub enum BlockTypes {
-  BasicTable
+  BasicTable,
 }
 
 #[derive(GraphQLObject, Debug, Serialize, Deserialize)]
@@ -67,12 +67,14 @@ impl From<DBBlock> for Block {
       "BasicTable" => {
         let b: BasicTableBlock = serde_json::from_value(db_block.data).expect("come on");
         GQLBlocks::BasicTable(b)
-      },
-      &_ => GQLBlocks::Empty(EmptyBlock { block_type: String::from("nothing")}),
+      }
+      &_ => GQLBlocks::Empty(EmptyBlock {
+        block_type: String::from("nothing"),
+      }),
     };
 
-
-    let block_type = BlockTypes::from_str(db_block.block_type.as_str()).unwrap();
+    let block_type = BlockTypes::from_str(db_block.block_type.as_str())
+      .expect("Unable to convert block_type string to enum variant");
 
     Block {
       id: db_block.id,
@@ -98,7 +100,9 @@ pub struct BasicTableBlock {
 }
 
 #[derive(GraphQLObject, Debug, Serialize, Deserialize)]
-pub struct EmptyBlock { block_type: String }
+pub struct EmptyBlock {
+  block_type: String,
+}
 
 // impl BasicTableBlock {
 //   fn new() -> BasicTableBlock {
