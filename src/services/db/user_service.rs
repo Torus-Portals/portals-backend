@@ -2,9 +2,8 @@ use super::DB;
 
 use anyhow::Result;
 use chrono::{DateTime, Utc};
-use serde_json;
-use uuid::Uuid;
 
+use uuid::Uuid;
 
 #[derive(Debug, Serialize)]
 pub struct DBUser {
@@ -21,6 +20,7 @@ pub struct DBUser {
   // TODO: Maybe try to figure out how to use postgres enums with status.
   pub status: String,
 
+  // NOTE: change this property to org_ids
   pub orgs: Vec<Uuid>,
 
   #[serde(rename = "createdAt")]
@@ -39,6 +39,17 @@ pub struct DBUser {
 impl DB {
   pub async fn get_user(&self, user_id: Uuid) -> Result<DBUser> {
     sqlx::query_as!(DBUser, "select * from users where id = $1", user_id)
+      .fetch_one(&self.pool)
+      .await
+      .map_err(anyhow::Error::from)
+  }
+
+  pub async fn get_user_by_auth0_id(&self, auth0_user_id: &str) -> Result<DBUser> {
+    sqlx::query_as!(
+      DBUser,
+      "select * from users where auth0id = $1",
+      auth0_user_id
+    )
     .fetch_one(&self.pool)
     .await
     .map_err(anyhow::Error::from)

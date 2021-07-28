@@ -7,10 +7,10 @@ use super::Mutation;
 use super::Query;
 
 use crate::graphql::context::GQLContext;
-use crate::services::db::org_service::{DBOrg, DBNewOrg};
+use crate::services::db::org_service::{DBNewOrg, DBOrg};
 use uuid::Uuid;
 
-#[derive(GraphQLObject, Debug, Serialize, Deserialize)]
+#[derive(GraphQLObject, Debug, Serialize, Deserialize, Clone)]
 pub struct Org {
   pub id: Uuid,
 
@@ -48,12 +48,19 @@ pub struct NewOrg {
 
 impl Query {
   pub async fn orgs_impl(ctx: &GQLContext) -> FieldResult<Vec<Org>> {
-    ctx
-      .db
-      .get_orgs()
-      .await
-      .map(|orgs| -> Vec<Org> { orgs.into_iter().map(|org| org.into()).collect() })
-      .map_err(FieldError::from)
+    let user = ctx.db.get_user_by_auth0_id(&ctx.auth0_user_id).await?;
+    let user_orgs = user.orgs.clone();
+
+    let orgs_by_id = ctx.org_loader.load_many(user.orgs.into()).await;
+
+    let orgs = orgs_by_id
+      .into_iter()
+      .fold(Vec::new(), |mut acc, (id, o)| {
+        if user_orgs.contains(&id) { acc.push(o) };
+        acc
+      });
+
+    Ok(orgs)
   }
 
   pub async fn org_impl(ctx: &GQLContext, org_id: Uuid) -> FieldResult<Org> {

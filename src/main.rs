@@ -16,6 +16,8 @@ extern crate url;
 extern crate rusoto_core;
 extern crate rusoto_ses;
 
+extern crate base64;
+
 mod graphql;
 mod middleware;
 mod models;
@@ -27,11 +29,12 @@ mod state;
 mod utils;
 
 use actix_cors::Cors;
-use actix_web::{middleware as actix_middleware, App, HttpServer, HttpResponse, Error, get};
+use actix_web::{get, middleware as actix_middleware, App, Error, HttpResponse, HttpServer};
 use dotenv::dotenv;
 use jsonwebtoken::DecodingKey;
 use listenfd::ListenFd;
 use sqlx::postgres::PgPoolOptions;
+use base64::encode;
 
 use crate::graphql::{graphql_routes, schema as graphql_schema};
 use crate::state::State;
@@ -77,16 +80,27 @@ async fn main() -> std::io::Result<()> {
 
   let mut listenfd = ListenFd::from_env();
   let mut server = HttpServer::new(move || {
+    let client_secret = std::env::var("AUTH0_API_SIGNING_SECRET").expect("Unable to get AUTH0_API_SIGNING_SECRET.");
+
+    // let b64_client_secret = encode(&client_secret);
+
+    let decoding_key = DecodingKey::from_secret(client_secret.as_bytes()).into_static();
+
     App::new()
       .data(state.clone())
       .data(graphql_schema::create_schema())
-      .app_data(DecodingKey::from_rsa_der(&KEY))
-      .wrap(actix_middleware::Logger::new("%r %s size:%b time in ms:%D"))
+      // .app_data(decoding_key.clone())
+      .app_data(decoding_key)
+      // .app_data(DecodingKey::from_secret(b64_client_secret.as_bytes()))
+      // .app_data(DecodingKey::from_secret())
+      // .wrap(actix_middleware::Logger::new("%r %s size:%b time in ms:%D"))
       .wrap(
         Cors::default()
-          .allowed_origin("https://local.torus-dev.rocks:3001") // TODO: env var this
           .allowed_origin("http://localhost:8088") // TODO: env var this
-          .allowed_methods(vec!["GET", "POST", "PATCH"]),
+          .allowed_origin("https://local.portals-dev.rocks:3000") // TODO: env var this
+          .allowed_methods(vec!["GET", "POST", "PATCH", "OPTIONS"])
+          .allow_any_header()
+          .supports_credentials(),
       )
       .service(graphql_routes::get_graphql_routes())
       .service(graphql_routes::get_graphql_dev_routes())

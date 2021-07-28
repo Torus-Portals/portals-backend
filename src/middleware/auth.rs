@@ -2,7 +2,8 @@ use actix_web::dev::ServiceRequest;
 use actix_web::{Error};
 use actix_web_httpauth::extractors::bearer::{BearerAuth, Config};
 use actix_web_httpauth::extractors::{AuthenticationError};
-use jsonwebtoken::{decode, Algorithm, DecodingKey, Validation};
+use jsonwebtoken::{decode, DecodingKey, Validation};
+// use jsonwebtoken::{decode, Algorithm, DecodingKey, Validation};
 
 #[derive(Debug, Serialize, Deserialize)]
 struct Claims {
@@ -13,23 +14,36 @@ struct Claims {
 
 pub async fn validator(req: ServiceRequest, credentials: BearerAuth) -> Result<ServiceRequest, Error> {
   let key = req.app_data::<DecodingKey>().unwrap();
+  // let cs = "ek5BUjdVSVVCWmk2dC1EbU9IVndwWmpSUHBoVTN5LXVJUG9nQnpybTVHN3RYczVjdGRRRm5SaXVSOXJiSzRDdg==".as_bytes();
+  // let cs = "zNAR7UIUBZi6t-DmOHVwpZjRPphU3y-uIPogBzrm5G7tXs5ctdQFnRiuR9rbK4Cv".as_bytes();
+  // let key = DecodingKey::from_secret(cs);
+  // let client_secret = std::env::var("AUTH0_CLIENT_SECRET").expect("Unable to get AUTH0_CLIENT_SECRET.");
+  // println!("client_secret: {}", client_secret);
+  // let b64_client_secret = base64::encode(client_secret);
+  // println!("b64_client_secret: {}", b64_client_secret);
+  // let key = DecodingKey::from_secret(b64_client_secret.as_bytes());
+
+
+  // println!("creds: {:?}", credentials.token());
 
   let mut validation = Validation {
-    algorithms: vec![Algorithm::HS256],
+    // algorithms: vec![Algorithm::HS256],
     leeway: 120,
     ..Validation::default()
   };
 
   // TODO: Remove these hardcoded audiences. Pull from env?
   validation.set_audience(&[
-    // "http://localhost:8088",
+    "http://localhost:8088",
     // "https://torus-rocks.auth0.com/userinfo",
-    "a7781863-554e-4849-9be4-020aa067a2cc"
+    // "a7781863-554e-4849-9be4-020aa067a2cc"
+    "https://local.portals-dev.rocks"
   ]);
 
   match decode::<Claims>(credentials.token(), &key, &validation) {
     Ok(_) => Ok(req),
-    Err(_err) => {
+    Err(err) => {
+      println!("valdation err: {:?}", err);
       // TODO: figure out how to better handle this error;
       let config = req
         .app_data::<Config>()

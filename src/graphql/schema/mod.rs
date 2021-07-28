@@ -1,7 +1,7 @@
 use juniper::{graphql_object, DefaultScalarValue, EmptySubscription, FieldResult, RootNode};
 use uuid::Uuid;
 
-pub mod misc;
+// pub mod misc;
 pub mod org;
 pub mod user;
 pub mod portal;
@@ -33,14 +33,20 @@ impl Query {
     Query::org_impl(ctx, org_id).await
   }
 
+  // Orgs, scoped to a User
+  #[graphql(description = "Orgs are scoped to the auth0 id of the requesting user")]
   async fn orgs(ctx: &GQLContext) -> FieldResult<Vec<Org>> {
     Query::orgs_impl(ctx).await
   }
 
-  // User
+  // USer
 
   async fn user(ctx: &GQLContext, user_id: Uuid) -> FieldResult<User> {
     Query::user_impl(ctx, user_id).await
+  }
+
+  async fn current_user(ctx: &GQLContext) -> FieldResult<User> {
+    Query::current_user_impl(ctx).await
   }
 
   // Portal

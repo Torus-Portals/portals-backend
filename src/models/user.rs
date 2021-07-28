@@ -1,6 +1,8 @@
+use std::io::ErrorKind;
+
 use actix_web::{dev, error, FromRequest, HttpRequest};
 use chrono::{DateTime, Utc};
-use futures::future::{ok, Ready};
+use futures::future::{err, ok, Ready};
 use uuid::Uuid;
 
 use jwt::dangerous_insecure_decode;
@@ -91,22 +93,44 @@ pub struct Auth0UserClaims {
 }
 
 impl FromRequest for Auth0UserId {
-  type Error = error::JsonPayloadError;
+  type Error = actix_web::Error;
+  // type Error = error::InternalError<String>;
   type Future = Ready<Result<Self, Self::Error>>;
   type Config = ();
 
   fn from_request(req: &HttpRequest, _payload: &mut dev::Payload) -> Self::Future {
-    let access_token_header_val = req.headers().get("authorization").unwrap();
-    let access_token_str = access_token_header_val.to_str().unwrap();
-    let access_token: Vec<&str> = access_token_str.split_whitespace().collect();
+    // let access_token_header_val = req.headers().get("authorization").unwrap(); // TODO: Get rid of this unwrap!
+    let access_token_header_val = req
+      .headers()
+      .get("authorization")
+      .ok_or_else(|| "Missing authorization header");
 
-    // Okay do dangerous_unsafe_decode here because the user has already verified in middleware.
-    let decoded_token = dangerous_insecure_decode::<Auth0UserClaims>(access_token.get(1).unwrap())
-      .ok()
-      .unwrap();
+    match access_token_header_val {
+      Ok(athv) => {
+        let access_token_str = athv
+          .to_str()
+          .unwrap();
+        let access_token: Vec<&str> = access_token_str
+          .split_whitespace()
+          .collect();
 
-    ok(Auth0UserId {
-      id: decoded_token.claims.sub.clone(),
-    })
+        // Okay to do dangerous_unsafe_decode here because the user has already verified in middleware.
+        let decoded_token = dangerous_insecure_decode::<Auth0UserClaims>(
+          access_token
+            .get(1)
+            .unwrap(),
+        )
+        .ok()
+        .unwrap();
+
+        ok(Auth0UserId {
+          id: decoded_token
+            .claims
+            .sub
+            .clone(),
+        })
+      },
+      Err(e) => err(error::ErrorUnauthorized(e)),
+    }
   }
 }

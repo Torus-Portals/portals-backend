@@ -2,9 +2,7 @@ use super::DB;
 
 use anyhow::Result;
 use chrono::{DateTime, Utc};
-use serde_json;
 use uuid::Uuid;
-
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct DBPortal {
@@ -20,7 +18,7 @@ pub struct DBPortal {
 
   #[serde(rename = "createdAt")]
   pub created_at: DateTime<Utc>,
-  
+
   #[serde(rename = "createdBy")]
   pub created_by: Uuid,
 

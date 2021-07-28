@@ -3,7 +3,8 @@ use super::DB;
 use anyhow::Result;
 use chrono::{DateTime, NaiveDateTime, Utc};
 use uuid::Uuid;
-#[derive(Debug, Serialize, Deserialize)]
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DBOrg {
   pub id: Uuid,
 
@@ -49,8 +50,10 @@ impl DB {
       .map_err(anyhow::Error::from)
   }
 
-  pub async fn get_orgs(&self) -> Result<Vec<DBOrg>> {
-    sqlx::query_as!(DBOrg, "select * from orgs")
+  // Note: This is realllllllly bad, and will return all orgs in the db.
+  //       Should probably take an array of org ids.
+  pub async fn get_orgs(&self, ids: &[Uuid]) -> Result<Vec<DBOrg>> {
+    sqlx::query_as!(DBOrg, "select * from orgs where id = any($1)", ids)
       .fetch_all(&self.pool)
       .await
       .map_err(anyhow::Error::from)
@@ -71,4 +74,15 @@ impl DB {
     .await
     .map_err(anyhow::Error::from)
   }
+
+  // pub async fn get_user_orgs(&self, user_id: Uuid) -> Result<Vec<DBOrg>> {
+  //   sqlx::query_as!(DBOrg,
+  //   r#"
+  //   with _user_orgs as (select orgs from users where id = $1)
+  //   select * from orgs where id = any _user_orgs
+  //   "#,
+  //   user_id
+  // ).fetch_all().await
+  // .map_err(anyhow::Error::from)
+  // }
 }
