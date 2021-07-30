@@ -4,13 +4,15 @@ use uuid::Uuid;
 // pub mod misc;
 pub mod org;
 pub mod user;
+pub mod role;
 pub mod portal;
 pub mod block;
 pub mod cell;
 
 use super::context::GQLContext;
 use org::{NewOrg, Org};
-use user::{User};
+use user::{NewUser, User, UpdateUser};
+use role::{NewRole, Role};
 use portal::{Portal};
 use block::{Block};
 use cell::{Cell};
@@ -39,7 +41,7 @@ impl Query {
     Query::orgs_impl(ctx).await
   }
 
-  // USer
+  // User
 
   async fn user(ctx: &GQLContext, user_id: Uuid) -> FieldResult<User> {
     Query::user_impl(ctx, user_id).await
@@ -47,6 +49,12 @@ impl Query {
 
   async fn current_user(ctx: &GQLContext) -> FieldResult<User> {
     Query::current_user_impl(ctx).await
+  }
+
+  // Role
+
+  async fn role(ctx: &GQLContext, role_id: Uuid) -> FieldResult<Role> {
+    Query::role_impl(ctx, role_id).await
   }
 
   // Portal
@@ -76,8 +84,25 @@ pub struct Mutation;
 
 #[graphql_object(context = GQLContext)]
 impl Mutation {
+  // Org
   async fn create_org(ctx: &GQLContext, new_org: NewOrg) -> FieldResult<Org> {
     Mutation::create_org_impl(ctx, new_org).await
+  }
+
+  // User
+
+  async fn create_user(ctx: &GQLContext, new_user: NewUser) -> FieldResult<User> {
+    Mutation::create_user_impl(ctx, new_user).await
+  }
+
+  async fn update_user(ctx: &GQLContext, update_user: UpdateUser) -> FieldResult<User> {
+    Mutation::update_user_impl(ctx, update_user).await
+  }
+
+  // Role
+
+  async fn create_role(ctx: &GQLContext, new_role: NewRole) -> FieldResult<Role> {
+    Mutation::create_role(ctx, new_role).await
   }
 }
 

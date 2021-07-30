@@ -35,7 +35,7 @@ pub struct DBCell {
 
 impl DB {
   pub async fn get_cell(&self, cell_id: Uuid) -> Result<DBCell> {
-    sqlx::query_as!(DBCell, "select * from cells where id  = $1", cell_id)
+    sqlx::query_as!(DBCell, "select * from cells where id = $1", cell_id)
       .fetch_one(&self.pool)
       .await
       .map_err(anyhow::Error::from)

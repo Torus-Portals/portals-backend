@@ -1,12 +1,15 @@
 use crate::services::db::user_service::DBUser;
 use chrono::{DateTime, Utc};
-use juniper::{graphql_object, FieldError, FieldResult};
+use juniper::{graphql_object, FieldError, FieldResult, GraphQLInputObject};
 use uuid::Uuid;
 
+use super::Mutation;
 use super::Query;
 use crate::graphql::context::GQLContext;
 
 use crate::graphql::schema::Org;
+
+// User
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct User {
@@ -24,6 +27,8 @@ pub struct User {
   pub status: String,
 
   pub org_ids: Vec<Uuid>,
+
+  pub role_ids: Vec<Uuid>,
 
   #[serde(rename = "createdAt")]
   pub created_at: DateTime<Utc>,
@@ -62,6 +67,14 @@ impl User {
     self.email.clone()
   }
 
+  fn status(&self) -> String {
+    self.status.clone()
+  }
+
+  fn org_ids(&self) -> Vec<Uuid> {
+    self.org_ids.clone()
+  }
+
   pub async fn orgs(&self, context: &GQLContext) -> Vec<Org> {
     let org_map = context
       .org_loader
@@ -77,6 +90,28 @@ impl User {
 
     orgs
   }
+
+  fn role_ids(&self) -> Vec<Uuid> {
+    self
+      .role_ids
+      .clone()
+  }
+
+  fn created_at(&self) -> DateTime<Utc> {
+    self.created_at
+  }
+
+  fn created_by(&self) -> Uuid {
+    self.created_by
+  }
+
+  fn updated_at(&self) -> DateTime<Utc> {
+    self.updated_at
+  }
+
+  fn updated_by(&self) -> Uuid {
+    self.updated_by
+  }
 }
 
 impl From<DBUser> for User {
@@ -88,13 +123,44 @@ impl From<DBUser> for User {
       nickname: db_user.nickname,
       email: db_user.email,
       status: db_user.status,
-      org_ids: db_user.orgs,
+      org_ids: db_user.org_ids,
+      role_ids: db_user.role_ids,
       created_at: db_user.created_at,
       created_by: db_user.created_by,
       updated_at: db_user.updated_at,
       updated_by: db_user.updated_by,
     }
   }
+}
+
+// NewUser
+
+#[derive(GraphQLInputObject, Debug, Serialize, Deserialize)]
+pub struct NewUser {
+  pub name: String,
+
+  pub nickname: String,
+
+  pub email: String,
+
+  pub org_ids: Option<Vec<Uuid>>,
+
+  pub role_ids: Option<Vec<Uuid>>,
+}
+
+#[derive(GraphQLInputObject, Debug, Serialize, Deserialize)]
+pub struct UpdateUser {
+  pub id: Uuid,
+
+  pub name: Option<String>,
+
+  pub nickname: Option<String>,
+
+  pub email: Option<String>,
+
+  pub org_ids: Option<Vec<Uuid>>,
+
+  pub role_ids: Option<Vec<Uuid>>,
 }
 
 impl Query {
@@ -105,36 +171,6 @@ impl Query {
       .await
       .map(|db_user| -> User { db_user.into() })
       .map_err(FieldError::from)
-
-    // let user_orgs = db_user.orgs.clone();
-
-    // let loaded_orgs = ctx
-    //   .org_loader
-    //   .load_many(db_user.orgs.into())
-    //   .await;
-
-    // let orgs = loaded_orgs
-    //   .into_iter()
-    //   .fold(Vec::new(), |mut acc, (id, oo)| {
-    //     if user_orgs.contains(&id) {
-    //       acc.push(oo)
-    //     };
-    //     acc
-    //   });
-
-    // Ok(User {
-    //   id: db_user.id,
-    //   auth0id: db_user.auth0id,
-    //   name: db_user.name,
-    //   nickname: db_user.nickname,
-    //   email: db_user.email,
-    //   status: db_user.status,
-    //   org_ids: db_user.orgs,
-    //   created_at: db_user.created_at,
-    //   created_by: db_user.created_by,
-    //   updated_at: db_user.updated_at,
-    //   updated_by: db_user.updated_by,
-    // })
   }
 
   pub async fn current_user_impl(ctx: &GQLContext) -> FieldResult<User> {
@@ -144,35 +180,25 @@ impl Query {
       .await
       .map(|db_user| -> User { db_user.into() })
       .map_err(FieldError::from)
+  }
+}
 
-    // let user_orgs = db_user.orgs.clone();
+impl Mutation {
+  pub async fn create_user_impl(ctx: &GQLContext, new_user: NewUser) -> FieldResult<User> {
+    ctx
+      .db
+      .create_user(&ctx.auth0_user_id, new_user.into())
+      .await
+      .map(|db_user| -> User { db_user.into() })
+      .map_err(FieldError::from)
+  }
 
-    // let loaded_orgs = ctx
-    //   .org_loader
-    //   .load_many(db_user.orgs.into())
-    //   .await;
-
-    // let orgs = loaded_orgs
-    //   .into_iter()
-    //   .fold(Vec::new(), |mut acc, (id, oo)| {
-    //     if user_orgs.contains(&id) {
-    //       acc.push(oo)
-    //     };
-    //     acc
-    //   });
-
-    // Ok(User {
-    //   id: db_user.id,
-    //   auth0id: db_user.auth0id,
-    //   name: db_user.name,
-    //   nickname: db_user.nickname,
-    //   email: db_user.email,
-    //   status: db_user.status,
-    //   org_ids: db_user.orgs,
-    //   created_at: db_user.created_at,
-    //   created_by: db_user.created_by,
-    //   updated_at: db_user.updated_at,
-    //   updated_by: db_user.updated_by,
-    // })
+  pub async fn update_user_impl(ctx: &GQLContext, update_user: UpdateUser) -> FieldResult<User> {
+    ctx
+      .db
+      .update_user(&ctx.auth0_user_id, update_user.into())
+      .await
+      .map(|db_user| -> User { db_user.into() })
+      .map_err(FieldError::from)
   }
 }

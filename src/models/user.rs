@@ -1,5 +1,3 @@
-use std::io::ErrorKind;
-
 use actix_web::{dev, error, FromRequest, HttpRequest};
 use chrono::{DateTime, Utc};
 use futures::future::{err, ok, Ready};
