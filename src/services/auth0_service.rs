@@ -1,154 +1,154 @@
-// use reqwest::{ Client as req, StatusCode };
-// // use reqwest::StatusCode;
-// use std::env;
-// use std::error::Error;
-// use std::fmt;
-// use serde::de::DeserializeOwned;
+use crate::utils::general::env_var;
+use anyhow;
+use chrono::{Utc};
+use percent_encoding::{utf8_percent_encode, NON_ALPHANUMERIC};
+use reqwest;
 
-// use percent_encoding::{ utf8_percent_encode, NON_ALPHANUMERIC };
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct Auth0User {
+  pub email_verified: bool,
+  pub email: String,
+  pub updated_at: String,
+  pub user_id: String,
+  pub name: String,
+  pub picture: String,
+  pub nickname: String,
+  pub created_at: String,
+  pub last_ip: String,
+  pub last_login: String,
+  pub logins_count: usize,
+}
 
-// #[derive(Debug, Serialize, Deserialize)]
-// pub struct Auth0User {
-//   pub email_verified: bool,
-//   pub email: String,
-//   pub updated_at: String,
-//   pub user_id: String,
-//   pub name: String,
-//   pub picture: String,
-//   pub nickname: String,
-//   pub created_at: String,
-//   pub last_ip: String,
-//   pub last_login: String,
-//   pub logins_count: usize,
-// }
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct Auth0Token {
+  pub access_token: String,
+  pub scope: String,
+  pub token_type: String,
+  pub expires_in: i64,
+}
 
-// #[derive(Debug, Serialize, Deserialize)]
-// pub struct Auth0TokenResponse {
-//   pub access_token: String,
-//   // pub scope: String,
-//   pub expires_in: isize,
-//   pub token_type: String,
-// }
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct FetchTokenPayload {
+  pub client_id: String,
+  pub client_secret: String,
+  pub grant_type: String,
+  pub audience: String,
+}
 
-// #[derive(Debug)]
-// pub struct Auth0RequestError {
-//   payload: String,
-// }
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct Auth0Service {
+  pub auth0_client_id: String,
+  pub auth0_client_secret: String,
+  pub auth_api_url: String,
+  pub token_url: String,
+  auth_token: Option<Auth0Token>,
+  token_expiration: i64,
+}
 
-// impl fmt::Display for Auth0RequestError {
-//     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-//         // let p = self.payload
-//         write!(f, "Auth0RequestError!")
-//     }
-// }
+impl Auth0Service {
+  pub fn new() -> Self {
+    let auth0_client_id = env_var("AUTH0_CLIENT_ID");
+    let auth0_client_secret = env_var("AUTH0_CLIENT_SECRET");
+    let auth_api_url = env_var("AUTH0_API_ENDPOINT");
+    let token_url = env_var("AUTH0_TOKEN_ENDPOINT");
 
-// impl Error for Auth0RequestError {}
+    Auth0Service {
+      auth0_client_id,
+      auth0_client_secret,
+      auth_api_url,
+      token_url,
+      auth_token: None,
+      token_expiration: 0,
+    }
+  }
 
-// impl From<reqwest::Error> for Auth0RequestError {
-//   fn from(err: reqwest::Error) -> Self {
-//     println!("reqwest error: {:?}", err);
-//     Auth0RequestError {
-//       payload: err.to_string()
-//     }
-//   }
-// }
+  pub async fn fetch_token(&mut self) -> Result<Auth0Token, anyhow::Error> {
+    let payload = FetchTokenPayload {
+      client_id: self
+        .auth0_client_id
+        .to_owned(),
+      client_secret: self
+        .auth0_client_secret
+        .to_owned(),
+      grant_type: String::from("client_credentials"),
+      audience: String::from(&self.auth_api_url),
+    };
 
-// pub fn handle_auth0_response<T: DeserializeOwned>(mut resp: reqwest::Response) -> Result<T, Auth0RequestError> {
-//   match resp.status() {
-//     StatusCode::OK => {
-//       let json: T = resp.json()?;
-//       Ok(json)
-//     },
-//     StatusCode::FORBIDDEN => {
-//       let p = resp.text()?;
+    let client = reqwest::Client::new();
 
-//       Err(Auth0RequestError {
-//         payload: p
-//       })
-//     },
-//     _ => {
-//       Err(Auth0RequestError {
-//         payload: String::from("other")
-//       })
-//     }
-//   }
-// }
+    let resp = client
+      .post(&self.token_url)
+      .header("Content-Type", "application/json")
+      // .form(&form_params)
+      .json(&payload)
+      .send()
+      .await?;
 
-// // TODO: Should cache this token and only refetch it when it expires.
-// // TODO: Move at least client_id/client_secret somewhere else as static.
-// pub fn get_auth0_token() -> Result<Auth0TokenResponse, Auth0RequestError> {
-//   let client_id = env::var("AUTH0_CLIENT_ID")
-//     .expect("Unable to get AUTH0_CLIENT_ID env var.");
+    let token_resp = resp
+      .json::<Auth0Token>()
+      .await?;
 
-//   println!("client_id: {:?}", client_id);
+    self.auth_token = Some(token_resp.clone());
 
-//   let client_secret = env::var("AUTH0_CLIENT_SECRET")
-//     .expect("Unable to get AUTH0_CLIENT_SECRET env var.");
-  
-//   println!("client_secret: {:?}", client_secret);
-  
-//   let audience = env::var("AUTH0_API_ENDPOINT")
-//     .expect("AUTH0_API_ENDPOINT env var not found.");
+    let now = Utc::now().timestamp();
+    self.token_expiration = now + (token_resp.expires_in * 1000);
 
-//   println!("client_secret: {:?}", audience);
+    Ok(token_resp)
+  }
 
-//   let token_endpoint = env::var("AUTH0_TOKEN_ENDPOINT")
-//     .expect("AUTH0_TOKEN_ENDPOINT env var not found");
+  pub async fn get_token(&mut self) -> Result<String, anyhow::Error> {
+    match self
+      .auth_token
+      .as_ref()
+    {
+      Some(at) => {
+        let current_time = Utc::now().timestamp() + at.expires_in;
 
-//   println!("token_endpoint: {:?}", token_endpoint);
+        if current_time > self.token_expiration {
+          self
+            .fetch_token()
+            .await?;
+        }
+      }
+      None => {
+        self
+          .fetch_token()
+          .await?;
+      }
+    };
 
-//   let params = [
-//     ("grant_type", "client_credentials"),
-//     ("client_id", &client_id),
-//     ("client_secret", &client_secret),
-//     ("audience", &audience)
-//   ];
+    let access_token = self
+      .auth_token
+      .to_owned()
+      .ok_or(anyhow::Error::msg("unable to get auth0 access_token"))?
+      .access_token;
 
-//   let auth0_token_response = req::new()
-//     .post(&token_endpoint)
-//     .form(&params)
-//     .send()?;
+    Ok(access_token)
+  }
 
-//   handle_auth0_response::<Auth0TokenResponse>(auth0_token_response)
-// }
+  pub async fn get_auth0_user(&mut self, auth0_id: &str) -> Result<Auth0User, anyhow::Error> {
+    let client = reqwest::Client::new();
 
-// pub fn get_auth0_user(auth0id: &str) -> Result<Auth0User, Auth0RequestError> {
-//   let token = get_auth0_token()?;
-//   println!("access_token?: {:?}", token);
+    let url = format!(
+      "{}users/{}",
+      self.auth_api_url,
+      utf8_percent_encode(&auth0_id, NON_ALPHANUMERIC).to_string()
+    );
 
-//   let auth_string = format!("{} {}", token.token_type, token.access_token);
+    let access_token = self
+      .get_token()
+      .await?;
 
+    let resp = client
+      .get(&url)
+      .header("Authorization", format!("Bearer {}", access_token))
+      .send()
+      .await?;
 
-//   let auth0_path = env::var("AUTH0_API_ENDPOINT")
-//     .expect("AUTH0_API_ENDPOINT env var not found.");
+    let auth0user = resp
+      .json::<Auth0User>()
+      .await?;
 
-//   let url = format!("{}users/{}", auth0_path, utf8_percent_encode(&auth0id, NON_ALPHANUMERIC).to_string());
-
-//   println!("url is {}", &url);
-
-//   let auth_user_response = req::new()
-//     .get(&url)
-//     .header("Authorization", auth_string)
-//     .send()?;
-
-//   handle_auth0_response(auth_user_response)
-// }
-
-// pub fn get_auth0_user_by_email(email: &str) -> Result<Auth0User, Auth0RequestError> {
-//   let token = get_auth0_token()?;
-
-//   let auth_string = format!("{} {}", token.token_type, token.access_token);
-
-//   let auth0_path = env::var("AUTH0_API_ENDPOINT")
-//     .expect("AUTH0_API_ENDPOINT env var not found.");
-
-//   // https://torus-rocks.auth0.com/api/v2/users-by-email?email=broch%40torus.rocks
-//   let url = format!("{}users-by-email?email={}", auth0_path, utf8_percent_encode(&email, NON_ALPHANUMERIC).to_string());
-
-//   let auth0_user_response = req::new()
-//     .get(&url)
-//     .header("Authorization", auth_string)
-//     .send()?;
-
-//   handle_auth0_response(auth0_user_response)
-// }
+    Ok(auth0user)
+  }
+}

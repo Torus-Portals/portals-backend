@@ -1,13 +1,8 @@
-// use actix_web::{ web, HttpResponse, Error };
-// use serde::Serialize;
+pub fn env_var(var_name: &str) -> String {
+  let var_str = std::env::var(var_name).expect(&format!("Unable to get {} env var", var_name));
 
-// pub async fn query_to_response<F, I, E>(func: F) -> Result<HttpResponse, Error> 
-//   where F: FnOnce() -> Result<I, E> + Send + 'static,
-//         I: Send + Serialize + 'static,
-//         E: Send + std::fmt::Debug + 'static {
-//   Ok(web::block(func)
-//   .await
-//   .map(|item| HttpResponse::Ok().json(item))
-//   // TODO: Add much better handling of errors, give something useful to the clients.
-//   .map_err(|_| HttpResponse::InternalServerError())?)
-// }
+  // Might be good to put this behind a local/dev flag
+  println!("env var {}: {}", var_name, var_str);
+
+  var_str
+}

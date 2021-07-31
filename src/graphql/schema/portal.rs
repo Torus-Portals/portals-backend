@@ -40,27 +40,39 @@ impl Portal {
   fn id(&self) -> Uuid {
     self.id
   }
+
   fn name(&self) -> String {
     self.name.clone()
   }
+
   fn org(&self) -> Uuid {
     self.org
   }
+
   fn owner_ids(&self) -> Vec<Uuid> {
-    self.owner_ids.clone()
+    self
+      .owner_ids
+      .clone()
   }
+
   fn vendor_ids(&self) -> Vec<Uuid> {
-    self.vendor_ids.clone()
+    self
+      .vendor_ids
+      .clone()
   }
+
   fn created_at(&self) -> DateTime<Utc> {
     self.created_at
   }
+
   fn created_by(&self) -> Uuid {
     self.created_by
   }
+
   fn updated_at(&self) -> DateTime<Utc> {
     self.updated_at
   }
+  
   fn updated_by(&self) -> Uuid {
     self.updated_by
   }

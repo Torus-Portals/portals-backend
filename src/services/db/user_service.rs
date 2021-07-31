@@ -50,6 +50,8 @@ pub struct DBNewUser {
 
   pub email: String,
 
+  pub status: String,
+
   pub org_ids: Vec<Uuid>,
 
   pub role_ids: Vec<Uuid>,
@@ -61,6 +63,7 @@ impl From<NewUser> for DBNewUser {
       name: new_user.name,
       nickname: new_user.nickname,
       email: new_user.email,
+      status: new_user.status,
       org_ids: new_user
         .org_ids
         .unwrap_or_else(|| vec![]),
@@ -81,6 +84,8 @@ pub struct DBUpdateUser {
 
   pub email: Option<String>,
 
+  pub status: Option<String>,
+
   pub org_ids: Option<Vec<Uuid>>,
 
   pub role_ids: Option<Vec<Uuid>>,
@@ -93,6 +98,7 @@ impl From<UpdateUser> for DBUpdateUser {
       name: update_user.name,
       nickname: update_user.nickname,
       email: update_user.email,
+      status: update_user.status,
       org_ids: update_user.org_ids,
       role_ids: update_user.role_ids,
     }
@@ -100,6 +106,21 @@ impl From<UpdateUser> for DBUpdateUser {
 }
 
 impl DB {
+  pub async fn user_exists(&self, auth0_user_id: &str) -> Result<bool> {
+    sqlx::query!(
+      "select exists(select 1 from users where auth0id = $1) as user_exists",
+      auth0_user_id
+    )
+    .fetch_one(&self.pool)
+    .await
+    .map(|record| {
+      record
+        .user_exists
+        .unwrap()
+    })
+    .map_err(anyhow::Error::from)
+  }
+
   pub async fn get_user(&self, user_id: Uuid) -> Result<DBUser> {
     sqlx::query_as!(DBUser, "select * from users where id = $1", user_id)
       .fetch_one(&self.pool)
@@ -119,20 +140,21 @@ impl DB {
   }
 
   pub async fn create_user(&self, auth0_user_id: &str, new_user: DBNewUser) -> Result<DBUser> {
+    let system_uuid = Uuid::parse_str("11111111-2222-3333-4444-555555555555")?;
     sqlx::query_as!(
       DBUser,
       r#"
-      with _user as (select * from users where auth0id = $1)
-      insert into users (name, nickname, email, org_ids, role_ids, created_by, updated_by)
-      values ($2, $3, $4, $5, $6, (select id from _user), (select id from _user))
+      insert into users (name, nickname, email, status, org_ids, role_ids, created_by, updated_by)
+      values ($1, $2, $3, $4, $5, $6, $7, $7)
       returning *;
       "#,
-      auth0_user_id,
       new_user.name,
       new_user.nickname,
       new_user.email,
+      new_user.status,
       &new_user.org_ids,
       &new_user.role_ids,
+      system_uuid
     )
     .fetch_one(&self.pool)
     .await
@@ -158,6 +180,7 @@ impl DB {
           email = coalesce($5, email),
           org_ids = coalesce($6, org_ids),
           role_ids = coalesce($7, role_ids),
+          status = coalesce($8, status),
           updated_by = (select id from _user)
       where id = $2
       returning *;
@@ -173,6 +196,7 @@ impl DB {
       update_user
         .role_ids
         .as_deref(),
+      update_user.status
     )
     .fetch_one(&self.pool)
     .await

@@ -48,15 +48,24 @@ pub struct NewOrg {
 
 impl Query {
   pub async fn orgs_impl(ctx: &GQLContext) -> FieldResult<Vec<Org>> {
-    let user = ctx.db.get_user_by_auth0_id(&ctx.auth0_user_id).await?;
+    let user = ctx
+      .db
+      .get_user_by_auth0_id(&ctx.auth0_user_id)
+      .await?;
+
     let user_org_ids = user.org_ids.clone();
 
-    let orgs_by_id = ctx.org_loader.load_many(user.org_ids.into()).await;
+    let orgs_by_id = ctx
+      .org_loader
+      .load_many(user.org_ids.into())
+      .await;
 
     let orgs = orgs_by_id
       .into_iter()
       .fold(Vec::new(), |mut acc, (id, o)| {
-        if user_org_ids.contains(&id) { acc.push(o) };
+        if user_org_ids.contains(&id) {
+          acc.push(o)
+        };
         acc
       });
 

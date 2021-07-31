@@ -143,6 +143,8 @@ pub struct NewUser {
 
   pub email: String,
 
+  pub status: String,
+
   pub org_ids: Option<Vec<Uuid>>,
 
   pub role_ids: Option<Vec<Uuid>>,
@@ -157,6 +159,8 @@ pub struct UpdateUser {
   pub nickname: Option<String>,
 
   pub email: Option<String>,
+
+  pub status: Option<String>,
 
   pub org_ids: Option<Vec<Uuid>>,
 
@@ -174,16 +178,50 @@ impl Query {
   }
 
   pub async fn current_user_impl(ctx: &GQLContext) -> FieldResult<User> {
-    ctx
+    let user_exists = ctx
       .db
-      .get_user_by_auth0_id(&ctx.auth0_user_id)
-      .await
-      .map(|db_user| -> User { db_user.into() })
-      .map_err(FieldError::from)
+      .user_exists(&ctx.auth0_user_id)
+      .await?;
+
+    if user_exists {
+      ctx
+        .db
+        .get_user_by_auth0_id(&ctx.auth0_user_id)
+        .await
+        .map(|db_user| -> User { db_user.into() })
+        .map_err(FieldError::from)
+    } else {
+      let mut auth_api = ctx
+        .auth0_api
+        .lock()
+        .await;
+
+      let auth0user = auth_api
+        .get_auth0_user(&ctx.auth0_user_id)
+        .await?;
+
+      let new_user = NewUser {
+        name: auth0user.name,
+        nickname: auth0user.nickname,
+        email: auth0user.email,
+        status: String::from("active"),
+        org_ids: None,
+        role_ids: None,
+      };
+
+      let db_user = ctx
+        .db
+        .create_user(&ctx.auth0_user_id, new_user.into())
+        .await?;
+
+      Ok(db_user.into())
+    }
   }
 }
 
 impl Mutation {
+  // TODO: Need to figure out if it will be needed for "users" to be the creator of other users, 
+  //       of if it will always be the "system".
   pub async fn create_user_impl(ctx: &GQLContext, new_user: NewUser) -> FieldResult<User> {
     ctx
       .db

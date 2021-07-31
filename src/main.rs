@@ -28,16 +28,21 @@ mod services;
 mod state;
 mod utils;
 
+use std::sync::Arc;
+
 use actix_cors::Cors;
-use actix_web::{get, middleware as actix_middleware, App, Error, HttpResponse, HttpServer};
+use actix_web::{get, middleware as actix_middleware, web, App, Error, HttpResponse, HttpServer};
+// use base64::encode;
 use dotenv::dotenv;
+use futures::lock::Mutex;
 use jsonwebtoken::DecodingKey;
 use listenfd::ListenFd;
 use sqlx::postgres::PgPoolOptions;
-use base64::encode;
 
 use crate::graphql::{graphql_routes, schema as graphql_schema};
 use crate::state::State;
+
+use crate::services::auth0_service::Auth0Service;
 
 // NOTE: I don't know if this will always be length of 270, but this is working for now..
 pub static KEY: [u8; 270] = *include_bytes!("../auth0.der");
@@ -77,10 +82,12 @@ async fn main() -> std::io::Result<()> {
     .unwrap();
 
   let state = State::new(pool.clone());
+  let auth_service = Arc::new(Mutex::new(Auth0Service::new()));
 
   let mut listenfd = ListenFd::from_env();
   let mut server = HttpServer::new(move || {
-    let client_secret = std::env::var("AUTH0_API_SIGNING_SECRET").expect("Unable to get AUTH0_API_SIGNING_SECRET.");
+    let client_secret =
+      std::env::var("AUTH0_API_SIGNING_SECRET").expect("Unable to get AUTH0_API_SIGNING_SECRET.");
 
     // let b64_client_secret = encode(&client_secret);
 
@@ -89,8 +96,9 @@ async fn main() -> std::io::Result<()> {
     App::new()
       .data(state.clone())
       .data(graphql_schema::create_schema())
-      // .app_data(decoding_key.clone())
+      .app_data(web::Data::new(auth_service.clone()))
       .app_data(decoding_key)
+      // .app_data(decoding_key.clone())
       // .app_data(DecodingKey::from_secret(b64_client_secret.as_bytes()))
       // .app_data(DecodingKey::from_secret())
       // .wrap(actix_middleware::Logger::new("%r %s size:%b time in ms:%D"))
@@ -107,12 +115,19 @@ async fn main() -> std::io::Result<()> {
       .service(get_health)
   });
 
-  server = if let Some(listener) = listenfd.take_tcp_listener(0).unwrap() {
+  server = if let Some(listener) = listenfd
+    .take_tcp_listener(0)
+    .unwrap()
+  {
     println!("re-listening...");
-    server.listen(listener).unwrap()
+    server
+      .listen(listener)
+      .unwrap()
   } else {
     println!("Binding for the very first time!");
-    server.bind(host).unwrap()
+    server
+      .bind(host)
+      .unwrap()
   };
 
   println!("Server created");

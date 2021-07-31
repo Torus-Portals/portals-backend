@@ -24,7 +24,7 @@ listenfd = "0.3.3"
 futures = "0.3.1"
 uuid = { version = "0.8.2", features = ["serde", "v4"] }
 jsonwebtoken = "7.2.0"
-reqwest = "0.11.2"
+reqwest = { verson = "0.11.3", features = ["json"] }
 url = "2.1.0"
 percent-encoding = "2.1.0"
 chrono = { version = "0.4.9", features = ["serde"] }
@@ -36,7 +36,7 @@ rusoto_ses = { version = "0.44.0", features = ["serialize_structs"] }
 time = "0.2.26"
 juniper = { git = "https://github.com/graphql-rust/juniper" }
 juniper_actix = "0.2.3"
-sqlx = { version = "0.5.1", features = ["postgres", "uuid", "json", "chrono", "runtime-actix-native-tls"] }
+sqlx = { version = "0.5.5", features = ["postgres", "uuid", "json", "chrono", "runtime-actix-native-tls"] }
 dataloader = "0.14.0"
 async-trait = "0.1.50"
 strum = "0.20.0"
