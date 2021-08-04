@@ -10,7 +10,6 @@ use super::Query;
 use crate::graphql::context::GQLContext;
 use crate::services::db::block_service::DBBlock;
 
-// #[derive(From, Debug, GraphQLUnion)]
 #[derive(Debug, GraphQLUnion, Serialize, Deserialize)]
 pub enum GQLBlocks {
   BasicTable(BasicTableBlock),

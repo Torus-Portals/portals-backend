@@ -6,6 +6,8 @@ pub mod org;
 pub mod user;
 pub mod role;
 pub mod portal;
+pub mod portalview;
+pub mod dimension;
 pub mod block;
 pub mod cell;
 
@@ -14,6 +16,8 @@ use org::{NewOrg, Org};
 use user::{NewUser, User, UpdateUser};
 use role::{NewRole, Role};
 use portal::{Portal};
+use portalview::{PortalView};
+use dimension::{Dimension};
 use block::{Block};
 use cell::{Cell};
 
@@ -63,9 +67,21 @@ impl Query {
     Query::portal_impl(ctx, portal_id).await
   }
 
+  async fn portals(ctx: &GQLContext) -> FieldResult<Vec<Portal>> {
+    Query::user_portals_impl(ctx).await
+  }
+
   // Portal View
 
+  async fn portalviews(ctx: &GQLContext, portal_id: Uuid) -> FieldResult<Vec<PortalView>> {
+    Query::portalviews_impl(ctx, portal_id).await
+  }
 
+  // Dimension
+
+  async fn dimensions(ctx: &GQLContext, portal_id: Uuid) -> FieldResult<Vec<Dimension>> {
+    Query::dimensions_impl(ctx, portal_id).await
+  }
 
   // Block
 

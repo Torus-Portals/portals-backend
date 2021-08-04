@@ -84,8 +84,8 @@ impl From<DBPortal> for Portal {
       id: db_portal.id,
       name: db_portal.name,
       org: db_portal.org,
-      owner_ids: db_portal.owners,
-      vendor_ids: db_portal.vendors,
+      owner_ids: db_portal.owner_ids,
+      vendor_ids: db_portal.vendor_ids,
       created_at: db_portal.created_at,
       created_by: db_portal.created_by,
       updated_at: db_portal.updated_at,
@@ -102,5 +102,15 @@ impl Query {
       .await
       .map(|db_portal| db_portal.into())
       .map_err(FieldError::from)
+  }
+
+  // Get all portals associated to a user
+  pub async fn user_portals_impl(ctx: &GQLContext) -> FieldResult<Vec<Portal>> {
+    ctx.db.get_auth0_user_portals(&ctx.auth0_user_id)
+    .await
+    .map(|db_portals| {
+      db_portals.into_iter().map(|p| p.into()).collect()
+    })
+    .map_err(FieldError::from)
   }
 }

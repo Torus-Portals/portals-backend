@@ -12,9 +12,9 @@ pub struct DBPortal {
 
   pub org: Uuid,
 
-  pub owners: Vec<Uuid>,
+  pub owner_ids: Vec<Uuid>,
 
-  pub vendors: Vec<Uuid>,
+  pub vendor_ids: Vec<Uuid>,
 
   #[serde(rename = "createdAt")]
   pub created_at: DateTime<Utc>,
@@ -41,7 +41,9 @@ pub struct DBNewPortal {
   #[serde(rename = "updatedBy")]
   pub updated_by: Uuid,
 
-  pub owners: Vec<Uuid>,
+  pub owner_ids: Vec<Uuid>,
+
+  pub vendor_ids: Vec<Uuid>,
 }
 
 impl DB {
@@ -50,5 +52,32 @@ impl DB {
       .fetch_one(&self.pool)
       .await
       .map_err(anyhow::Error::from)
+  }
+
+  pub async fn get_portals(&self, portal_ids: Vec<Uuid>) -> Result<Vec<DBPortal>> {
+    sqlx::query_as!(
+      DBPortal,
+      "select * from portals where id = any($1)",
+      &portal_ids
+    )
+    .fetch_all(&self.pool)
+    .await
+    .map_err(anyhow::Error::from)
+  }
+
+  pub async fn get_auth0_user_portals(&self, auth0_user_id: &str) -> Result<Vec<DBPortal>> {
+    sqlx::query_as!(
+      DBPortal,
+      r#"
+      with _user as (select * from users where auth0id = $1)
+      select * from portals where
+      (select id from _user) = any(owner_ids) or
+      (select id from _user) = any(vendor_ids);
+      "#,
+      auth0_user_id
+    )
+    .fetch_all(&self.pool)
+    .await
+    .map_err(anyhow::Error::from)
   }
 }
