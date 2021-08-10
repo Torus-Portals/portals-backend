@@ -1,23 +1,17 @@
+use crate::{graphql::context::GQLContext, services::db::dimension_service::DBDimension};
 use chrono::{DateTime, Utc};
 use juniper::{FieldError, FieldResult, GraphQLEnum, GraphQLObject, GraphQLUnion};
 use std::str::FromStr;
 use strum_macros::EnumString;
-use crate::{graphql::context::GQLContext, services::db::dimension_service::DBDimension};
 use uuid::Uuid;
 
 use super::Query;
 
-
-// #[derive(Debug, GraphQLUnion, Serialize, Deserialize)]
-// pub enum GQLDimensions {
-//   BasicTableRow
-//   BasicTableColumn
-//   Empty
-// }
-
 #[derive(Debug, Serialize, Deserialize, GraphQLEnum, EnumString)]
 pub enum DimensionTypes {
+  #[strum(serialize = "BasicTable-row")]
   BasicTableRow,
+  #[strum(serialize = "BasicTable-column")]
   BasicTableColumn,
 }
 
@@ -34,7 +28,6 @@ pub struct Dimension {
   pub dimension_type: DimensionTypes,
 
   // pub meta: serde_json::Value,
-
   #[serde(rename = "createdAt")]
   pub created_at: DateTime<Utc>,
 
@@ -50,8 +43,12 @@ pub struct Dimension {
 
 impl From<DBDimension> for Dimension {
   fn from(db_dimension: DBDimension) -> Self {
-    let dimension_type = DimensionTypes::from_str(db_dimension.dimension_type.as_str())
-      .expect("Unable to convert dimension_type to enum variat");
+    let dim_type_str = db_dimension
+      .dimension_type
+      .as_str();
+
+    let dimension_type = DimensionTypes::from_str(dim_type_str)
+      .expect("Unable to convert dimension_type to enum variant");
 
     Dimension {
       id: db_dimension.id,
@@ -69,10 +66,15 @@ impl From<DBDimension> for Dimension {
 impl Query {
   pub async fn dimensions_impl(ctx: &GQLContext, portal_id: Uuid) -> FieldResult<Vec<Dimension>> {
     ctx
-    .db
-    .get_dimensions(portal_id)
-    .await
-    .map(|dims| dims.into_iter().map(|d| d.into()).collect())
-    .map_err(FieldError::from)
+      .db
+      .get_dimensions(portal_id)
+      .await
+      .map(|dims| {
+        dims
+          .into_iter()
+          .map(|d| d.into())
+          .collect()
+      })
+      .map_err(FieldError::from)
   }
 }

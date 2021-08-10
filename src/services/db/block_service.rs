@@ -65,4 +65,15 @@ impl DB {
       .await
       .map_err(anyhow::Error::from)
   }
+
+  pub async fn get_blocks(&self, portal_id: Uuid) -> Result<Vec<DBBlock>> {
+    sqlx::query_as!(
+      DBBlock,
+      "select * from blocks where portal_id = $1",
+      portal_id
+    )
+    .fetch_all(&self.pool)
+    .await
+    .map_err(anyhow::Error::from)
+  }
 }

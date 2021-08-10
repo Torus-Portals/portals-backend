@@ -123,4 +123,15 @@ impl Query {
       .map(|db_block| db_block.into())
       .map_err(FieldError::from)
   }
+
+  pub async fn blocks_impl(ctx: &GQLContext, portal_id: Uuid) -> FieldResult<Vec<Block>> {
+    ctx
+      .db
+      .get_blocks(portal_id)
+      .await
+      .map(|db_blocks| {
+        db_blocks.into_iter().map(|b| b.into()).collect()
+      })
+      .map_err(FieldError::from)
+  }
 }

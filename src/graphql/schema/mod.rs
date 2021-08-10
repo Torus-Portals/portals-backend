@@ -89,6 +89,10 @@ impl Query {
     Query::block_impl(ctx, block_id).await
   }
 
+  async fn blocks(ctx: &GQLContext, portal_id: Uuid) -> FieldResult<Vec<Block>> {
+    Query::blocks_impl(ctx, portal_id).await
+  }
+
   // Cell
 
   async fn cell(ctx: &GQLContext, cell_id: Uuid) -> FieldResult<Cell> {
