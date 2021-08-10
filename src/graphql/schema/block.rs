@@ -18,6 +18,7 @@ pub enum GQLBlocks {
 
 #[derive(Debug, Serialize, Deserialize, GraphQLEnum, EnumString)]
 pub enum BlockTypes {
+  #[strum(serialize = "BasicTable")]
   BasicTable,
 }
 
