@@ -1,6 +1,6 @@
 use crate::{graphql::context::GQLContext, services::db::dimension_service::DBDimension};
 use chrono::{DateTime, Utc};
-use juniper::{FieldError, FieldResult, GraphQLEnum, GraphQLObject, GraphQLUnion};
+use juniper::{FieldError, FieldResult, GraphQLEnum, GraphQLObject};
 use std::str::FromStr;
 use strum_macros::EnumString;
 use uuid::Uuid;
@@ -69,8 +69,8 @@ impl Query {
       .db
       .get_dimensions(portal_id)
       .await
-      .map(|dims| {
-        dims
+      .map(|dimensions| {
+        dimensions
           .into_iter()
           .map(|d| d.into())
           .collect()

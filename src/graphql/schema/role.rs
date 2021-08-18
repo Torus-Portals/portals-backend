@@ -9,8 +9,8 @@ use uuid::Uuid;
 use crate::graphql::context::GQLContext;
 use crate::services::db::role_service::{DBNewRole, DBRole};
 
-use super::Mutation;
 use super::Query;
+use super::Mutation;
 
 #[derive(Debug, Serialize, Deserialize, GraphQLEnum, EnumString, ToString)]
 pub enum RoleTypes {
@@ -159,7 +159,7 @@ impl Query {
 }
 
 impl Mutation {
-  pub async fn create_role(ctx: &GQLContext, new_role: NewRole) -> FieldResult<Role> {
+  pub async fn create_role_impl(ctx: &GQLContext, new_role: NewRole) -> FieldResult<Role> {
     ctx
       .db
       .create_role(&ctx.auth0_user_id, new_role.into())

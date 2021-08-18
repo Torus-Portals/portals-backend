@@ -1,13 +1,12 @@
-use uuid::Uuid;
 use chrono::{DateTime, Utc};
 use juniper::{graphql_object, FieldError, FieldResult, GraphQLInputObject};
+use uuid::Uuid;
 
 use super::Mutation;
 use super::Query;
 use crate::graphql::context::GQLContext;
 
 use crate::services::db::portalview_service::DBPortalView;
-
 
 // Portal View
 
@@ -92,6 +91,14 @@ impl From<DBPortalView> for PortalView {
   }
 }
 
+#[derive(GraphQLInputObject, Debug, Serialize, Deserialize)]
+pub struct NewPortalView {
+  pub portal_id: Uuid,
+  pub name: String,
+  pub egress: String,
+  pub access: String,
+}
+
 impl Query {
   pub async fn portalviews_impl(ctx: &GQLContext, portal_id: Uuid) -> FieldResult<Vec<PortalView>> {
     ctx
@@ -99,8 +106,25 @@ impl Query {
       .get_portal_views(portal_id)
       .await
       .map(|db_portalviews| {
-        db_portalviews.into_iter().map(|pv| pv.into()).collect()
+        db_portalviews
+          .into_iter()
+          .map(|pv| pv.into())
+          .collect()
       })
+      .map_err(FieldError::from)
+  }
+}
+
+impl Mutation {
+  pub async fn create_portalview_impl(
+    ctx: &GQLContext,
+    new_portalview: NewPortalView,
+  ) -> FieldResult<PortalView> {
+    ctx
+      .db
+      .create_portalview(&ctx.auth0_user_id, new_portalview.into())
+      .await
+      .map(|db_portalview| db_portalview.into())
       .map_err(FieldError::from)
   }
 }

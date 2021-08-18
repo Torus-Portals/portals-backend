@@ -139,7 +139,7 @@ impl DB {
     .map_err(anyhow::Error::from)
   }
 
-  pub async fn create_user(&self, auth0_user_id: &str, new_user: DBNewUser) -> Result<DBUser> {
+  pub async fn create_user(&self, new_user: DBNewUser) -> Result<DBUser> {
     let system_uuid = Uuid::parse_str("11111111-2222-3333-4444-555555555555")?;
     sqlx::query_as!(
       DBUser,

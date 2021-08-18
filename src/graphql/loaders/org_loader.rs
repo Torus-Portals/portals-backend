@@ -1,4 +1,3 @@
-use crate::services::db::org_service::DBOrg;
 use crate::services::db::DB;
 use async_trait::async_trait;
 use dataloader::non_cached::Loader;

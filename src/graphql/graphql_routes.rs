@@ -11,7 +11,8 @@ use super::context::GQLContext;
 use super::juniper_actix::{graphql_handler, playground_handler};
 use super::schema::Schema;
 use crate::middleware::auth::validator;
-use crate::models::user::Auth0UserId;
+// use crate::models::user::Auth0UserId;
+use crate::extractors::auth0_user_id::{Auth0UserId};
 
 // async fn get_decoded_token()
 

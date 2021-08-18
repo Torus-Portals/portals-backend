@@ -47,16 +47,11 @@ pub struct Auth0Service {
 
 impl Auth0Service {
   pub fn new() -> Self {
-    let auth0_client_id = env_var("AUTH0_CLIENT_ID");
-    let auth0_client_secret = env_var("AUTH0_CLIENT_SECRET");
-    let auth_api_url = env_var("AUTH0_API_ENDPOINT");
-    let token_url = env_var("AUTH0_TOKEN_ENDPOINT");
-
     Auth0Service {
-      auth0_client_id,
-      auth0_client_secret,
-      auth_api_url,
-      token_url,
+      auth0_client_id: env_var("AUTH0_CLIENT_ID"),
+      auth0_client_secret: env_var("AUTH0_CLIENT_SECRET"),
+      auth_api_url: env_var("AUTH0_API_ENDPOINT"),
+      token_url: env_var("AUTH0_TOKEN_ENDPOINT"),
       auth_token: None,
       token_expiration: 0,
     }
@@ -79,7 +74,6 @@ impl Auth0Service {
     let resp = client
       .post(&self.token_url)
       .header("Content-Type", "application/json")
-      // .form(&form_params)
       .json(&payload)
       .send()
       .await?;

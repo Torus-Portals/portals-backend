@@ -42,7 +42,7 @@ async-trait = "0.1.50"
 strum = "0.20.0"
 strum_macros = "0.20.1"
 base64 = "0.13.0"
-
+derive_more = "0.99.16"
 
 [features]
 default = []

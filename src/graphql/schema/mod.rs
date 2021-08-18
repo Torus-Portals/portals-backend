@@ -16,7 +16,7 @@ use org::{NewOrg, Org};
 use user::{NewUser, User, UpdateUser};
 use role::{NewRole, Role};
 use portal::{Portal};
-use portalview::{PortalView};
+use portalview::{NewPortalView, PortalView};
 use dimension::{Dimension};
 use block::{Block};
 use cell::{Cell};
@@ -104,7 +104,9 @@ pub struct Mutation;
 
 #[graphql_object(context = GQLContext)]
 impl Mutation {
+
   // Org
+  
   async fn create_org(ctx: &GQLContext, new_org: NewOrg) -> FieldResult<Org> {
     Mutation::create_org_impl(ctx, new_org).await
   }
@@ -122,7 +124,14 @@ impl Mutation {
   // Role
 
   async fn create_role(ctx: &GQLContext, new_role: NewRole) -> FieldResult<Role> {
-    Mutation::create_role(ctx, new_role).await
+    Mutation::create_role_impl(ctx, new_role).await
+  }
+
+  // PortalView
+
+  // the space in 'portal_view' is needed so that it shows up as "createPortalView" in GQL Schema
+  async fn create_portal_view(ctx: &GQLContext, new_portalview: NewPortalView) -> FieldResult<PortalView> {
+    Mutation::create_portalview_impl(ctx, new_portalview).await
   }
 }
 

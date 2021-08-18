@@ -104,17 +104,6 @@ pub struct EmptyBlock {
   block_type: String,
 }
 
-// impl BasicTableBlock {
-//   fn new() -> BasicTableBlock {
-//     BasicTableBlock {
-//       id: Uuid::new_v4(),
-//       block_type: String::from("BasicTable"),
-//       rows: vec![],
-//       columns: vec![],
-//     }
-//   }
-// }
-
 impl Query {
   pub async fn block_impl(ctx: &GQLContext, block_id: Uuid) -> FieldResult<Block> {
     ctx

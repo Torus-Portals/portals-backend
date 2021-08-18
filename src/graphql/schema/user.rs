@@ -211,7 +211,7 @@ impl Query {
 
       let db_user = ctx
         .db
-        .create_user(&ctx.auth0_user_id, new_user.into())
+        .create_user(new_user.into())
         .await?;
 
       Ok(db_user.into())
@@ -225,7 +225,7 @@ impl Mutation {
   pub async fn create_user_impl(ctx: &GQLContext, new_user: NewUser) -> FieldResult<User> {
     ctx
       .db
-      .create_user(&ctx.auth0_user_id, new_user.into())
+      .create_user(new_user.into())
       .await
       .map(|db_user| -> User { db_user.into() })
       .map_err(FieldError::from)

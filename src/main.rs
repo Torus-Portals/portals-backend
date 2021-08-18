@@ -2,9 +2,10 @@
 extern crate serde_derive;
 extern crate serde_json;
 extern crate serde_qs as qs;
+extern crate derive_more;
 
-#[macro_use]
-extern crate json_payload_derive;
+// #[macro_use]
+// extern crate json_payload_derive;
 
 extern crate futures;
 
@@ -20,10 +21,7 @@ extern crate base64;
 
 mod graphql;
 mod middleware;
-mod models;
-mod queries;
-mod routes;
-mod schema;
+mod extractors;
 mod services;
 mod state;
 mod utils;
@@ -31,7 +29,7 @@ mod utils;
 use std::sync::Arc;
 
 use actix_cors::Cors;
-use actix_web::{get, middleware as actix_middleware, web, App, Error, HttpResponse, HttpServer};
+use actix_web::{get, web, App, Error, HttpResponse, HttpServer};
 // use base64::encode;
 use dotenv::dotenv;
 use futures::lock::Mutex;
@@ -43,9 +41,6 @@ use crate::graphql::{graphql_routes, schema as graphql_schema};
 use crate::state::State;
 
 use crate::services::auth0_service::Auth0Service;
-
-// NOTE: I don't know if this will always be length of 270, but this is working for now..
-pub static KEY: [u8; 270] = *include_bytes!("../auth0.der");
 
 #[get("/health")]
 pub async fn get_health() -> Result<HttpResponse, Error> {
@@ -67,7 +62,6 @@ async fn main() -> std::io::Result<()> {
 
   env_logger::init();
 
-  // let db_url = std::env::var("DATABASE_URL").unwrap();
   let db_url = std::env::var("DATABASE_URL").expect("Unable to get DATABASE_URL env var.");
   println!("db_url: {}", db_url);
 
@@ -94,14 +88,10 @@ async fn main() -> std::io::Result<()> {
     let decoding_key = DecodingKey::from_secret(client_secret.as_bytes()).into_static();
 
     App::new()
-      .data(state.clone())
-      .data(graphql_schema::create_schema())
+      .app_data(web::Data::new(state.clone()))
+      .app_data(web::Data::new(graphql_schema::create_schema()))
       .app_data(web::Data::new(auth_service.clone()))
       .app_data(decoding_key)
-      // .app_data(decoding_key.clone())
-      // .app_data(DecodingKey::from_secret(b64_client_secret.as_bytes()))
-      // .app_data(DecodingKey::from_secret())
-      // .wrap(actix_middleware::Logger::new("%r %s size:%b time in ms:%D"))
       .wrap(
         Cors::default()
           .allowed_origin("http://localhost:8088") // TODO: env var this
