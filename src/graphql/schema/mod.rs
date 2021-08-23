@@ -7,6 +7,7 @@ pub mod user;
 pub mod role;
 pub mod portal;
 pub mod portalview;
+pub mod structure;
 pub mod dimension;
 pub mod block;
 pub mod cell;
@@ -17,6 +18,7 @@ use user::{NewUser, User, UpdateUser};
 use role::{NewRole, Role};
 use portal::{Portal};
 use portalview::{NewPortalView, PortalView};
+use structure::{Structure};
 use dimension::{Dimension};
 use block::{Block};
 use cell::{Cell};
@@ -77,6 +79,10 @@ impl Query {
     Query::portalviews_impl(ctx, portal_id).await
   }
 
+  async fn structure(ctx: &GQLContext, structure_id: Uuid) -> FieldResult<Structure> {
+    Query::structure_impl(ctx, structure_id).await
+  }
+
   // Dimension
 
   async fn dimensions(ctx: &GQLContext, portal_id: Uuid) -> FieldResult<Vec<Dimension>> {
@@ -133,6 +139,8 @@ impl Mutation {
   async fn create_portal_view(ctx: &GQLContext, new_portalview: NewPortalView) -> FieldResult<PortalView> {
     Mutation::create_portalview_impl(ctx, new_portalview).await
   }
+
+  // Structure
 }
 
 pub fn create_schema() -> Schema {

@@ -29,6 +29,8 @@ $ systemfd --no-pid -s http::8088 -- cargo watch -x 'run --features local_dev'
 
 https://stackoverflow.com/questions/3855127/find-and-kill-process-locking-port-3000-on-mac
 
+NOTE: shut down the web client and the caddy server BEFORE running the kill command below.
+
 ```
 $ sudo lsof -i :8088
 // or

@@ -5,7 +5,7 @@ use chrono::{DateTime, Utc};
 
 use uuid::Uuid;
 
-use crate::graphql::schema::portalview::{NewPortalView};
+use crate::graphql::schema::portalview::NewPortalView;
 
 #[derive(Debug, Serialize)]
 pub struct DBPortalView {
@@ -13,6 +13,8 @@ pub struct DBPortalView {
 
   #[serde(rename = "portalId")]
   pub portal_id: Uuid,
+
+  pub structure_id: Uuid,
 
   pub name: String,
 
@@ -41,6 +43,8 @@ pub struct DBNewPortalView {
   pub egress: String,
 
   pub access: String,
+
+  pub structure_id: Uuid,
 }
 
 impl From<NewPortalView> for DBNewPortalView {
@@ -50,6 +54,9 @@ impl From<NewPortalView> for DBNewPortalView {
       name: new_portalview.name,
       egress: new_portalview.egress,
       access: new_portalview.access,
+      structure_id: new_portalview
+        .stucture_id
+        .unwrap_or_else(|| panic!("no structure_id present in new_portal_view")),
     }
   }
 }
@@ -82,6 +89,7 @@ impl DB {
         name,
         egress,
         access,
+        structure_id,
         created_by,
         updated_by
       ) values (
@@ -89,6 +97,7 @@ impl DB {
         $3,
         $4,
         $5,
+        $6,
         (select id from _user),
         (select id from _user)
       ) returning *
@@ -99,6 +108,7 @@ impl DB {
       new_portalview.name,
       new_portalview.egress,
       new_portalview.access,
+      new_portalview.structure_id,
     )
     .fetch_one(&self.pool)
     .await

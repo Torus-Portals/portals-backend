@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 use chrono::{DateTime, Utc};
 use juniper::{graphql_object, FieldError, FieldResult, GraphQLInputObject};
 use uuid::Uuid;
@@ -6,7 +8,10 @@ use super::Mutation;
 use super::Query;
 use crate::graphql::context::GQLContext;
 
+use crate::graphql::schema::structure::Structure;
+use crate::services::db;
 use crate::services::db::portalview_service::DBPortalView;
+use crate::services::db::structure_service::DBNewStructure;
 
 // Portal View
 
@@ -22,6 +27,8 @@ pub struct PortalView {
   pub egress: String,
 
   pub access: String,
+
+  pub structure_id: Uuid,
 
   #[serde(rename = "createdAt")]
   pub created_at: DateTime<Utc>,
@@ -58,6 +65,15 @@ impl PortalView {
     self.access.clone()
   }
 
+  pub async fn structure(&self, context: &GQLContext) -> Structure {
+    let structure_map = context
+      .structure_loader
+      .load(self.structure_id)
+      .await;
+
+    structure_map
+  }
+
   fn created_at(&self) -> DateTime<Utc> {
     self.created_at
   }
@@ -83,6 +99,7 @@ impl From<DBPortalView> for PortalView {
       name: db_portalview.name,
       egress: db_portalview.egress,
       access: db_portalview.access,
+      structure_id: db_portalview.structure_id,
       created_at: db_portalview.created_at,
       created_by: db_portalview.created_by,
       updated_at: db_portalview.updated_at,
@@ -94,6 +111,7 @@ impl From<DBPortalView> for PortalView {
 #[derive(GraphQLInputObject, Debug, Serialize, Deserialize)]
 pub struct NewPortalView {
   pub portal_id: Uuid,
+  pub stucture_id: Option<Uuid>,
   pub name: String,
   pub egress: String,
   pub access: String,
@@ -120,9 +138,30 @@ impl Mutation {
     ctx: &GQLContext,
     new_portalview: NewPortalView,
   ) -> FieldResult<PortalView> {
+    let new_structure = DBNewStructure {
+      structure_type: String::from("Grid"),
+      structure_data: serde_json::Value::Array(vec![]),
+    };
+
+    let structure: Structure = ctx
+      .db
+      .create_structure(&ctx.auth0_user_id, new_structure)
+      .await
+      .map(|db_structure| db_structure.into())
+      .map_err(FieldError::from)?;
+
+    dbg!(&structure);
+
+    let new_portalview_with_stucture_id = NewPortalView {
+      stucture_id: Some(structure.id),
+      ..new_portalview
+    };
+
+    dbg!(&new_portalview_with_stucture_id);
+
     ctx
       .db
-      .create_portalview(&ctx.auth0_user_id, new_portalview.into())
+      .create_portalview(&ctx.auth0_user_id, new_portalview_with_stucture_id.into())
       .await
       .map(|db_portalview| db_portalview.into())
       .map_err(FieldError::from)
