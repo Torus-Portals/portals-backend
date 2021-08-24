@@ -1,3 +1,4 @@
+use crate::services::db::user_service::DBNewUser;
 use crate::services::db::user_service::DBUser;
 use chrono::{DateTime, Utc};
 use juniper::{graphql_object, FieldError, FieldResult, GraphQLInputObject};
@@ -150,6 +151,29 @@ pub struct NewUser {
   pub role_ids: Option<Vec<Uuid>>,
 }
 
+impl NewUser {
+  fn into_db_new_user(&self, auth0id: String) -> DBNewUser {
+    // I'm sure there is a better way to do this besides all these clones...
+    DBNewUser {
+      auth0id,
+      name: self.name.clone(),
+      nickname: self
+        .nickname
+        .clone(),
+      email: self.email.clone(),
+      status: self.status.clone(),
+      org_ids: self
+        .org_ids
+        .clone()
+        .unwrap_or_else(|| vec![]),
+      role_ids: self
+        .role_ids
+        .clone()
+        .unwrap_or_else(|| vec![]),
+    }
+  }
+}
+
 #[derive(GraphQLInputObject, Debug, Serialize, Deserialize)]
 pub struct UpdateUser {
   pub id: Uuid,
@@ -211,7 +235,13 @@ impl Query {
 
       let db_user = ctx
         .db
-        .create_user(new_user.into())
+        .create_user(
+          new_user.into_db_new_user(
+            ctx
+              .auth0_user_id
+              .to_owned(),
+          ),
+        )
         .await?;
 
       Ok(db_user.into())
@@ -220,12 +250,18 @@ impl Query {
 }
 
 impl Mutation {
-  // TODO: Need to figure out if it will be needed for "users" to be the creator of other users, 
+  // TODO: Need to figure out if it will be needed for "users" to be the creator of other users,
   //       of if it will always be the "system".
   pub async fn create_user_impl(ctx: &GQLContext, new_user: NewUser) -> FieldResult<User> {
     ctx
       .db
-      .create_user(new_user.into())
+      .create_user(
+        new_user.into_db_new_user(
+          ctx
+            .auth0_user_id
+            .to_owned(),
+        ),
+      )
       .await
       .map(|db_user| -> User { db_user.into() })
       .map_err(FieldError::from)

@@ -44,6 +44,8 @@ pub struct DBUser {
 // DBNewUser
 #[derive(Debug, Serialize)]
 pub struct DBNewUser {
+  pub auth0id: String,
+
   pub name: String,
 
   pub nickname: String,
@@ -55,23 +57,6 @@ pub struct DBNewUser {
   pub org_ids: Vec<Uuid>,
 
   pub role_ids: Vec<Uuid>,
-}
-
-impl From<NewUser> for DBNewUser {
-  fn from(new_user: NewUser) -> Self {
-    DBNewUser {
-      name: new_user.name,
-      nickname: new_user.nickname,
-      email: new_user.email,
-      status: new_user.status,
-      org_ids: new_user
-        .org_ids
-        .unwrap_or_else(|| vec![]),
-      role_ids: new_user
-        .role_ids
-        .unwrap_or_else(|| vec![]),
-    }
-  }
 }
 
 #[derive(Debug, Serialize)]
@@ -144,10 +129,11 @@ impl DB {
     sqlx::query_as!(
       DBUser,
       r#"
-      insert into users (name, nickname, email, status, org_ids, role_ids, created_by, updated_by)
-      values ($1, $2, $3, $4, $5, $6, $7, $7)
+      insert into users (auth0id, name, nickname, email, status, org_ids, role_ids, created_by, updated_by)
+      values ($1, $2, $3, $4, $5, $6, $7, $8, $8)
       returning *;
       "#,
+      new_user.auth0id,
       new_user.name,
       new_user.nickname,
       new_user.email,
