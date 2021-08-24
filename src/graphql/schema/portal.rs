@@ -1,11 +1,18 @@
+use std::collections::HashSet;
+
 use chrono::{DateTime, Utc};
-use juniper::{graphql_object, FieldError, FieldResult};
+use juniper::{graphql_object, FieldError, FieldResult, GraphQLInputObject};
+use serde_json;
 use uuid::Uuid;
 
-// use super::Mutation;
+use super::portalview::NewPortalView;
+use super::Mutation;
 use super::Query;
+use super::structure::Structure;
 use crate::graphql::context::GQLContext;
+use crate::services::db::portal_service::DBNewPortal;
 use crate::services::db::portal_service::DBPortal;
+use crate::services::db::portalview_service::DBNewPortalView;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Portal {
@@ -69,7 +76,7 @@ impl Portal {
   fn updated_at(&self) -> DateTime<Utc> {
     self.updated_at
   }
-  
+
   fn updated_by(&self) -> Uuid {
     self.updated_by
   }
@@ -91,6 +98,28 @@ impl From<DBPortal> for Portal {
   }
 }
 
+#[derive(GraphQLInputObject, Debug, Serialize, Deserialize)]
+pub struct NewPortal {
+  pub org: Uuid,
+
+  pub name: String,
+
+  pub owner_ids: Vec<Uuid>,
+
+  pub vendor_ids: Vec<Uuid>,
+}
+
+impl From<DBNewPortal> for NewPortal {
+  fn from(db_new_portal: DBNewPortal) -> Self {
+    NewPortal {
+      org: db_new_portal.org,
+      name: db_new_portal.name,
+      owner_ids: db_new_portal.owner_ids,
+      vendor_ids: db_new_portal.vendor_ids,
+    }
+  }
+}
+
 impl Query {
   pub async fn portal_impl(ctx: &GQLContext, portal_id: Uuid) -> FieldResult<Portal> {
     ctx
@@ -103,11 +132,70 @@ impl Query {
 
   // Get all portals associated to a user
   pub async fn user_portals_impl(ctx: &GQLContext) -> FieldResult<Vec<Portal>> {
-    ctx.db.get_auth0_user_portals(&ctx.auth0_user_id)
-    .await
-    .map(|db_portals| {
-      db_portals.into_iter().map(|p| p.into()).collect()
+    ctx
+      .db
+      .get_auth0_user_portals(&ctx.auth0_user_id)
+      .await
+      .map(|db_portals| {
+        db_portals
+          .into_iter()
+          .map(|p| p.into())
+          .collect()
+      })
+      .map_err(FieldError::from)
+  }
+
+  pub async fn portals_by_ids_impl(
+    ctx: &GQLContext,
+    portal_ids: Vec<Uuid>,
+  ) -> FieldResult<Vec<Portal>> {
+    ctx
+      .db
+      .get_portals(portal_ids)
+      .await
+      .map(|db_portals| {
+        db_portals
+          .into_iter()
+          .map(|p| p.into())
+          .collect()
+      })
+      .map_err(FieldError::from)
+  }
+}
+
+impl Mutation {
+  pub async fn create_portal_impl(ctx: &GQLContext, new_portal: NewPortal) -> FieldResult<Portal> {
+    let portal: Portal = ctx
+      .db
+      .create_portal(&ctx.auth0_user_id, new_portal.into())
+      .await
+      .map(|db_portal| db_portal.into())
+      .map_err(FieldError::from)?;
+
+    // Create a default owner and vendor portalview
+    ctx
+    .db
+    .create_portalview(&ctx.auth0_user_id, DBNewPortalView {
+        portal_id: portal.id,
+        name: String::from("Default Owner View"),
+        egress: String::from("owner"),
+        access: String::from("private"),
     })
-    .map_err(FieldError::from)
+    .await?;
+
+    ctx
+    .db
+    .create_portalview(&ctx.auth0_user_id, DBNewPortalView {
+        portal_id: portal.id,
+        name: String::from("Default Owner View"),
+        egress: String::from("vendor"),
+        access: String::from("private"),
+    })
+    .await?;
+
+
+    
+
+    Ok(portal)
   }
 }

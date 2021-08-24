@@ -1,3 +1,5 @@
+use crate::graphql::schema::portal::NewPortal;
+
 use super::DB;
 
 use anyhow::Result;
@@ -35,15 +37,20 @@ pub struct DBNewPortal {
 
   pub name: String,
 
-  #[serde(rename = "createdBy")]
-  pub created_by: Uuid,
-
-  #[serde(rename = "updatedBy")]
-  pub updated_by: Uuid,
-
   pub owner_ids: Vec<Uuid>,
 
   pub vendor_ids: Vec<Uuid>,
+}
+
+impl From<NewPortal> for DBNewPortal {
+  fn from(new_portal: NewPortal) -> Self {
+    DBNewPortal {
+      org: new_portal.org,
+      name: new_portal.name,
+      owner_ids: new_portal.owner_ids,
+      vendor_ids: new_portal.vendor_ids,
+    }
+  }
 }
 
 impl DB {
@@ -77,6 +84,42 @@ impl DB {
       auth0_user_id
     )
     .fetch_all(&self.pool)
+    .await
+    .map_err(anyhow::Error::from)
+  }
+
+  pub async fn create_portal(
+    &self,
+    auth0_user_id: &str,
+    new_portal: DBNewPortal,
+  ) -> Result<DBPortal> {
+    sqlx::query_as!(
+      DBPortal,
+      r#"
+      with _user as (select * from users where auth0id = $1)
+      insert into portals (
+        name,
+        org,
+        owner_ids,
+        vendor_ids,
+        created_by,
+        updated_by
+      ) values (
+        $2,
+        $3,
+        $4,
+        $5,
+        (select id from _user),
+        (select id from _user)
+      ) returning *
+      "#,
+      auth0_user_id,
+      new_portal.name,
+      new_portal.org,
+      &new_portal.owner_ids,
+      &new_portal.vendor_ids
+    )
+    .fetch_one(&self.pool)
     .await
     .map_err(anyhow::Error::from)
   }

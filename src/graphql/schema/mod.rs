@@ -12,6 +12,8 @@ pub mod dimension;
 pub mod block;
 pub mod cell;
 
+use self::portal::NewPortal;
+
 use super::context::GQLContext;
 use org::{NewOrg, Org};
 use user::{NewUser, User, UpdateUser};
@@ -73,6 +75,10 @@ impl Query {
     Query::user_portals_impl(ctx).await
   }
 
+  async fn portals_by_ids(ctx: &GQLContext, portal_ids: Vec<Uuid>) -> FieldResult<Vec<Portal>> {
+    Query::portals_by_ids_impl(ctx, portal_ids).await
+  }
+
   // Portal View
 
   async fn portalviews(ctx: &GQLContext, portal_id: Uuid) -> FieldResult<Vec<PortalView>> {
@@ -131,6 +137,12 @@ impl Mutation {
 
   async fn create_role(ctx: &GQLContext, new_role: NewRole) -> FieldResult<Role> {
     Mutation::create_role_impl(ctx, new_role).await
+  }
+
+  // Portal
+
+  async fn create_portal(ctx: &GQLContext, new_portal: NewPortal) -> FieldResult<Portal> {
+    Mutation::create_portal_impl(ctx, new_portal).await
   }
 
   // PortalView

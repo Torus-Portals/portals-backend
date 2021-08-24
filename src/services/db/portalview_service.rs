@@ -5,7 +5,9 @@ use chrono::{DateTime, Utc};
 
 use uuid::Uuid;
 
-use crate::graphql::schema::portalview::NewPortalView;
+use crate::{
+  graphql::schema::portalview::NewPortalView, services::db::structure_service::DBNewStructure,
+};
 
 #[derive(Debug, Serialize)]
 pub struct DBPortalView {
@@ -43,8 +45,6 @@ pub struct DBNewPortalView {
   pub egress: String,
 
   pub access: String,
-
-  pub structure_id: Uuid,
 }
 
 impl From<NewPortalView> for DBNewPortalView {
@@ -53,10 +53,7 @@ impl From<NewPortalView> for DBNewPortalView {
       portal_id: new_portalview.portal_id,
       name: new_portalview.name,
       egress: new_portalview.egress,
-      access: new_portalview.access,
-      structure_id: new_portalview
-        .stucture_id
-        .unwrap_or_else(|| panic!("no structure_id present in new_portal_view")),
+      access: new_portalview.access
     }
   }
 }
@@ -80,6 +77,17 @@ impl DB {
     auth0_user_id: &str,
     new_portalview: DBNewPortalView,
   ) -> Result<DBPortalView> {
+    // generate the structure in here since every portalview should have a structure
+    let structure = self
+      .create_structure(
+        auth0_user_id,
+        DBNewStructure {
+          structure_type: String::from("Grid"),
+          structure_data: serde_json::Value::Array(vec![]),
+        },
+      )
+      .await?;
+
     sqlx::query_as!(
       DBPortalView,
       r#"
@@ -108,7 +116,7 @@ impl DB {
       new_portalview.name,
       new_portalview.egress,
       new_portalview.access,
-      new_portalview.structure_id,
+      structure.id
     )
     .fetch_one(&self.pool)
     .await
