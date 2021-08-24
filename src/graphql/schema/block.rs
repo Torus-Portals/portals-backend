@@ -67,7 +67,7 @@ impl From<DBBlock> for Block {
       "BasicTable" => {
         let b: BasicTableBlock = serde_json::from_value(db_block.data).expect("come on");
         GQLBlocks::BasicTable(b)
-      }
+      },
       &_ => GQLBlocks::Empty(EmptyBlock {
         block_type: String::from("nothing"),
       }),
