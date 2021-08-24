@@ -5,7 +5,7 @@ use chrono::{DateTime, Utc};
 
 use uuid::Uuid;
 
-use crate::graphql::schema::user::{NewUser, UpdateUser};
+use crate::graphql::schema::user::{UpdateUser};
 
 // DBUser
 

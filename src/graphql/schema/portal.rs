@@ -1,14 +1,11 @@
-use std::collections::HashSet;
-
 use chrono::{DateTime, Utc};
 use juniper::{graphql_object, FieldError, FieldResult, GraphQLInputObject};
-use serde_json;
+
 use uuid::Uuid;
 
-use super::portalview::NewPortalView;
 use super::Mutation;
 use super::Query;
-use super::structure::Structure;
+
 use crate::graphql::context::GQLContext;
 use crate::services::db::portal_service::DBNewPortal;
 use crate::services::db::portal_service::DBPortal;
@@ -174,27 +171,30 @@ impl Mutation {
 
     // Create a default owner and vendor portalview
     ctx
-    .db
-    .create_portalview(&ctx.auth0_user_id, DBNewPortalView {
-        portal_id: portal.id,
-        name: String::from("Default Owner View"),
-        egress: String::from("owner"),
-        access: String::from("private"),
-    })
-    .await?;
+      .db
+      .create_portalview(
+        &ctx.auth0_user_id,
+        DBNewPortalView {
+          portal_id: portal.id,
+          name: String::from("Default Owner View"),
+          egress: String::from("owner"),
+          access: String::from("private"),
+        },
+      )
+      .await?;
 
     ctx
-    .db
-    .create_portalview(&ctx.auth0_user_id, DBNewPortalView {
-        portal_id: portal.id,
-        name: String::from("Default Owner View"),
-        egress: String::from("vendor"),
-        access: String::from("private"),
-    })
-    .await?;
-
-
-    
+      .db
+      .create_portalview(
+        &ctx.auth0_user_id,
+        DBNewPortalView {
+          portal_id: portal.id,
+          name: String::from("Default Owner View"),
+          egress: String::from("vendor"),
+          access: String::from("private"),
+        },
+      )
+      .await?;
 
     Ok(portal)
   }
