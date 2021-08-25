@@ -1,3 +1,5 @@
+use crate::graphql::schema::structure::UpdateStructure;
+
 use super::DB;
 
 use anyhow::Result;
@@ -31,6 +33,28 @@ pub struct DBNewStructure {
   pub structure_type: String,
 
   pub structure_data: serde_json::Value,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct DBUpdateStructure {
+  pub id: Uuid,
+
+  pub structure_type: Option<String>,
+
+  pub structure_data: Option<serde_json::Value>,
+}
+
+impl From<UpdateStructure> for DBUpdateStructure {
+  fn from(update_structure: UpdateStructure) -> Self {
+    let structure_type = update_structure.structure_type.map(|st| st.to_string());
+    let structure_data = serde_json::to_value(&update_structure.structure_data).ok();
+
+    DBUpdateStructure {
+      id: update_structure.id,
+      structure_type,
+      structure_data
+    }
+  }
 }
 
 impl DB {
@@ -80,6 +104,32 @@ impl DB {
       auth0_user_id,
       new_structure.structure_type,
       new_structure.structure_data,
+    )
+    .fetch_one(&self.pool)
+    .await
+    .map_err(anyhow::Error::from)
+  }
+
+  pub async fn update_structure(
+    &self,
+    auth0_user_id: &str,
+    update_structure: DBUpdateStructure,
+  ) -> Result<DBStructure> {
+    sqlx::query_as!(
+      DBStructure,
+      r#"
+      with _user as (select * from users where auth0id = $1)
+      update structures
+        set
+          structure_type = coalesce($3, structure_type),
+          structure_data = coalesce($4, structure_data)
+      where id = $2
+      returning *;
+      "#,
+      auth0_user_id,
+      update_structure.id,
+      update_structure.structure_type,
+      update_structure.structure_data
     )
     .fetch_one(&self.pool)
     .await

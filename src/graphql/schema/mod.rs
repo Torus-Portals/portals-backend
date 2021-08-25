@@ -12,7 +12,7 @@ pub mod dimension;
 pub mod block;
 pub mod cell;
 
-use self::portal::NewPortal;
+use self::{portal::NewPortal, structure::UpdateStructure};
 
 use super::context::GQLContext;
 use org::{NewOrg, Org};
@@ -153,6 +153,10 @@ impl Mutation {
   }
 
   // Structure
+
+  async fn update_structure(ctx: &GQLContext, update_structure: UpdateStructure) -> FieldResult<Structure> {
+    Mutation::update_structure_impl(ctx, update_structure).await
+  }
 }
 
 pub fn create_schema() -> Schema {

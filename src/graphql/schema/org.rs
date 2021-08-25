@@ -43,6 +43,7 @@ impl From<DBOrg> for Org {
     }
   }
 }
+
 #[derive(GraphQLInputObject, Debug, Serialize, Deserialize)]
 pub struct NewOrg {
   pub name: String,
