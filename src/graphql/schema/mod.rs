@@ -85,8 +85,14 @@ impl Query {
     Query::portalviews_impl(ctx, portal_id).await
   }
 
+  // Structure
+
   async fn structure(ctx: &GQLContext, structure_id: Uuid) -> FieldResult<Structure> {
     Query::structure_impl(ctx, structure_id).await
+  }
+
+  async fn structures(ctx: &GQLContext, structure_ids: Vec<Uuid>) -> FieldResult<Vec<Structure>> {
+    Query::structures_impl(ctx, structure_ids).await
   }
 
   // Dimension

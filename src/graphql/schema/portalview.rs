@@ -61,6 +61,10 @@ impl PortalView {
     self.access.clone()
   }
 
+  fn structure_id(&self) -> Uuid {
+    self.structure_id.clone()
+  }
+
   pub async fn structure(&self, context: &GQLContext) -> Structure {
     let structure_map = context
       .structure_loader
