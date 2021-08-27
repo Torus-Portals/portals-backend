@@ -22,7 +22,7 @@ use portal::{Portal};
 use portalview::{NewPortalView, PortalView};
 use structure::{Structure};
 use dimension::{Dimension};
-use block::{Block};
+use block::{NewBlock, Block};
 use cell::{Cell};
 
 pub type Schema =
@@ -162,6 +162,12 @@ impl Mutation {
 
   async fn update_structure(ctx: &GQLContext, update_structure: UpdateStructure) -> FieldResult<Structure> {
     Mutation::update_structure_impl(ctx, update_structure).await
+  }
+
+  // Block
+
+  async fn create_block(ctx: &GQLContext, new_block: NewBlock) -> FieldResult<Block> {
+    Mutation::create_block(ctx, new_block).await
   }
 }
 

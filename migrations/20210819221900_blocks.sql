@@ -4,7 +4,6 @@ CREATE TABLE blocks (
   portal_id UUID NOT NULL,
   portal_view_id UUID NOT NULL,
   egress TEXT NOT NULL,
-  bbox INT[] NOT NULL DEFAULT '{0, 0, 0, 0}'::INT[],
   data jsonb NOT NULL DEFAULT '{}'::jsonb,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   created_by UUID NOT NULL,

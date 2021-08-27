@@ -1,11 +1,13 @@
 use chrono::{DateTime, Utc};
-use juniper::{FieldError, FieldResult, GraphQLEnum, GraphQLObject, GraphQLUnion};
+use juniper::{
+  FieldError, FieldResult, GraphQLEnum, GraphQLInputObject, GraphQLObject, GraphQLUnion,
+};
 use serde_json;
 use std::str::FromStr;
-use strum_macros::EnumString;
+use strum_macros::{EnumString, Display};
 use uuid::Uuid;
 
-// use super::Mutation;
+use super::Mutation;
 use super::Query;
 use crate::graphql::context::GQLContext;
 use crate::services::db::block_service::DBBlock;
@@ -16,7 +18,7 @@ pub enum GQLBlocks {
   Empty(EmptyBlock),
 }
 
-#[derive(Debug, Serialize, Deserialize, GraphQLEnum, EnumString)]
+#[derive(Debug, Serialize, Deserialize, GraphQLEnum, EnumString, Display)]
 pub enum BlockTypes {
   #[strum(serialize = "BasicTable")]
   BasicTable,
@@ -29,15 +31,12 @@ pub struct Block {
   #[serde(rename = "blockType")]
   pub block_type: BlockTypes,
 
-  #[serde(rename = "portalId")]
   pub portal_id: Uuid,
 
   #[serde(rename = "portalViewId")]
   pub portal_view_id: Uuid,
 
   pub egress: String,
-
-  pub bbox: Vec<i32>,
 
   #[serde(rename = "blockData")]
   pub block_data: GQLBlocks,
@@ -63,18 +62,25 @@ impl From<DBBlock> for Block {
     // let q = db_block.block_type;
     // println!("qqq {}", q);
 
-    let block_data = match db_block.block_type.as_str() {
+    let block_data = match db_block
+      .block_type
+      .as_str()
+    {
       "BasicTable" => {
-        let b: BasicTableBlock = serde_json::from_value(db_block.data).expect("come on");
+        let b: BasicTableBlock = serde_json::from_value(db_block.block_data).expect("come on");
         GQLBlocks::BasicTable(b)
-      },
+      }
       &_ => GQLBlocks::Empty(EmptyBlock {
         block_type: String::from("nothing"),
       }),
     };
 
-    let block_type = BlockTypes::from_str(db_block.block_type.as_str())
-      .expect("Unable to convert block_type string to enum variant");
+    let block_type = BlockTypes::from_str(
+      db_block
+        .block_type
+        .as_str(),
+    )
+    .expect("Unable to convert block_type string to enum variant");
 
     Block {
       id: db_block.id,
@@ -82,7 +88,6 @@ impl From<DBBlock> for Block {
       portal_id: db_block.portal_id,
       portal_view_id: db_block.portal_view_id,
       egress: db_block.egress,
-      bbox: db_block.bbox,
       block_data,
       created_at: db_block.created_at,
       created_by: db_block.created_by,
@@ -104,6 +109,19 @@ pub struct EmptyBlock {
   block_type: String,
 }
 
+#[derive(GraphQLInputObject)]
+pub struct NewBlock {
+  pub block_type: BlockTypes,
+
+  pub portal_id: Uuid,
+
+  pub portal_view_id: Uuid,
+
+  pub egress: String,
+
+  pub block_data: String, // For now the json should be stringified
+}
+
 impl Query {
   pub async fn block_impl(ctx: &GQLContext, block_id: Uuid) -> FieldResult<Block> {
     ctx
@@ -120,8 +138,22 @@ impl Query {
       .get_blocks(portal_id)
       .await
       .map(|db_blocks| {
-        db_blocks.into_iter().map(|b| b.into()).collect()
+        db_blocks
+          .into_iter()
+          .map(|b| b.into())
+          .collect()
       })
+      .map_err(FieldError::from)
+  }
+}
+
+impl Mutation {
+  pub async fn create_block(ctx: &GQLContext, new_block: NewBlock) -> FieldResult<Block> {
+    ctx
+      .db
+      .create_block(&ctx.auth0_user_id, new_block.into())
+      .await
+      .map(|b| b.into())
       .map_err(FieldError::from)
   }
 }

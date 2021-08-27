@@ -1,3 +1,5 @@
+use crate::graphql::schema::block::NewBlock;
+
 use super::DB;
 
 use anyhow::Result;
@@ -20,9 +22,7 @@ pub struct DBBlock {
 
   pub egress: String,
 
-  pub bbox: Vec<i32>,
-
-  pub data: serde_json::Value,
+  pub block_data: serde_json::Value,
 
   #[serde(rename = "createdAt")]
   pub created_at: DateTime<Utc>,
@@ -47,15 +47,21 @@ pub struct DBNewBlock {
 
   pub egress: String,
 
-  pub bbox: Vec<i32>,
+  pub block_data: serde_json::Value,
+}
 
-  pub data: serde_json::Value,
+impl From<NewBlock> for DBNewBlock {
+  fn from(new_block: NewBlock) -> Self {
+    let block_data = serde_json::from_str(&new_block.block_data).expect("block data isn't json, dude");
 
-  #[serde(rename = "createdBy")]
-  pub created_by: Uuid,
-
-  #[serde(rename = "updatedBy")]
-  pub updated_by: Uuid,
+    DBNewBlock {
+        block_type: new_block.block_type.to_string(),
+        portal_id: new_block.portal_id,
+        portal_view_id: new_block.portal_view_id,
+        egress: new_block.egress,
+        block_data: block_data,
+    }
+  }
 }
 
 impl DB {
@@ -73,6 +79,27 @@ impl DB {
       portal_id
     )
     .fetch_all(&self.pool)
+    .await
+    .map_err(anyhow::Error::from)
+  }
+
+  pub async fn create_block(&self, auth0_user_id: &str, new_block: DBNewBlock) -> Result<DBBlock> {
+    sqlx::query_as!(
+      DBBlock,
+      r#"
+      with _user as (select * from users where auth0id = $1)
+      insert into blocks (block_type, portal_id, portal_view_id, egress, block_data, created_by, updated_by)
+      values ($2, $3, $4, $5, $6, (select id from _user), (select id from _user))
+      returning *;
+      "#,
+      auth0_user_id,
+      new_block.block_type,
+      new_block.portal_id,
+      new_block.portal_view_id,
+      new_block.egress,
+      new_block.block_data,
+    )
+    .fetch_one(&self.pool)
     .await
     .map_err(anyhow::Error::from)
   }
