@@ -1,13 +1,15 @@
+use crate::services::db::dimension_service::DBNewDimension;
 use crate::{graphql::context::GQLContext, services::db::dimension_service::DBDimension};
 use chrono::{DateTime, Utc};
-use juniper::{FieldError, FieldResult, GraphQLEnum, GraphQLObject};
+use juniper::{FieldError, FieldResult, GraphQLEnum, GraphQLInputObject, GraphQLObject};
 use std::str::FromStr;
-use strum_macros::EnumString;
+use strum_macros::{EnumString, Display};
 use uuid::Uuid;
 
 use super::Query;
+use super::Mutation;
 
-#[derive(Debug, Serialize, Deserialize, GraphQLEnum, EnumString)]
+#[derive(Debug, Serialize, Deserialize, GraphQLEnum, EnumString, Display)]
 pub enum DimensionTypes {
   #[strum(serialize = "BasicTable-row")]
   BasicTableRow,
@@ -19,25 +21,19 @@ pub enum DimensionTypes {
 pub struct Dimension {
   pub id: Uuid,
 
-  #[serde(rename = "portalId")]
   pub portal_id: Uuid,
 
   pub name: String,
 
-  #[serde(rename = "dimensionType")]
   pub dimension_type: DimensionTypes,
 
   // pub meta: serde_json::Value,
-  #[serde(rename = "createdAt")]
   pub created_at: DateTime<Utc>,
 
-  #[serde(rename = "createdBy")]
   pub created_by: Uuid,
 
-  #[serde(rename = "updatedAt")]
   pub updated_at: DateTime<Utc>,
 
-  #[serde(rename = "updatedBy")]
   pub updated_by: Uuid,
 }
 
@@ -63,6 +59,15 @@ impl From<DBDimension> for Dimension {
   }
 }
 
+#[derive(Debug, GraphQLInputObject, Serialize, Deserialize)]
+pub struct NewDimension {
+  pub portal_id: Uuid,
+
+  pub name: String,
+
+  pub dimension_type: DimensionTypes,
+}
+
 impl Query {
   pub async fn dimensions_impl(ctx: &GQLContext, portal_id: Uuid) -> FieldResult<Vec<Dimension>> {
     ctx
@@ -71,6 +76,30 @@ impl Query {
       .await
       .map(|dimensions| {
         dimensions
+          .into_iter()
+          .map(|d| d.into())
+          .collect()
+      })
+      .map_err(FieldError::from)
+  }
+}
+
+impl Mutation {
+  pub async fn create_dimensions_impl(
+    ctx: &GQLContext,
+    dimensions: Vec<NewDimension>,
+  ) -> FieldResult<Vec<Dimension>> {
+    let db_dims = dimensions
+      .into_iter()
+      .map(|db_dim| db_dim.into())
+      .collect::<Vec<DBNewDimension>>();
+
+    ctx
+      .db
+      .create_dimensions(&ctx.auth0_user_id, db_dims)
+      .await
+      .map(|db_dimensions| {
+        db_dimensions
           .into_iter()
           .map(|d| d.into())
           .collect()

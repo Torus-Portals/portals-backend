@@ -12,7 +12,7 @@ pub mod dimension;
 pub mod block;
 pub mod cell;
 
-use self::{portal::NewPortal, structure::UpdateStructure};
+use self::{dimension::NewDimension, portal::NewPortal, structure::UpdateStructure};
 
 use super::context::GQLContext;
 use org::{NewOrg, Org};
@@ -168,6 +168,10 @@ impl Mutation {
 
   async fn create_block(ctx: &GQLContext, new_block: NewBlock) -> FieldResult<Block> {
     Mutation::create_block(ctx, new_block).await
+  }
+
+  async fn create_dimensions(ctx: &GQLContext, new_dimensions: Vec<NewDimension>) -> FieldResult<Vec<Dimension>> {
+    Mutation::create_dimensions_impl(ctx, new_dimensions).await
   }
 }
 
