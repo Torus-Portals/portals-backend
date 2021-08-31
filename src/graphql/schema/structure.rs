@@ -119,9 +119,9 @@ pub struct GridStructureBlock {
 
   is_empty: bool,
 
-  start: String,
+  start: f64,
 
-  end: String,
+  end: f64,
 }
 
 // Inputs
@@ -183,9 +183,9 @@ pub struct GridStructureBlockInput {
 
   is_empty: bool,
 
-  start: String,
+  start: f64,
 
-  end: String,
+  end: f64,
 }
 
 #[derive(GraphQLInputObject, Debug, Clone, Serialize, Deserialize)]

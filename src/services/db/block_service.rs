@@ -52,14 +52,13 @@ pub struct DBNewBlock {
 
 impl From<NewBlock> for DBNewBlock {
   fn from(new_block: NewBlock) -> Self {
-    let block_data = serde_json::from_str(&new_block.block_data).expect("block data isn't json, dude");
 
     DBNewBlock {
         block_type: new_block.block_type.to_string(),
         portal_id: new_block.portal_id,
         portal_view_id: new_block.portal_view_id,
         egress: new_block.egress,
-        block_data: block_data,
+        block_data: new_block.block_data,
     }
   }
 }

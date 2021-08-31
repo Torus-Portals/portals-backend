@@ -1,16 +1,17 @@
 use chrono::{DateTime, Utc};
 use juniper::{
-  FieldError, FieldResult, GraphQLEnum, GraphQLInputObject, GraphQLObject, GraphQLUnion,
+  FieldError, FieldResult, GraphQLEnum, GraphQLObject, GraphQLUnion,
 };
 use serde_json;
 use std::str::FromStr;
 use strum_macros::{EnumString, Display};
 use uuid::Uuid;
 
-use super::Mutation;
 use super::Query;
 use crate::graphql::context::GQLContext;
 use crate::services::db::block_service::DBBlock;
+use super::blocks::basic_table_block::{BasicTableBlock};
+use super::blocks::empty_block::{EmptyBlock};
 
 #[derive(Debug, GraphQLUnion, Serialize, Deserialize)]
 pub enum GQLBlocks {
@@ -97,19 +98,6 @@ impl From<DBBlock> for Block {
   }
 }
 
-#[derive(GraphQLObject, Debug, Serialize, Deserialize)]
-pub struct BasicTableBlock {
-  pub rows: Vec<Uuid>,
-
-  pub columns: Vec<Uuid>,
-}
-
-#[derive(GraphQLObject, Debug, Serialize, Deserialize)]
-pub struct EmptyBlock {
-  block_type: String,
-}
-
-#[derive(GraphQLInputObject)]
 pub struct NewBlock {
   pub block_type: BlockTypes,
 
@@ -119,7 +107,7 @@ pub struct NewBlock {
 
   pub egress: String,
 
-  pub block_data: String, // For now the json should be stringified
+  pub block_data: serde_json::Value, // For now the json should be stringified
 }
 
 impl Query {
@@ -147,13 +135,15 @@ impl Query {
   }
 }
 
-impl Mutation {
-  pub async fn create_block(ctx: &GQLContext, new_block: NewBlock) -> FieldResult<Block> {
-    ctx
-      .db
-      .create_block(&ctx.auth0_user_id, new_block.into())
-      .await
-      .map(|b| b.into())
-      .map_err(FieldError::from)
-  }
-}
+// Not using at the moment, due to no good way currently to type a json field.
+// Will create separate mutations for each block type
+// impl Mutation {
+//   pub async fn create_block(ctx: &GQLContext, new_block: NewBlock) -> FieldResult<Block> {
+//     ctx
+//       .db
+//       .create_block(&ctx.auth0_user_id, new_block.into())
+//       .await
+//       .map(|b| b.into())
+//       .map_err(FieldError::from)
+//   }
+// }

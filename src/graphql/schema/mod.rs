@@ -1,7 +1,6 @@
 use juniper::{graphql_object, DefaultScalarValue, EmptySubscription, FieldResult, RootNode};
 use uuid::Uuid;
 
-// pub mod misc;
 pub mod org;
 pub mod user;
 pub mod role;
@@ -10,9 +9,10 @@ pub mod portalview;
 pub mod structure;
 pub mod dimension;
 pub mod block;
+pub mod blocks;
 pub mod cell;
 
-use self::{dimension::NewDimension, portal::NewPortal, structure::UpdateStructure};
+use self::{blocks::basic_table_block::NewBasicTableBlock, dimension::NewDimension, portal::NewPortal, structure::UpdateStructure};
 
 use super::context::GQLContext;
 use org::{NewOrg, Org};
@@ -166,8 +166,13 @@ impl Mutation {
 
   // Block
 
-  async fn create_block(ctx: &GQLContext, new_block: NewBlock) -> FieldResult<Block> {
-    Mutation::create_block(ctx, new_block).await
+  // Not using for the time being.
+  // async fn create_block(ctx: &GQLContext, new_block: NewBlock) -> FieldResult<Block> {
+  //   Mutation::create_block(ctx, new_block).await
+  // }
+
+  async fn create_basic_table(ctx: &GQLContext, new_basic_table_block: NewBasicTableBlock) -> FieldResult<Block> {
+    Mutation::create_basic_table_impl(ctx, new_basic_table_block).await
   }
 
   async fn create_dimensions(ctx: &GQLContext, new_dimensions: Vec<NewDimension>) -> FieldResult<Vec<Dimension>> {
