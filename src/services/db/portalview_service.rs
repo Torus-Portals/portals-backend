@@ -5,9 +5,7 @@ use chrono::{DateTime, Utc};
 
 use uuid::Uuid;
 
-use crate::{
-  graphql::schema::portalview::NewPortalView, services::db::structure_service::DBNewStructure,
-};
+use crate::{graphql::schema::{portalview::NewPortalView, structure::GridStructure}, services::db::structure_service::DBNewStructure};
 
 #[derive(Debug, Serialize)]
 pub struct DBPortalView {
@@ -78,12 +76,13 @@ impl DB {
     new_portalview: DBNewPortalView,
   ) -> Result<DBPortalView> {
     // generate the structure in here since every portalview should have a structure
+    let structure_data = GridStructure::new();
     let structure = self
       .create_structure(
         auth0_user_id,
         DBNewStructure {
           structure_type: String::from("Grid"),
-          structure_data: serde_json::Value::Array(vec![]),
+          structure_data: serde_json::to_value(structure_data).ok().unwrap(),
         },
       )
       .await?;

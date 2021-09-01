@@ -1,17 +1,10 @@
-use chrono::{DateTime, Utc};
-use juniper::{
-  FieldError, FieldResult, GraphQLEnum, GraphQLInputObject, GraphQLObject, GraphQLUnion,
-};
+use juniper::{FieldError, FieldResult, GraphQLInputObject, GraphQLObject};
 use serde_json;
-use std::str::FromStr;
-use strum_macros::{Display, EnumString};
 use uuid::Uuid;
 
 use crate::graphql::context::GQLContext;
-use crate::graphql::schema::block::{Block, BlockTypes, GQLBlocks, NewBlock};
-use crate::graphql::schema::{Mutation};
-use crate::services::db::block_service::DBBlock;
-
+use crate::graphql::schema::block::{Block, BlockTypes, NewBlock};
+use crate::graphql::schema::Mutation;
 
 #[derive(GraphQLObject, Debug, Serialize, Deserialize)]
 pub struct BasicTableBlock {

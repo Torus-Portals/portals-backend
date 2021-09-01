@@ -79,8 +79,11 @@ impl From<DBStructure> for Structure {
       .as_str()
     {
       "Grid" => {
-        let s = serde_json::from_value(db_structure.structure_data)
-          .unwrap_or_else(|_| GridStructure { rows: vec![] });
+        let s =
+          serde_json::from_value(db_structure.structure_data).unwrap_or_else(|_| GridStructure {
+            id: Uuid::new_v4(),
+            rows: vec![],
+          });
 
         GQLStructures::Grid(s)
       }
@@ -103,18 +106,33 @@ impl From<DBStructure> for Structure {
 
 #[derive(GraphQLObject, Debug, Clone, Serialize, Deserialize)]
 pub struct GridStructure {
+  pub id: Uuid,
+
   pub rows: Vec<GridStructureRow>,
+}
+
+impl GridStructure {
+  pub fn new() -> Self {
+    GridStructure {
+      id: Uuid::new_v4(),
+      rows: vec![],
+    }
+  }
 }
 
 #[derive(GraphQLObject, Debug, Clone, Serialize, Deserialize)]
 pub struct GridStructureRow {
+  pub id: Uuid,
+
   pub height: i32,
 
-  pub blocks: Vec<GridStructureBlock>
+  pub blocks: Vec<GridStructureBlock>,
 }
 
 #[derive(GraphQLObject, Debug, Clone, Serialize, Deserialize)]
 pub struct GridStructureBlock {
+  pub id: Uuid,
+
   block_id: Option<Uuid>,
 
   is_empty: bool,
@@ -172,6 +190,8 @@ pub struct UpdateStructure {
 
 #[derive(GraphQLInputObject, Debug, Clone, Serialize, Deserialize)]
 pub struct GridStructureRowInput {
+  pub id: Uuid,
+
   pub height: i32,
 
   pub blocks: Vec<GridStructureBlockInput>,
@@ -179,6 +199,8 @@ pub struct GridStructureRowInput {
 
 #[derive(GraphQLInputObject, Debug, Clone, Serialize, Deserialize)]
 pub struct GridStructureBlockInput {
+  pub id: Uuid,
+
   block_id: Option<Uuid>,
 
   is_empty: bool,
@@ -190,6 +212,8 @@ pub struct GridStructureBlockInput {
 
 #[derive(GraphQLInputObject, Debug, Clone, Serialize, Deserialize)]
 pub struct GridStructureInput {
+  pub id: Uuid,
+
   pub rows: Vec<GridStructureRowInput>,
 }
 
@@ -208,18 +232,21 @@ impl Query {
       .map_err(FieldError::from)
   }
 
-  pub async fn structures_impl(ctx: &GQLContext, structure_ids: Vec<Uuid>) -> FieldResult<Vec<Structure>> {
+  pub async fn structures_impl(
+    ctx: &GQLContext,
+    structure_ids: Vec<Uuid>,
+  ) -> FieldResult<Vec<Structure>> {
     ctx
-    .db
-    .get_structures(&structure_ids)
-    .await
-    .map(|db_structures| {
-      db_structures
-      .into_iter()
-      .map(|s| s.into())
-      .collect()
-    })
-    .map_err(FieldError::from)
+      .db
+      .get_structures(&structure_ids)
+      .await
+      .map(|db_structures| {
+        db_structures
+          .into_iter()
+          .map(|s| s.into())
+          .collect()
+      })
+      .map_err(FieldError::from)
   }
 }
 
