@@ -22,7 +22,7 @@ use portal::{Portal};
 use portalview::{NewPortalView, PortalView};
 use structure::{Structure};
 use dimension::{Dimension};
-use block::{NewBlock, Block};
+use block::{Block};
 use cell::{Cell};
 
 pub type Schema =

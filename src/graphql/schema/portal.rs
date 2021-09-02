@@ -17,7 +17,7 @@ pub struct Portal {
 
   pub name: String,
 
-  pub org: Uuid,
+  pub org_id: Uuid,
 
   pub owner_ids: Vec<Uuid>,
 
@@ -46,8 +46,8 @@ impl Portal {
     self.name.clone()
   }
 
-  fn org(&self) -> Uuid {
-    self.org
+  fn org_id(&self) -> Uuid {
+    self.org_id
   }
 
   fn owner_ids(&self) -> Vec<Uuid> {
@@ -84,7 +84,7 @@ impl From<DBPortal> for Portal {
     Portal {
       id: db_portal.id,
       name: db_portal.name,
-      org: db_portal.org,
+      org_id: db_portal.org_id,
       owner_ids: db_portal.owner_ids,
       vendor_ids: db_portal.vendor_ids,
       created_at: db_portal.created_at,
@@ -97,9 +97,9 @@ impl From<DBPortal> for Portal {
 
 #[derive(GraphQLInputObject, Debug, Serialize, Deserialize)]
 pub struct NewPortal {
-  pub org: Uuid,
-
   pub name: String,
+
+  pub org_id: Uuid,
 
   pub owner_ids: Vec<Uuid>,
 
@@ -109,7 +109,7 @@ pub struct NewPortal {
 impl From<DBNewPortal> for NewPortal {
   fn from(db_new_portal: DBNewPortal) -> Self {
     NewPortal {
-      org: db_new_portal.org,
+      org_id: db_new_portal.org_id,
       name: db_new_portal.name,
       owner_ids: db_new_portal.owner_ids,
       vendor_ids: db_new_portal.vendor_ids,

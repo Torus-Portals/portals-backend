@@ -12,7 +12,7 @@ pub struct DBPortal {
 
   pub name: String,
 
-  pub org: Uuid,
+  pub org_id: Uuid,
 
   pub owner_ids: Vec<Uuid>,
 
@@ -33,7 +33,7 @@ pub struct DBPortal {
 
 #[derive(Serialize, Deserialize)]
 pub struct DBNewPortal {
-  pub org: Uuid,
+  pub org_id: Uuid,
 
   pub name: String,
 
@@ -45,7 +45,7 @@ pub struct DBNewPortal {
 impl From<NewPortal> for DBNewPortal {
   fn from(new_portal: NewPortal) -> Self {
     DBNewPortal {
-      org: new_portal.org,
+      org_id: new_portal.org_id,
       name: new_portal.name,
       owner_ids: new_portal.owner_ids,
       vendor_ids: new_portal.vendor_ids,
@@ -99,7 +99,7 @@ impl DB {
       with _user as (select * from users where auth0id = $1)
       insert into portals (
         name,
-        org,
+        org_id,
         owner_ids,
         vendor_ids,
         created_by,
@@ -115,7 +115,7 @@ impl DB {
       "#,
       auth0_user_id,
       new_portal.name,
-      new_portal.org,
+      new_portal.org_id,
       &new_portal.owner_ids,
       &new_portal.vendor_ids
     )
