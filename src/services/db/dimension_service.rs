@@ -1,10 +1,9 @@
 use crate::graphql::schema::dimension::NewDimension;
 
-use super::DB;
-
 use anyhow::Result;
 use chrono::{DateTime, Utc};
 
+use sqlx::{Executor, Postgres};
 use uuid::Uuid;
 
 #[derive(Debug, Serialize)]
@@ -55,44 +54,46 @@ impl From<NewDimension> for DBNewDimension {
   }
 }
 
-impl DB {
-  pub async fn get_dimensions(&self, portal_id: Uuid) -> Result<Vec<DBDimension>> {
-    sqlx::query_as!(
-      DBDimension,
-      r#"select * from dimensions where portal_id = $1 "#,
-      portal_id
-    )
-    .fetch_all(&self.pool)
-    .await
-    .map_err(anyhow::Error::from)
-  }
+pub async fn get_dimensions<'e>(
+  pool: impl Executor<'e, Database = Postgres>,
+  portal_id: Uuid,
+) -> Result<Vec<DBDimension>> {
+  sqlx::query_as!(
+    DBDimension,
+    r#"select * from dimensions where portal_id = $1 "#,
+    portal_id
+  )
+  .fetch_all(pool)
+  .await
+  .map_err(anyhow::Error::from)
+}
 
-  pub async fn create_dimensions(
-    &self,
-    auth0_user_id: &str,
-    new_dimensions: Vec<DBNewDimension>,
-  ) -> Result<Vec<DBDimension>> {
-    let portal_ids = new_dimensions
-      .iter()
-      .map(|nd| nd.portal_id.clone())
-      .collect::<Vec<Uuid>>();
+pub async fn create_dimensions<'e>(
+  pool: impl Executor<'e, Database = Postgres>,
+  auth0_user_id: &str,
+  new_dimensions: Vec<DBNewDimension>,
+) -> Result<Vec<DBDimension>> {
+  let portal_ids = new_dimensions
+    .iter()
+    .map(|nd| nd.portal_id.clone())
+    .collect::<Vec<Uuid>>();
 
-    let names = new_dimensions
-      .iter()
-      .map(|nd| nd.name.clone())
-      .collect::<Vec<String>>();
+  let names = new_dimensions
+    .iter()
+    .map(|nd| nd.name.clone())
+    .collect::<Vec<String>>();
 
-    let dimension_types = new_dimensions
-      .iter()
-      .map(|nd| {
-        nd.dimension_type
-          .clone()
-      })
-      .collect::<Vec<String>>();
+  let dimension_types = new_dimensions
+    .iter()
+    .map(|nd| {
+      nd.dimension_type
+        .clone()
+    })
+    .collect::<Vec<String>>();
 
-    sqlx::query_as!(
-      DBDimension,
-      r#"
+  sqlx::query_as!(
+    DBDimension,
+    r#"
       with _user as (select * from users where auth0id = $1)
       insert into dimensions (
         portal_id,
@@ -109,14 +110,13 @@ impl DB {
       )
       returning *;
       "#,
-      auth0_user_id,
-      (new_dimensions.len() as i32),
-      &portal_ids,
-      &names,
-      &dimension_types
-    )
-    .fetch_all(&self.pool)
-    .await
-    .map_err(anyhow::Error::from)
-  }
+    auth0_user_id,
+    (new_dimensions.len() as i32),
+    &portal_ids,
+    &names,
+    &dimension_types
+  )
+  .fetch_all(pool)
+  .await
+  .map_err(anyhow::Error::from)
 }

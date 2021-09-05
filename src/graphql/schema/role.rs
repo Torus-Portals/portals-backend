@@ -7,7 +7,7 @@ use strum_macros::{EnumString, ToString};
 use uuid::Uuid;
 
 use crate::graphql::context::GQLContext;
-use crate::services::db::role_service::{DBNewRole, DBRole};
+use crate::services::db::role_service::{DBNewRole, DBRole, get_role, create_role};
 
 use super::Query;
 use super::Mutation;
@@ -149,9 +149,7 @@ impl From<DBNewRole> for NewRole {
 
 impl Query {
   pub async fn role_impl(ctx: &GQLContext, role_id: Uuid) -> FieldResult<Role> {
-    ctx
-      .db
-      .get_role(role_id)
+      get_role(&ctx.pool, role_id)
       .await
       .map(|db_role| db_role.into())
       .map_err(FieldError::from)
@@ -160,9 +158,7 @@ impl Query {
 
 impl Mutation {
   pub async fn create_role_impl(ctx: &GQLContext, new_role: NewRole) -> FieldResult<Role> {
-    ctx
-      .db
-      .create_role(&ctx.auth0_user_id, new_role.into())
+      create_role(&ctx.pool, &ctx.auth0_user_id, new_role.into())
       .await
       .map(|role| -> Role { role.into() })
       .map_err(FieldError::from)

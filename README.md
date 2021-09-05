@@ -6,9 +6,6 @@ This Project uses [SQLx](https://github.com/launchbadge/sqlx) for database inter
 
 There are many ways to get a local Postgres DB instance, and I recommend using a [Postgres Docker image](https://hub.docker.com/_/postgres). 
 
-```bash
-```
-
 ### Running dev
 
 This project uses [auto reloading](https://actix.rs/docs/autoreload/) in dev.

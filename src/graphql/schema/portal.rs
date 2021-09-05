@@ -7,9 +7,15 @@ use super::Mutation;
 use super::Query;
 
 use crate::graphql::context::GQLContext;
+use crate::services::db::portal_service::create_portal;
+use crate::services::db::portal_service::delete_portal;
+use crate::services::db::portal_service::get_auth0_user_portals;
+use crate::services::db::portal_service::get_portal;
 use crate::services::db::portal_service::DBNewPortal;
 use crate::services::db::portal_service::DBPortal;
+use crate::services::db::portal_service::get_portals;
 use crate::services::db::portalview_service::DBNewPortalView;
+use crate::services::db::portalview_service::create_portalview;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Portal {
@@ -119,9 +125,7 @@ impl From<DBNewPortal> for NewPortal {
 
 impl Query {
   pub async fn portal_impl(ctx: &GQLContext, portal_id: Uuid) -> FieldResult<Portal> {
-    ctx
-      .db
-      .get_portal(portal_id)
+    get_portal(&ctx.pool, portal_id)
       .await
       .map(|db_portal| db_portal.into())
       .map_err(FieldError::from)
@@ -129,9 +133,7 @@ impl Query {
 
   // Get all portals associated to a user
   pub async fn user_portals_impl(ctx: &GQLContext) -> FieldResult<Vec<Portal>> {
-    ctx
-      .db
-      .get_auth0_user_portals(&ctx.auth0_user_id)
+    get_auth0_user_portals(&ctx.pool, &ctx.auth0_user_id)
       .await
       .map(|db_portals| {
         db_portals
@@ -146,9 +148,7 @@ impl Query {
     ctx: &GQLContext,
     portal_ids: Vec<Uuid>,
   ) -> FieldResult<Vec<Portal>> {
-    ctx
-      .db
-      .get_portals(portal_ids)
+    get_portals(&ctx.pool, portal_ids)
       .await
       .map(|db_portals| {
         db_portals
@@ -162,40 +162,42 @@ impl Query {
 
 impl Mutation {
   pub async fn create_portal_impl(ctx: &GQLContext, new_portal: NewPortal) -> FieldResult<Portal> {
-    let portal: Portal = ctx
-      .db
-      .create_portal(&ctx.auth0_user_id, new_portal.into())
+    let portal: Portal = create_portal(&ctx.pool, &ctx.auth0_user_id, new_portal.into())
       .await
       .map(|db_portal| db_portal.into())
       .map_err(FieldError::from)?;
 
     // Create a default owner and vendor portalview
-    ctx
-      .db
-      .create_portalview(
-        &ctx.auth0_user_id,
-        DBNewPortalView {
-          portal_id: portal.id,
-          name: String::from("Default Owner View"),
-          egress: String::from("owner"),
-          access: String::from("private"),
-        },
-      )
-      .await?;
+    create_portalview(
+      &ctx.pool,
+      &ctx.auth0_user_id,
+      DBNewPortalView {
+        portal_id: portal.id,
+        name: String::from("Default Owner View"),
+        egress: String::from("owner"),
+        access: String::from("private"),
+      },
+    )
+    .await?;
 
-    ctx
-      .db
-      .create_portalview(
-        &ctx.auth0_user_id,
-        DBNewPortalView {
-          portal_id: portal.id,
-          name: String::from("Default Owner View"),
-          egress: String::from("vendor"),
-          access: String::from("private"),
-        },
-      )
-      .await?;
+    create_portalview(
+      &ctx.pool,
+      &ctx.auth0_user_id,
+      DBNewPortalView {
+        portal_id: portal.id,
+        name: String::from("Default Owner View"),
+        egress: String::from("vendor"),
+        access: String::from("private"),
+      },
+    )
+    .await?;
 
     Ok(portal)
+  }
+
+  pub async fn delete_portal_impl(ctx: &GQLContext, portal_id: Uuid) -> FieldResult<i32> {
+    let local_pool = ctx.pool.clone();
+    delete_portal(local_pool, portal_id).await
+    .map_err(FieldError::from)
   }
 }

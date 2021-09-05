@@ -9,7 +9,8 @@ use super::Query;
 use super::user::{UpdateUser, User};
 
 use crate::graphql::context::GQLContext;
-use crate::services::db::org_service::{DBNewOrg, DBOrg};
+use crate::services::db::org_service::{DBNewOrg, DBOrg, get_org, create_org };
+use crate::services::db::user_service::{get_user_by_auth0_id, update_user};
 use uuid::Uuid;
 
 #[derive(GraphQLObject, Debug, Serialize, Deserialize, Clone)]
@@ -51,9 +52,7 @@ pub struct NewOrg {
 
 impl Query {
   pub async fn orgs_impl(ctx: &GQLContext) -> FieldResult<Vec<Org>> {
-    let user = ctx
-      .db
-      .get_user_by_auth0_id(&ctx.auth0_user_id)
+    let user = get_user_by_auth0_id(&ctx.pool, &ctx.auth0_user_id)
       .await?;
 
     let user_org_ids = user.org_ids.clone();
@@ -76,9 +75,7 @@ impl Query {
   }
 
   pub async fn org_impl(ctx: &GQLContext, org_id: Uuid) -> FieldResult<Org> {
-    ctx
-      .db
-      .get_org(org_id)
+      get_org(&ctx.pool, org_id)
       .await
       .map(|org| -> Org { org.into() })
       .map_err(FieldError::from)
@@ -87,16 +84,12 @@ impl Query {
 
 impl Mutation {
   pub async fn create_org_impl(ctx: &GQLContext, new_org: NewOrg) -> FieldResult<Org> {
-    let created_org = ctx
-      .db
-      .create_org(&ctx.auth0_user_id, DBNewOrg { name: new_org.name })
+    let created_org = create_org(&ctx.pool, &ctx.auth0_user_id, DBNewOrg { name: new_org.name })
       .await
       .map(|org| -> Org { org.into() })
       .map_err(FieldError::from)?;
 
-    let user = ctx
-      .db
-      .get_user_by_auth0_id(&ctx.auth0_user_id)
+    let user = get_user_by_auth0_id(&ctx.pool, &ctx.auth0_user_id)
       .await
       .map(|db_user| -> User { db_user.into() })
       .map_err(FieldError::from)?;
@@ -115,9 +108,7 @@ impl Mutation {
     };
 
     // Add the user who created the org to the org.
-    ctx
-      .db
-      .update_user(&ctx.auth0_user_id, user_patch.into())
+      update_user(&ctx.pool, &ctx.auth0_user_id, user_patch.into())
       .await
       .map_err(FieldError::from)?;
 

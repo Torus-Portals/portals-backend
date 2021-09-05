@@ -1,7 +1,6 @@
-use super::DB;
-// use crate::models::db_org::{DBOrg, NewDBOrg};
 use anyhow::Result;
 use chrono::{DateTime, NaiveDateTime, Utc};
+use sqlx::{Executor, Postgres};
 use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -41,48 +40,56 @@ pub struct DBNewOrg {
   pub name: String,
 }
 
-impl DB {
-  // Needs to be scoped to the user's orgs...
-  pub async fn get_org(&self, org_id: Uuid) -> Result<DBOrg> {
-    sqlx::query_as!(DBOrg, "select * from orgs where id = $1", org_id)
-      .fetch_one(&self.pool)
-      .await
-      .map_err(anyhow::Error::from)
-  }
-
-  // Note: This is realllllllly bad, and will return all orgs in the db.
-  //       Should probably take an array of org ids.
-  pub async fn get_orgs(&self, ids: &[Uuid]) -> Result<Vec<DBOrg>> {
-    sqlx::query_as!(DBOrg, "select * from orgs where id = any($1)", ids)
-      .fetch_all(&self.pool)
-      .await
-      .map_err(anyhow::Error::from)
-  }
-
-  pub async fn create_org(&self, auth0id: &str, new_org: DBNewOrg) -> Result<DBOrg> {
-    sqlx::query_as!(
-      DBOrg,
-      r#"
-      with _user as (select * from users where auth0id = $1)
-      insert into orgs (name, created_by, updated_by) values ($2, (select id from _user), (select id from _user))
-      returning name, id, created_at, created_by, updated_at, updated_by
-      "#,
-      auth0id,
-      new_org.name
-    )
-    .fetch_one(&self.pool)
+// Needs to be scoped to the user's orgs...
+pub async fn get_org<'e>(
+  pool: impl Executor<'e, Database = Postgres>,
+  org_id: Uuid,
+) -> Result<DBOrg> {
+  sqlx::query_as!(DBOrg, "select * from orgs where id = $1", org_id)
+    .fetch_one(pool)
     .await
     .map_err(anyhow::Error::from)
-  }
-
-  // pub async fn get_user_orgs(&self, user_id: Uuid) -> Result<Vec<DBOrg>> {
-  //   sqlx::query_as!(DBOrg,
-  //   r#"
-  //   with _user_orgs as (select orgs from users where id = $1)
-  //   select * from orgs where id = any _user_orgs
-  //   "#,
-  //   user_id
-  // ).fetch_all().await
-  // .map_err(anyhow::Error::from)
-  // }
 }
+
+// Note: This is realllllllly bad, and will return all orgs in the db.
+//       Should probably take an array of org ids.
+pub async fn get_orgs<'e>(
+  pool: impl Executor<'e, Database = Postgres>,
+  ids: &[Uuid],
+) -> Result<Vec<DBOrg>> {
+  sqlx::query_as!(DBOrg, "select * from orgs where id = any($1)", ids)
+    .fetch_all(pool)
+    .await
+    .map_err(anyhow::Error::from)
+}
+
+pub async fn create_org<'e>(
+  pool: impl Executor<'e, Database = Postgres>,
+  auth0id: &str,
+  new_org: DBNewOrg,
+) -> Result<DBOrg> {
+  sqlx::query_as!(
+    DBOrg,
+    r#"
+    with _user as (select * from users where auth0id = $1)
+    insert into orgs (name, created_by, updated_by) values ($2, (select id from _user), (select id from _user))
+    returning name, id, created_at, created_by, updated_at, updated_by
+    "#,
+    auth0id,
+    new_org.name
+  )
+  .fetch_one(pool)
+  .await
+  .map_err(anyhow::Error::from)
+}
+
+// pub async fn get_user_orgs(&self, user_id: Uuid) -> Result<Vec<DBOrg>> {
+//   sqlx::query_as!(DBOrg,
+//   r#"
+//   with _user_orgs as (select orgs from users where id = $1)
+//   select * from orgs where id = any _user_orgs
+//   "#,
+//   user_id
+// ).fetch_all().await
+// .map_err(anyhow::Error::from)
+// }

@@ -1,7 +1,8 @@
-use crate::services::db::DB;
+use crate::services::db::org_service::get_orgs;
 use async_trait::async_trait;
 use dataloader::non_cached::Loader;
 use dataloader::BatchFn;
+use sqlx::PgPool;
 use std::collections::HashMap;
 
 use uuid::Uuid;
@@ -9,7 +10,7 @@ use uuid::Uuid;
 use crate::graphql::schema::org::Org;
 
 pub struct OrgBatcher {
-  db: DB,
+  pool: PgPool,
 }
 
 #[async_trait]
@@ -17,9 +18,7 @@ impl BatchFn<Uuid, Org> for OrgBatcher {
   // async fn load(&mut self, ids: &[Uuid]) -> HashMap<Uuid, Org> {
   async fn load(&mut self, ids: &[Uuid]) -> HashMap<Uuid, Org> {
     // Question: How do I handle DB errors? HashMap<Uuid, Result<Org, Error>>?
-    let orgs = self
-      .db
-      .get_orgs(ids)
+    let orgs = get_orgs(&self.pool, ids)
       .await
       .map(|orgs| -> HashMap<Uuid, Org> {
         orgs
@@ -41,6 +40,6 @@ impl BatchFn<Uuid, Org> for OrgBatcher {
 pub type OrgLoader = Loader<Uuid, Org, OrgBatcher>;
 
 // To create a new loader
-pub fn get_org_loader(db: DB) -> OrgLoader {
-  Loader::new(OrgBatcher { db }).with_yield_count(20)
+pub fn get_org_loader(pool: PgPool) -> OrgLoader {
+  Loader::new(OrgBatcher { pool }).with_yield_count(20)
 }

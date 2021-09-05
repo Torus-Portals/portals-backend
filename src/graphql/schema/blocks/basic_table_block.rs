@@ -5,6 +5,7 @@ use uuid::Uuid;
 use crate::graphql::context::GQLContext;
 use crate::graphql::schema::block::{Block, BlockTypes, NewBlock};
 use crate::graphql::schema::Mutation;
+use crate::services::db::block_service::create_block;
 
 #[derive(GraphQLObject, Debug, Serialize, Deserialize)]
 pub struct BasicTableBlock {
@@ -52,9 +53,7 @@ impl Mutation {
   ) -> FieldResult<Block> {
     let new_block: NewBlock = new_basic_table_block.into();
 
-    ctx
-      .db
-      .create_block(&ctx.auth0_user_id, new_block.into())
+      create_block(&ctx.pool, &ctx.auth0_user_id, new_block.into())
       .await
       .map(|db_block| db_block.into())
       .map_err(FieldError::from)

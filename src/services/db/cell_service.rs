@@ -1,8 +1,7 @@
-use super::DB;
-
 use anyhow::Result;
 use chrono::{DateTime, Utc};
 use serde_json;
+use sqlx::{Executor, Postgres};
 use uuid::Uuid;
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -33,11 +32,9 @@ pub struct DBCell {
   pub updated_by: Uuid,
 }
 
-impl DB {
-  pub async fn get_cell(&self, cell_id: Uuid) -> Result<DBCell> {
-    sqlx::query_as!(DBCell, "select * from cells where id = $1", cell_id)
-      .fetch_one(&self.pool)
-      .await
-      .map_err(anyhow::Error::from)
-  }
+pub async fn get_cell<'e>(pool: impl Executor<'e, Database = Postgres>, cell_id: Uuid) -> Result<DBCell> {
+  sqlx::query_as!(DBCell, "select * from cells where id = $1", cell_id)
+    .fetch_one(pool)
+    .await
+    .map_err(anyhow::Error::from)
 }

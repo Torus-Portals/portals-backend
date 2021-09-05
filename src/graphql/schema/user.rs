@@ -1,3 +1,8 @@
+use crate::services::db::user_service::create_user;
+use crate::services::db::user_service::get_user;
+use crate::services::db::user_service::get_user_by_auth0_id;
+use crate::services::db::user_service::user_exists;
+use crate::services::db::user_service::update_user;
 use crate::services::db::user_service::DBNewUser;
 use crate::services::db::user_service::DBUser;
 use chrono::{DateTime, Utc};
@@ -193,24 +198,17 @@ pub struct UpdateUser {
 
 impl Query {
   pub async fn user_impl(ctx: &GQLContext, user_id: Uuid) -> FieldResult<User> {
-    ctx
-      .db
-      .get_user(user_id)
+    get_user(&ctx.pool, user_id)
       .await
       .map(|db_user| -> User { db_user.into() })
       .map_err(FieldError::from)
   }
 
   pub async fn current_user_impl(ctx: &GQLContext) -> FieldResult<User> {
-    let user_exists = ctx
-      .db
-      .user_exists(&ctx.auth0_user_id)
-      .await?;
+    let user_exists = user_exists(&ctx.pool, &ctx.auth0_user_id).await?;
 
     if user_exists {
-      ctx
-        .db
-        .get_user_by_auth0_id(&ctx.auth0_user_id)
+      get_user_by_auth0_id(&ctx.pool, &ctx.auth0_user_id)
         .await
         .map(|db_user| -> User { db_user.into() })
         .map_err(FieldError::from)
@@ -233,16 +231,15 @@ impl Query {
         role_ids: None,
       };
 
-      let db_user = ctx
-        .db
-        .create_user(
-          new_user.into_db_new_user(
-            ctx
-              .auth0_user_id
-              .to_owned(),
-          ),
-        )
-        .await?;
+      let db_user = create_user(
+        &ctx.pool,
+        new_user.into_db_new_user(
+          ctx
+            .auth0_user_id
+            .to_owned(),
+        ),
+      )
+      .await?;
 
       Ok(db_user.into())
     }
@@ -253,24 +250,21 @@ impl Mutation {
   // TODO: Need to figure out if it will be needed for "users" to be the creator of other users,
   //       of if it will always be the "system".
   pub async fn create_user_impl(ctx: &GQLContext, new_user: NewUser) -> FieldResult<User> {
-    ctx
-      .db
-      .create_user(
-        new_user.into_db_new_user(
-          ctx
-            .auth0_user_id
-            .to_owned(),
-        ),
-      )
-      .await
-      .map(|db_user| -> User { db_user.into() })
-      .map_err(FieldError::from)
+    create_user(
+      &ctx.pool,
+      new_user.into_db_new_user(
+        ctx
+          .auth0_user_id
+          .to_owned(),
+      ),
+    )
+    .await
+    .map(|db_user| -> User { db_user.into() })
+    .map_err(FieldError::from)
   }
 
-  pub async fn update_user_impl(ctx: &GQLContext, update_user: UpdateUser) -> FieldResult<User> {
-    ctx
-      .db
-      .update_user(&ctx.auth0_user_id, update_user.into())
+  pub async fn update_user_impl(ctx: &GQLContext, updated_user: UpdateUser) -> FieldResult<User> {
+    update_user(&ctx.pool, &ctx.auth0_user_id, updated_user.into())
       .await
       .map(|db_user| -> User { db_user.into() })
       .map_err(FieldError::from)
