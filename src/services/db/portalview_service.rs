@@ -58,7 +58,7 @@ impl From<NewPortalView> for DBNewPortalView {
   }
 }
 
-pub async fn get_portal_views<'e>(
+pub async fn get_portalviews<'e>(
   pool: impl Executor<'e, Database = Postgres>,
   portal_id: Uuid,
 ) -> Result<Vec<DBPortalView>> {
@@ -126,5 +126,21 @@ pub async fn create_portalview<'e>(
   )
   .fetch_one(pool)
   .await
+  .map_err(anyhow::Error::from)
+}
+
+pub async fn delete_portal_portalviews<'e>(
+  pool: impl Executor<'e, Database = Postgres>,
+  portal_id: Uuid,
+) -> Result<i32> {
+  sqlx::query!(
+    r#"
+    delete from portalviews where portal_id = $1;
+    "#,
+    portal_id
+  )
+  .execute(pool)
+  .await
+  .map(|qr| qr.rows_affected() as i32)
   .map_err(anyhow::Error::from)
 }

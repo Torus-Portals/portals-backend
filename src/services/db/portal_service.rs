@@ -4,6 +4,11 @@ use sqlx::{Executor, PgPool, Postgres};
 use uuid::Uuid;
 
 use crate::graphql::schema::portal::NewPortal;
+use crate::services::db::portalview_service::{get_portalviews, delete_portal_portalviews};
+use crate::services::db::structure_service::{delete_structure};
+use crate::services::db::block_service::{delete_portal_blocks};
+use crate::services::db::dimension_service::{delete_portal_dimensions};
+use crate::services::db::cell_service::{delete_portal_cells};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct DBPortal {
@@ -132,13 +137,27 @@ pub async fn create_portal<'e>(
 }
 
 pub async fn delete_portal<'e>(pool: PgPool, portal_id: Uuid) -> Result<i32> {
+  // Things to delete: Portal, PortalViews, Structures, Blocks, Dimensions, cells
   let mut tx = pool.begin().await?;
 
-  let portal = get_portal(&mut tx, portal_id).await?;
+  let portalviews = get_portalviews(&mut tx, portal_id).await?;
 
-  dbg!(portal);
+  for pv in portalviews {
+    delete_structure(&mut tx, pv.structure_id).await?;
+  }
+
+  delete_portal_portalviews(&mut tx, portal_id).await?;
+  delete_portal_blocks(&mut tx, portal_id).await?;
+  delete_portal_dimensions(&mut tx, portal_id).await?;
+  delete_portal_cells(&mut tx, portal_id).await?;
+  
+  let portal_rows_deleted = sqlx::query!("delete from portals where id = $1", portal_id)
+  .execute(&mut tx)
+  .await
+  .map(|qr| qr.rows_affected() as i32)
+  .map_err(anyhow::Error::from)?;
 
   tx.commit().await?;
 
-  Ok(1)
+  Ok(portal_rows_deleted)
 }

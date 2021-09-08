@@ -120,3 +120,11 @@ pub async fn create_dimensions<'e>(
   .await
   .map_err(anyhow::Error::from)
 }
+
+pub async fn delete_portal_dimensions<'e>(pool: impl Executor<'e, Database = Postgres>, portal_id: Uuid) -> Result<i32> {
+  sqlx::query!("delete from dimensions where portal_id = $1", portal_id)
+  .execute(pool)
+  .await
+  .map(|qr| qr.rows_affected() as i32)
+  .map_err(anyhow::Error::from)
+}

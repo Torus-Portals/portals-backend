@@ -8,7 +8,7 @@ use crate::graphql::context::GQLContext;
 
 use crate::graphql::schema::structure::Structure;
 use crate::services::db::portalview_service::DBPortalView;
-use crate::services::db::portalview_service::{get_portal_views, create_portalview};
+use crate::services::db::portalview_service::{get_portalviews, create_portalview};
 
 // Portal View
 
@@ -124,7 +124,7 @@ pub struct NewPortalView {
 
 impl Query {
   pub async fn portalviews_impl(ctx: &GQLContext, portal_id: Uuid) -> FieldResult<Vec<PortalView>> {
-    get_portal_views(&ctx.pool, portal_id)
+    get_portalviews(&ctx.pool, portal_id)
       .await
       .map(|db_portalviews| {
         db_portalviews

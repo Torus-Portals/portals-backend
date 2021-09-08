@@ -58,7 +58,10 @@ impl From<UpdateStructure> for DBUpdateStructure {
   }
 }
 
-pub async fn get_structure<'e>(pool: impl Executor<'e, Database = Postgres>, structure_id: Uuid) -> Result<DBStructure> {
+pub async fn get_structure<'e>(
+  pool: impl Executor<'e, Database = Postgres>,
+  structure_id: Uuid,
+) -> Result<DBStructure> {
   sqlx::query_as!(
     DBStructure,
     "select * from structures where id = $1",
@@ -69,7 +72,10 @@ pub async fn get_structure<'e>(pool: impl Executor<'e, Database = Postgres>, str
   .map_err(anyhow::Error::from)
 }
 
-pub async fn get_structures<'e>(pool: impl Executor<'e, Database = Postgres>, ids: &[Uuid]) -> Result<Vec<DBStructure>> {
+pub async fn get_structures<'e>(
+  pool: impl Executor<'e, Database = Postgres>,
+  ids: &[Uuid],
+) -> Result<Vec<DBStructure>> {
   sqlx::query_as!(
     DBStructure,
     "select * from structures where id = any($1)",
@@ -133,5 +139,21 @@ pub async fn update_structure<'e>(
   )
   .fetch_one(pool)
   .await
+  .map_err(anyhow::Error::from)
+}
+
+pub async fn delete_structure<'e>(
+  pool: impl Executor<'e, Database = Postgres>,
+  structure_id: Uuid,
+) -> Result<i32> {
+  sqlx::query!(
+    r#"
+    delete from structures where id = $1
+    "#,
+    structure_id
+  )
+  .execute(pool)
+  .await
+  .map(|qr| qr.rows_affected() as i32)
   .map_err(anyhow::Error::from)
 }
