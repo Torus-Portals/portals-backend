@@ -151,6 +151,10 @@ impl Mutation {
     Mutation::create_portal_impl(ctx, new_portal).await
   }
 
+  async fn delete_portal(ctx: &GQLContext, portal_id: Uuid) -> FieldResult<i32> {
+    Mutation::delete_portal_impl(ctx, portal_id).await
+  }
+
   // PortalView
 
   // the space in 'portal_view' is needed so that it shows up as "createPortalView" in GQL Schema
@@ -170,6 +174,14 @@ impl Mutation {
   // async fn create_block(ctx: &GQLContext, new_block: NewBlock) -> FieldResult<Block> {
   //   Mutation::create_block(ctx, new_block).await
   // }
+
+  async fn delete_block(ctx: &GQLContext, block_id: Uuid) -> FieldResult<i32> {
+    Mutation::delete_block(ctx, block_id).await
+  }
+
+  async fn delete_blocks(ctx: &GQLContext, block_ids: Vec<Uuid>) -> FieldResult<i32> {
+    Mutation::delete_blocks(ctx, block_ids).await
+  }
 
   async fn create_basic_table(ctx: &GQLContext, new_basic_table_block: NewBasicTableBlock) -> FieldResult<Block> {
     Mutation::create_basic_table_impl(ctx, new_basic_table_block).await

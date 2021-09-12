@@ -1,17 +1,17 @@
 use chrono::{DateTime, Utc};
-use juniper::{
-  FieldError, FieldResult, GraphQLEnum, GraphQLObject, GraphQLUnion,
-};
+use juniper::{FieldError, FieldResult, GraphQLEnum, GraphQLObject, GraphQLUnion};
 use serde_json;
 use std::str::FromStr;
-use strum_macros::{EnumString, Display};
+use strum_macros::{Display, EnumString};
 use uuid::Uuid;
 
+use super::blocks::basic_table_block::BasicTableBlock;
+use super::blocks::empty_block::EmptyBlock;
+use super::Mutation;
 use super::Query;
 use crate::graphql::context::GQLContext;
+use crate::services::db::block_service::{get_block, get_blocks, delete_block, delete_blocks};
 use crate::services::db::block_service::DBBlock;
-use super::blocks::basic_table_block::{BasicTableBlock};
-use super::blocks::empty_block::{EmptyBlock};
 
 #[derive(Debug, GraphQLUnion, Serialize, Deserialize)]
 pub enum GQLBlocks {
@@ -112,18 +112,14 @@ pub struct NewBlock {
 
 impl Query {
   pub async fn block_impl(ctx: &GQLContext, block_id: Uuid) -> FieldResult<Block> {
-    ctx
-      .db
-      .get_block(block_id)
+    get_block(&ctx.pool, block_id)
       .await
       .map(|db_block| db_block.into())
       .map_err(FieldError::from)
   }
 
   pub async fn blocks_impl(ctx: &GQLContext, portal_id: Uuid) -> FieldResult<Vec<Block>> {
-    ctx
-      .db
-      .get_blocks(portal_id)
+    get_blocks(&ctx.pool, portal_id)
       .await
       .map(|db_blocks| {
         db_blocks
@@ -135,15 +131,27 @@ impl Query {
   }
 }
 
-// Not using at the moment, due to no good way currently to type a json field.
-// Will create separate mutations for each block type
-// impl Mutation {
-//   pub async fn create_block(ctx: &GQLContext, new_block: NewBlock) -> FieldResult<Block> {
-//     ctx
-//       .db
-//       .create_block(&ctx.auth0_user_id, new_block.into())
-//       .await
-//       .map(|b| b.into())
-//       .map_err(FieldError::from)
-//   }
-// }
+impl Mutation {
+  // Not using at the moment, due to no good way currently to type a json field.
+  // Will create separate mutations for each block type
+  //   pub async fn create_block(ctx: &GQLContext, new_block: NewBlock) -> FieldResult<Block> {
+  //     ctx
+  //       .db
+  //       .create_block(&ctx.auth0_user_id, new_block.into())
+  //       .await
+  //       .map(|b| b.into())
+  //       .map_err(FieldError::from)
+  //   }
+
+  pub async fn delete_block(ctx: &GQLContext, block_id: Uuid) -> FieldResult<i32> {
+      delete_block(&ctx.pool, block_id)
+      .await
+      .map_err(FieldError::from)
+  }
+
+  pub async fn delete_blocks(ctx: &GQLContext, block_ids: Vec<Uuid>) -> FieldResult<i32> {
+      delete_blocks(&ctx.pool, block_ids)
+      .await
+      .map_err(FieldError::from)
+  }
+}

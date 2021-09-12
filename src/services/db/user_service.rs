@@ -1,11 +1,10 @@
-use super::DB;
-
 use anyhow::Result;
 use chrono::{DateTime, Utc};
 
+use sqlx::{Executor, Postgres};
 use uuid::Uuid;
 
-use crate::graphql::schema::user::{UpdateUser};
+use crate::graphql::schema::user::UpdateUser;
 
 // DBUser
 
@@ -90,43 +89,45 @@ impl From<UpdateUser> for DBUpdateUser {
   }
 }
 
-impl DB {
-  pub async fn user_exists(&self, auth0_user_id: &str) -> Result<bool> {
-    sqlx::query!(
-      "select exists(select 1 from users where auth0id = $1) as user_exists",
-      auth0_user_id
-    )
-    .fetch_one(&self.pool)
-    .await
-    .map(|record| {
-      record
-        .user_exists
-        .unwrap()
-    })
-    .map_err(anyhow::Error::from)
-  }
+pub async fn user_exists<'e>(pool: impl Executor<'e, Database = Postgres>, auth0_user_id: &str) -> Result<bool> {
+  sqlx::query!(
+    "select exists(select 1 from users where auth0id = $1) as user_exists",
+    auth0_user_id
+  )
+  .fetch_one(pool)
+  .await
+  .map(|record| {
+    record
+      .user_exists
+      .unwrap()
+  })
+  .map_err(anyhow::Error::from)
+}
 
-  pub async fn get_user(&self, user_id: Uuid) -> Result<DBUser> {
-    sqlx::query_as!(DBUser, "select * from users where id = $1", user_id)
-      .fetch_one(&self.pool)
-      .await
-      .map_err(anyhow::Error::from)
-  }
-
-  pub async fn get_user_by_auth0_id(&self, auth0_user_id: &str) -> Result<DBUser> {
-    sqlx::query_as!(
-      DBUser,
-      "select * from users where auth0id = $1",
-      auth0_user_id
-    )
-    .fetch_one(&self.pool)
+pub async fn get_user<'e>(pool: impl Executor<'e, Database = Postgres>, user_id: Uuid) -> Result<DBUser> {
+  sqlx::query_as!(DBUser, "select * from users where id = $1", user_id)
+    .fetch_one(pool)
     .await
     .map_err(anyhow::Error::from)
-  }
+}
 
-  pub async fn create_user(&self, new_user: DBNewUser) -> Result<DBUser> {
-    let system_uuid = Uuid::parse_str("11111111-2222-3333-4444-555555555555")?;
-    sqlx::query_as!(
+pub async fn get_user_by_auth0_id<'e>(
+  pool: impl Executor<'e, Database = Postgres>,
+  auth0_user_id: &str,
+) -> Result<DBUser> {
+  sqlx::query_as!(
+    DBUser,
+    "select * from users where auth0id = $1",
+    auth0_user_id
+  )
+  .fetch_one(pool)
+  .await
+  .map_err(anyhow::Error::from)
+}
+
+pub async fn create_user<'e>(pool: impl Executor<'e, Database = Postgres>, new_user: DBNewUser) -> Result<DBUser> {
+  let system_uuid = Uuid::parse_str("11111111-2222-3333-4444-555555555555")?;
+  sqlx::query_as!(
       DBUser,
       r#"
       insert into users (auth0id, name, nickname, email, status, org_ids, role_ids, created_by, updated_by)
@@ -142,22 +143,22 @@ impl DB {
       &new_user.role_ids,
       system_uuid
     )
-    .fetch_one(&self.pool)
+    .fetch_one(pool)
     .await
     .map_err(anyhow::Error::from)
-  }
+}
 
-  // Might be a good optimization for the future to use something like:
-  // "param_1 IS NOT NULL AND param_1 IS DISTINCT FROM column_1" found in this question:
-  // https://stackoverflow.com/questions/13305878/dont-update-column-if-update-value-is-null
-  pub async fn update_user(
-    &self,
-    auth0_user_id: &str,
-    update_user: DBUpdateUser,
-  ) -> Result<DBUser> {
-    sqlx::query_as!(
-      DBUser,
-      r#"
+// Might be a good optimization for the future to use something like:
+// "param_1 IS NOT NULL AND param_1 IS DISTINCT FROM column_1" found in this question:
+// https://stackoverflow.com/questions/13305878/dont-update-column-if-update-value-is-null
+pub async fn update_user<'e>(
+  pool: impl Executor<'e, Database = Postgres>,
+  auth0_user_id: &str,
+  update_user: DBUpdateUser,
+) -> Result<DBUser> {
+  sqlx::query_as!(
+    DBUser,
+    r#"
       with _user as (select * from users where auth0id = $1)
       update users
         set
@@ -171,21 +172,20 @@ impl DB {
       where id = $2
       returning *;
       "#,
-      auth0_user_id,
-      update_user.id,
-      update_user.name,
-      update_user.nickname,
-      update_user.email,
-      update_user
-        .org_ids
-        .as_deref(),
-      update_user
-        .role_ids
-        .as_deref(),
-      update_user.status
-    )
-    .fetch_one(&self.pool)
-    .await
-    .map_err(anyhow::Error::from)
-  }
+    auth0_user_id,
+    update_user.id,
+    update_user.name,
+    update_user.nickname,
+    update_user.email,
+    update_user
+      .org_ids
+      .as_deref(),
+    update_user
+      .role_ids
+      .as_deref(),
+    update_user.status
+  )
+  .fetch_one(pool)
+  .await
+  .map_err(anyhow::Error::from)
 }

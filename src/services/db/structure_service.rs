@@ -1,11 +1,10 @@
-use crate::graphql::schema::structure::UpdateStructure;
-
-use super::DB;
-
 use anyhow::Result;
 use chrono::{DateTime, Utc};
 use serde_json;
+use sqlx::{Executor, Postgres};
 use uuid::Uuid;
+
+use crate::graphql::schema::structure::UpdateStructure;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct DBStructure {
@@ -46,48 +45,49 @@ pub struct DBUpdateStructure {
 
 impl From<UpdateStructure> for DBUpdateStructure {
   fn from(update_structure: UpdateStructure) -> Self {
-    let structure_type = update_structure.structure_type.map(|st| st.to_string());
+    let structure_type = update_structure
+      .structure_type
+      .map(|st| st.to_string());
     let structure_data = serde_json::to_value(&update_structure.structure_data).ok();
 
     DBUpdateStructure {
       id: update_structure.id,
       structure_type,
-      structure_data
+      structure_data,
     }
   }
 }
 
-impl DB {
-  pub async fn get_structure(&self, structure_id: Uuid) -> Result<DBStructure> {
-    sqlx::query_as!(
-      DBStructure,
-      "select * from structures where id = $1",
-      structure_id
-    )
-    .fetch_one(&self.pool)
-    .await
-    .map_err(anyhow::Error::from)
-  }
+pub async fn get_structure<'e>(pool: impl Executor<'e, Database = Postgres>, structure_id: Uuid) -> Result<DBStructure> {
+  sqlx::query_as!(
+    DBStructure,
+    "select * from structures where id = $1",
+    structure_id
+  )
+  .fetch_one(pool)
+  .await
+  .map_err(anyhow::Error::from)
+}
 
-  pub async fn get_structures(&self, ids: &[Uuid]) -> Result<Vec<DBStructure>> {
-    sqlx::query_as!(
-      DBStructure,
-      "select * from structures where id = any($1)",
-      ids
-    )
-    .fetch_all(&self.pool)
-    .await
-    .map_err(anyhow::Error::from)
-  }
+pub async fn get_structures<'e>(pool: impl Executor<'e, Database = Postgres>, ids: &[Uuid]) -> Result<Vec<DBStructure>> {
+  sqlx::query_as!(
+    DBStructure,
+    "select * from structures where id = any($1)",
+    ids
+  )
+  .fetch_all(pool)
+  .await
+  .map_err(anyhow::Error::from)
+}
 
-  pub async fn create_structure(
-    &self,
-    auth0_user_id: &str,
-    new_structure: DBNewStructure,
-  ) -> Result<DBStructure> {
-    sqlx::query_as!(
-      DBStructure,
-      r#"
+pub async fn create_structure<'e>(
+  pool: impl Executor<'e, Database = Postgres>,
+  auth0_user_id: &str,
+  new_structure: DBNewStructure,
+) -> Result<DBStructure> {
+  sqlx::query_as!(
+    DBStructure,
+    r#"
       with _user as (select * from users where auth0id = $1)
       insert into structures (
         structure_type,
@@ -101,23 +101,23 @@ impl DB {
         (select id from _user)
       ) returning *
       "#,
-      auth0_user_id,
-      new_structure.structure_type,
-      new_structure.structure_data,
-    )
-    .fetch_one(&self.pool)
-    .await
-    .map_err(anyhow::Error::from)
-  }
+    auth0_user_id,
+    new_structure.structure_type,
+    new_structure.structure_data,
+  )
+  .fetch_one(pool)
+  .await
+  .map_err(anyhow::Error::from)
+}
 
-  pub async fn update_structure(
-    &self,
-    auth0_user_id: &str,
-    update_structure: DBUpdateStructure,
-  ) -> Result<DBStructure> {
-    sqlx::query_as!(
-      DBStructure,
-      r#"
+pub async fn update_structure<'e>(
+  pool: impl Executor<'e, Database = Postgres>,
+  auth0_user_id: &str,
+  update_structure: DBUpdateStructure,
+) -> Result<DBStructure> {
+  sqlx::query_as!(
+    DBStructure,
+    r#"
       with _user as (select * from users where auth0id = $1)
       update structures
         set
@@ -126,13 +126,12 @@ impl DB {
       where id = $2
       returning *;
       "#,
-      auth0_user_id,
-      update_structure.id,
-      update_structure.structure_type,
-      update_structure.structure_data
-    )
-    .fetch_one(&self.pool)
-    .await
-    .map_err(anyhow::Error::from)
-  }
+    auth0_user_id,
+    update_structure.id,
+    update_structure.structure_type,
+    update_structure.structure_data
+  )
+  .fetch_one(pool)
+  .await
+  .map_err(anyhow::Error::from)
 }

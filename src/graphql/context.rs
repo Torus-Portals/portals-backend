@@ -1,9 +1,8 @@
 use std::sync::Arc;
 
-use crate::services::db::DB;
 use futures::lock::Mutex;
 use juniper;
-use sqlx::PgPool;
+use sqlx::{PgPool};
 
 use crate::graphql::loaders::org_loader::{get_org_loader, OrgLoader};
 use crate::graphql::loaders::structure_loader::{get_structure_loader, StructureLoader};
@@ -14,8 +13,6 @@ pub struct GQLContext {
   // Auth related. Might be nice to have the full token here.
   pub auth0_user_id: String,
 
-  pub db: DB,
-
   // Dataloaders
   pub org_loader: OrgLoader,
 
@@ -24,7 +21,7 @@ pub struct GQLContext {
   pub auth0_api: Arc<Arc<Mutex<Auth0Service>>>,
 }
 
-impl juniper::Context for GQLContext {}
+impl<'c> juniper::Context for GQLContext {}
 
 impl GQLContext {
   pub fn new(
@@ -32,14 +29,11 @@ impl GQLContext {
     auth0_user_id: String,
     auth0_api: Arc<Arc<Mutex<Auth0Service>>>,
   ) -> Self {
-    let db = DB::new(pool.clone());
-
     GQLContext {
       pool: pool.clone(),
       auth0_user_id,
-      db: db.clone(),
-      org_loader: get_org_loader(db.clone()),
-      structure_loader: get_structure_loader(db.clone()),
+      org_loader: get_org_loader(pool.clone()),
+      structure_loader: get_structure_loader(pool.clone()),
       auth0_api,
     }
   }

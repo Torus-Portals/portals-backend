@@ -8,6 +8,7 @@ use crate::graphql::context::GQLContext;
 
 use crate::graphql::schema::structure::Structure;
 use crate::services::db::portalview_service::DBPortalView;
+use crate::services::db::portalview_service::{get_portal_views, create_portalview};
 
 // Portal View
 
@@ -62,7 +63,9 @@ impl PortalView {
   }
 
   fn structure_id(&self) -> Uuid {
-    self.structure_id.clone()
+    self
+      .structure_id
+      .clone()
   }
 
   pub async fn structure(&self, context: &GQLContext) -> Structure {
@@ -121,9 +124,7 @@ pub struct NewPortalView {
 
 impl Query {
   pub async fn portalviews_impl(ctx: &GQLContext, portal_id: Uuid) -> FieldResult<Vec<PortalView>> {
-    ctx
-      .db
-      .get_portal_views(portal_id)
+    get_portal_views(&ctx.pool, portal_id)
       .await
       .map(|db_portalviews| {
         db_portalviews
@@ -140,9 +141,7 @@ impl Mutation {
     ctx: &GQLContext,
     new_portalview: NewPortalView,
   ) -> FieldResult<PortalView> {
-    ctx
-      .db
-      .create_portalview(&ctx.auth0_user_id, new_portalview.into())
+    create_portalview(&ctx.pool, &ctx.auth0_user_id, new_portalview.into())
       .await
       .map(|db_portalview| db_portalview.into())
       .map_err(FieldError::from)

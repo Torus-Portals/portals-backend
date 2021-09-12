@@ -1,11 +1,13 @@
-use super::DB;
-
 use anyhow::Result;
 use chrono::{DateTime, Utc};
 
+use sqlx::{Executor, Postgres};
 use uuid::Uuid;
 
-use crate::{graphql::schema::{portalview::NewPortalView, structure::GridStructure}, services::db::structure_service::DBNewStructure};
+use crate::{
+  graphql::schema::{portalview::NewPortalView, structure::GridStructure},
+  services::db::structure_service::{create_structure, DBNewStructure},
+};
 
 #[derive(Debug, Serialize)]
 pub struct DBPortalView {
@@ -51,45 +53,50 @@ impl From<NewPortalView> for DBNewPortalView {
       portal_id: new_portalview.portal_id,
       name: new_portalview.name,
       egress: new_portalview.egress,
-      access: new_portalview.access
+      access: new_portalview.access,
     }
   }
 }
 
-impl DB {
-  pub async fn get_portal_views(&self, portal_id: Uuid) -> Result<Vec<DBPortalView>> {
-    sqlx::query_as!(
-      DBPortalView,
-      r#"
+pub async fn get_portal_views<'e>(
+  pool: impl Executor<'e, Database = Postgres>,
+  portal_id: Uuid,
+) -> Result<Vec<DBPortalView>> {
+  sqlx::query_as!(
+    DBPortalView,
+    r#"
       select * from portalviews where portal_id = $1
       "#,
-      portal_id
-    )
-    .fetch_all(&self.pool)
-    .await
-    .map_err(anyhow::Error::from)
-  }
+    portal_id
+  )
+  .fetch_all(pool)
+  .await
+  .map_err(anyhow::Error::from)
+}
 
-  pub async fn create_portalview(
-    &self,
-    auth0_user_id: &str,
-    new_portalview: DBNewPortalView,
-  ) -> Result<DBPortalView> {
-    // generate the structure in here since every portalview should have a structure
-    let structure_data = GridStructure::new();
-    let structure = self
-      .create_structure(
-        auth0_user_id,
-        DBNewStructure {
-          structure_type: String::from("Grid"),
-          structure_data: serde_json::to_value(structure_data).ok().unwrap(),
-        },
-      )
-      .await?;
+pub async fn create_portalview<'e>(
+  pool: impl Executor<'e, Database = Postgres> + Clone,
+  auth0_user_id: &str,
+  new_portalview: DBNewPortalView,
+) -> Result<DBPortalView> {
+  // generate the structure in here since every portalview should have a structure
+  let structure_data = GridStructure::new();
+  let a = pool.clone();
+  let structure = create_structure(
+    a,
+    auth0_user_id,
+    DBNewStructure {
+      structure_type: String::from("Grid"),
+      structure_data: serde_json::to_value(structure_data)
+        .ok()
+        .unwrap(),
+    },
+  )
+  .await?;
 
-    sqlx::query_as!(
-      DBPortalView,
-      r#"
+  sqlx::query_as!(
+    DBPortalView,
+    r#"
       with _user as (select * from users where auth0id = $1)
       insert into portalviews (
         portal_id,
@@ -110,15 +117,14 @@ impl DB {
       ) returning *
 
       "#,
-      auth0_user_id,
-      new_portalview.portal_id,
-      new_portalview.name,
-      new_portalview.egress,
-      new_portalview.access,
-      structure.id
-    )
-    .fetch_one(&self.pool)
-    .await
-    .map_err(anyhow::Error::from)
-  }
+    auth0_user_id,
+    new_portalview.portal_id,
+    new_portalview.name,
+    new_portalview.egress,
+    new_portalview.access,
+    structure.id
+  )
+  .fetch_one(pool)
+  .await
+  .map_err(anyhow::Error::from)
 }

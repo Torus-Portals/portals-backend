@@ -10,7 +10,7 @@ use strum_macros::EnumString;
 use super::Query;
 
 use crate::graphql::context::GQLContext;
-use crate::services::db::cell_service::DBCell;
+use crate::services::db::cell_service::{DBCell, get_cell};
 use uuid::Uuid;
 
 #[derive(Debug, GraphQLUnion, Serialize, Deserialize)]
@@ -95,9 +95,7 @@ pub struct EmptyCell {
 
 impl Query {
   pub async fn cell_impl(ctx: &GQLContext, cell_id: Uuid) -> FieldResult<Cell> {
-    ctx
-      .db
-      .get_cell(cell_id)
+      get_cell(&ctx.pool, cell_id)
       .await
       .map(|db_cell| db_cell.into())
       .map_err(FieldError::from)

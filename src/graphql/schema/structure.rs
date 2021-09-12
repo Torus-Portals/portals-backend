@@ -12,6 +12,7 @@ use std::str::FromStr;
 use strum_macros::{Display, EnumString};
 use uuid::Uuid;
 
+use crate::services::db::structure_service::{get_structure, get_structures, update_structure};
 use crate::{graphql::context::GQLContext, services::db::structure_service::DBStructure};
 
 use super::Mutation;
@@ -224,9 +225,7 @@ pub struct EmptyStructure {
 
 impl Query {
   pub async fn structure_impl(ctx: &GQLContext, structure_id: Uuid) -> FieldResult<Structure> {
-    ctx
-      .db
-      .get_structure(structure_id)
+    get_structure(&ctx.pool, structure_id)
       .await
       .map(|db_structure| db_structure.into())
       .map_err(FieldError::from)
@@ -236,9 +235,7 @@ impl Query {
     ctx: &GQLContext,
     structure_ids: Vec<Uuid>,
   ) -> FieldResult<Vec<Structure>> {
-    ctx
-      .db
-      .get_structures(&structure_ids)
+    get_structures(&ctx.pool, &structure_ids)
       .await
       .map(|db_structures| {
         db_structures
@@ -253,11 +250,9 @@ impl Query {
 impl Mutation {
   pub async fn update_structure_impl(
     ctx: &GQLContext,
-    update_structure: UpdateStructure,
+    updated_structure: UpdateStructure,
   ) -> FieldResult<Structure> {
-    ctx
-      .db
-      .update_structure(&ctx.auth0_user_id, update_structure.into())
+    update_structure(&ctx.pool, &ctx.auth0_user_id, updated_structure.into())
       .await
       .map(|db_structure| db_structure.into())
       .map_err(FieldError::from)
