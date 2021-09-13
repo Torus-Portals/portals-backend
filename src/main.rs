@@ -97,23 +97,22 @@ async fn main() -> std::io::Result<()> {
   let state = State::new(pool.clone());
   let auth_service = Arc::new(Mutex::new(Auth0Service::new()));
 
-  let decoding_key = DecodingKey::from_secret(
-    config
-      .auth0
-      .client_secret
-      .as_bytes(),
-  )
-  .into_static();
+  let server = HttpServer::new(move || {
+    let decoding_key = DecodingKey::from_secret(
+      config
+        .auth0
+        .client_secret
+        .as_bytes(),
+    )
+    .into_static();
 
-  let mut server = HttpServer::new(move || {
     let mut cors = Cors::default()
       .allowed_methods(vec!["GET", "POST", "PATCH", "OPTIONS"])
       .allow_any_header()
       .supports_credentials();
-    config
-      .allowed_origins
-      .iter()
-      .for_each(|origin| cors = cors.allowed_origin(origin));
+    for origin in &config.allowed_origins {
+      cors = cors.allowed_origin(origin);
+    }
 
     App::new()
       .app_data(web::Data::new(state.clone()))
