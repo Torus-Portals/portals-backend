@@ -29,10 +29,10 @@ pub struct Auth0 {
 
 fn init() -> Config {
   if let Ok(path) = env::var("CONFIG_PATH") {
-    let config = File::open(&path).unwrap_or_else(|_| {
+    let config = File::open(&path).unwrap_or_else(|error| {
       panic!(
-        "Could not open configuration file specified by env var CONFIG_PATH={}",
-        path
+        "Could not open configuration file specified by env var CONFIG_PATH={}: {}",
+        path, error
       )
     });
     ron::de::from_reader::<File, Config>(config)

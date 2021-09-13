@@ -23,11 +23,9 @@ You must have `cargo-watch` installed on your system
     cargo install cargo-watch
 
 
-```
-$ systemfd --no-pid -s http::8088 -- cargo watch -x run
-// in development, for use with dotenv file (DATABASE_URL env var)
-$ systemfd --no-pid -s http::8088 -- cargo watch -x 'run --features local_dev'
-```
+To recompile and rerun on source or config changes
+
+    cargo watch -x run --clear --no-gitignore
 
 ### Dealing with a "error: EADDRINUSE: Address already in use"
 

@@ -1,9 +1,11 @@
 {
     "cSpell.words": [
         "actix",
+        "chrono",
         "concat",
         "dotenv",
         "jsonwebtoken",
+        "reqwest",
         "sqlx"
     ]
 }
