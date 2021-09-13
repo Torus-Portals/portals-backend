@@ -2,16 +2,17 @@
 extern crate serde_derive;
 extern crate base64;
 extern crate derive_more;
+extern crate serde_json;
+extern crate serde_qs as qs;
 extern crate futures;
 extern crate jsonwebtoken as jwt;
 extern crate percent_encoding;
 extern crate rusoto_core;
 extern crate rusoto_ses;
-extern crate serde_json;
-extern crate serde_qs as qs;
 extern crate url;
 
 mod config;
+
 mod extractors;
 mod graphql;
 mod middleware;
@@ -29,6 +30,7 @@ use jsonwebtoken::DecodingKey;
 use once_cell::sync::OnceCell;
 use sqlx::postgres::PgPoolOptions;
 use std::sync::Arc;
+use crate::services::integration_service::{self, OAuthService};
 
 #[get("/health")]
 async fn get_health() -> HttpResponse {
@@ -87,6 +89,7 @@ async fn main() -> std::io::Result<()> {
 
   let state = State::new(pool.clone());
   let auth_service = Arc::new(Mutex::new(Auth0Service::new()));
+  let oauth_service = Arc::new(Mutex::new(OAuthService::new()));
 
   let server = HttpServer::new(move || {
     let decoding_key = DecodingKey::from_secret(
@@ -109,6 +112,7 @@ async fn main() -> std::io::Result<()> {
       .app_data(web::Data::new(state.clone()))
       .app_data(web::Data::new(graphql_schema::create_schema()))
       .app_data(web::Data::new(auth_service.clone()))
+      .app_data(web::Data::new(oauth_service.clone()))
       .app_data(decoding_key)
       .wrap(cors)
       // <response status code> for <path> <remote/proxy ip address> in <seconds>s
@@ -117,6 +121,9 @@ async fn main() -> std::io::Result<()> {
       .service(graphql_routes::get_graphql_dev_routes())
       .service(get_health)
       .service(get_info)
+      .service(integration_service::add_data_source)
+      .service(integration_service::exchange_token)
+      .service(integration_service::get_sheets_value)
   });
 
   let socket_address = format!("0.0.0.0:{}", config.tcp_port);

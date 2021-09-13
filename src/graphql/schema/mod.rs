@@ -7,6 +7,7 @@ pub mod cell;
 pub mod cells;
 pub mod dimension;
 pub mod dimensions;
+pub mod integration;
 pub mod org;
 pub mod portal;
 pub mod portalview;
@@ -17,7 +18,8 @@ pub mod user;
 use self::{block::{BlockParts, UpdateBlock}, blocks::{
     basic_table_block::NewBasicTableBlock, owner_text_block::NewOwnerTextBlock,
     vendor_text_block::NewVendorTextBlock,
-  }, cell::UpdateCell, dimension::NewDimension, portal::{NewPortal, PortalAndUsers, PortalInviteParams, UpdatePortal}, structure::UpdateStructure};
+  }, cell::UpdateCell, dimension::NewDimension, portal::{NewPortal, PortalAndUsers, PortalInviteParams, UpdatePortal}, structure::UpdateStructure, 
+  integration::GoogleRowSheet};
 
 use super::context::GQLContext;
 use block::Block;
@@ -136,6 +138,10 @@ impl Query {
     dimension_ids: Vec<Uuid>,
   ) -> FieldResult<Vec<Cell>> {
     Query::cells_all_dimensions_impl(ctx, dimension_ids).await
+  }
+
+  async fn sheet() -> GoogleRowSheet {
+    Query::sheet_impl().await
   }
 }
 

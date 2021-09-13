@@ -2,7 +2,7 @@ use once_cell::sync::OnceCell;
 use serde::Deserialize;
 use std::{env, fs::File};
 
-static CONFIG: OnceCell<Config> = OnceCell::new();
+pub static CONFIG: OnceCell<Config> = OnceCell::new();
 
 #[derive(Deserialize)]
 pub struct Config {
@@ -16,6 +16,7 @@ pub struct Config {
   pub database_connection_timeout_sec: u64,
   pub database_url: String,
   pub auth0: Auth0,
+  pub oauth: OAuth,
 }
 
 #[derive(Deserialize)]
@@ -25,6 +26,16 @@ pub struct Auth0 {
   pub token_endpoint: String,
   pub api_endpoint: String,
   pub api_signing_secret: String,
+}
+
+#[derive(Deserialize)]
+pub struct OAuth {
+  pub client_id: String,
+  pub client_secret: String,
+  pub auth_url: String,
+  pub token_url: String,
+  pub auth_redirect_url: String,
+  pub scope: String,
 }
 
 fn init() -> Config {
