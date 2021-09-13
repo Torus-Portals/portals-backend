@@ -1,0 +1,9 @@
+{
+    "cSpell.words": [
+        "actix",
+        "concat",
+        "dotenv",
+        "jsonwebtoken",
+        "sqlx"
+    ]
+}

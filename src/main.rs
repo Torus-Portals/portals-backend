@@ -1,125 +1,137 @@
 #[macro_use]
 extern crate serde_derive;
-extern crate serde_json;
-extern crate serde_qs as qs;
+extern crate base64;
 extern crate derive_more;
-
-// #[macro_use]
-// extern crate json_payload_derive;
-
 extern crate futures;
-
 extern crate jsonwebtoken as jwt;
-
 extern crate percent_encoding;
-extern crate url;
-
 extern crate rusoto_core;
 extern crate rusoto_ses;
+extern crate serde_json;
+extern crate serde_qs as qs;
+extern crate url;
 
-extern crate base64;
-
+mod config;
+mod extractors;
 mod graphql;
 mod middleware;
-mod extractors;
 mod services;
 mod state;
 mod utils;
 
-use std::sync::Arc;
-
+use crate::graphql::{graphql_routes, schema as graphql_schema};
+use crate::services::auth0_service::Auth0Service;
+use crate::state::State;
 use actix_cors::Cors;
 use actix_web::{get, web, App, Error, HttpResponse, HttpServer};
-// use base64::encode;
-use dotenv::dotenv;
 use futures::lock::Mutex;
 use jsonwebtoken::DecodingKey;
-use listenfd::ListenFd;
+use once_cell::sync::OnceCell;
 use sqlx::postgres::PgPoolOptions;
-
-use crate::graphql::{graphql_routes, schema as graphql_schema};
-use crate::state::State;
-
-use crate::services::auth0_service::Auth0Service;
+use std::sync::Arc;
 
 #[get("/health")]
-pub async fn get_health() -> Result<HttpResponse, Error> {
-  Ok(HttpResponse::Ok().body(String::from("Hello from the other side!")))
+async fn get_health() -> HttpResponse {
+  HttpResponse::Ok().body(String::from("Hello from the other side!"))
+}
+
+#[allow(dead_code)]
+mod info {
+  include!(concat!(env!("OUT_DIR"), "/built.rs"));
+}
+
+#[derive(Debug, Serialize)]
+struct Info<'a> {
+  app: &'a str,
+  version: &'a str,
+  target: &'a str,
+  profile: &'a str,
+  optimization_level: &'a str,
+  git_head_ref: Option<&'a str>,
+  git_commit_hash: Option<&'a str>,
+  build_time_utc: &'a str,
+}
+
+static INFO: OnceCell<Info> = OnceCell::new();
+
+#[get("/info")]
+async fn get_info() -> Result<HttpResponse, Error> {
+  let config = ron::ser::PrettyConfig::new();
+  let info = INFO.get_or_init(|| Info {
+    app: info::PKG_NAME,
+    version: info::PKG_VERSION,
+    target: info::TARGET,
+    profile: info::PROFILE,
+    optimization_level: info::OPT_LEVEL,
+    git_head_ref: info::GIT_HEAD_REF,
+    git_commit_hash: info::GIT_COMMIT_HASH,
+    build_time_utc: info::BUILT_TIME_UTC,
+  });
+  let response = match ron::ser::to_string_pretty(info, config) {
+    Ok(info) => HttpResponse::Ok()
+      .content_type("application/ron; charset=utf-8")
+      .body(info),
+    Err(_) => HttpResponse::Ok()
+      .content_type("text/html; charset=utf-8")
+      .body(format!("{:?}", info)),
+  };
+  Ok(response)
 }
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-  println!("starting server");
-  if cfg!(feature = "local_dev") {
-    println!("In local development!");
-    dotenv().ok();
-  }
+  color_backtrace::install();
 
-  println!("loading logging vars");
-  std::env::set_var("RUST_LOG", "my_errors=debug,actix_web=info");
+  let config = config::server_config();
 
-  std::env::set_var("RUST_BACKTRACE", "1");
+  let mut log_builder = env_logger::Builder::new();
+  log_builder.parse_filters(&config.logging_directive);
+  log_builder.init();
 
-  env_logger::init();
-
-  let db_url = std::env::var("DATABASE_URL").expect("Unable to get DATABASE_URL env var.");
-  println!("db_url: {}", db_url);
-
-  let host = std::env::var("PORTALS_MAIN_HOST").expect("Unable to get PORTALS_MAIN_HOST env var.");
-  println!("host: {}", host);
-
-  println!("Creating db pool");
   let pool = PgPoolOptions::new()
-    .max_connections(5) // TODO: env var this
-    .connect(&db_url)
+    .max_connections(config.database_connection_pool_size)
+    .connect(&config.database_url)
     .await
     .unwrap();
 
   let state = State::new(pool.clone());
   let auth_service = Arc::new(Mutex::new(Auth0Service::new()));
 
-  let mut listenfd = ListenFd::from_env();
+  let decoding_key = DecodingKey::from_secret(
+    config
+      .auth0
+      .client_secret
+      .as_bytes(),
+  )
+  .into_static();
+
   let mut server = HttpServer::new(move || {
-    let client_secret =
-      std::env::var("AUTH0_API_SIGNING_SECRET").expect("Unable to get AUTH0_API_SIGNING_SECRET.");
-
-    // let b64_client_secret = encode(&client_secret);
-
-    let decoding_key = DecodingKey::from_secret(client_secret.as_bytes()).into_static();
+    let mut cors = Cors::default()
+      .allowed_methods(vec!["GET", "POST", "PATCH", "OPTIONS"])
+      .allow_any_header()
+      .supports_credentials();
+    config
+      .allowed_origins
+      .iter()
+      .for_each(|origin| cors = cors.allowed_origin(origin));
 
     App::new()
       .app_data(web::Data::new(state.clone()))
       .app_data(web::Data::new(graphql_schema::create_schema()))
       .app_data(web::Data::new(auth_service.clone()))
       .app_data(decoding_key)
-      .wrap(
-        Cors::default()
-          .allowed_origin("http://localhost:8088") // TODO: env var this
-          .allowed_origin("https://local.portals-dev.rocks") // TODO: env var this
-          .allowed_methods(vec!["GET", "POST", "PATCH", "OPTIONS"])
-          .allow_any_header()
-          .supports_credentials(),
-      )
+      .wrap(cors)
+      // <response status code> for <path> <remote/proxy ip address> in <seconds>s
+      .wrap(actix_web::middleware::Logger::new("%s for %U %a in %Ts"))
       .service(graphql_routes::get_graphql_routes())
       .service(graphql_routes::get_graphql_dev_routes())
       .service(get_health)
+      .service(get_info)
   });
 
-  server = if let Some(listener) = listenfd
-    .take_tcp_listener(0)
-    .unwrap()
-  {
-    println!("re-listening...");
-    server
-      .listen(listener)
-      .unwrap()
-  } else {
-    println!("Binding for the very first time!");
-    server
-      .bind(host)
-      .unwrap()
-  };
-
-  println!("Server created");
-  server.run().await
+  let socket_address = format!("0.0.0.0:{}", config.tcp_port);
+  server
+    .bind(socket_address)?
+    .run()
+    .await
 }

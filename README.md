@@ -4,17 +4,24 @@
 
 This Project uses [SQLx](https://github.com/launchbadge/sqlx) for database interactions, which means that an instance of a Postgres DB must be found in order to run this service.
 
-There are many ways to get a local Postgres DB instance, and I recommend using a [Postgres Docker image](https://hub.docker.com/_/postgres). 
+There are many ways to get a local Postgres DB instance, and I recommend using a [Postgres Docker image](https://hub.docker.com/_/postgres).
 
-### Running dev
+### Migrations
+
+See the [sqlx-cli](https://lib.rs/crates/sqlx-cli) for details on how to create, run and roll back migrations.
+
+You must have `sqlx` installed on you system
+
+    cargo install sqlx-cli
+
+### Running during development
 
 This project uses [auto reloading](https://actix.rs/docs/autoreload/) in dev.
 
-You must have `systemfd` and `cargo-watch` installed
+You must have `cargo-watch` installed on your system
 
-```
-cargo install systemfd cargo-watch
-```
+    cargo install cargo-watch
+
 
 ```
 $ systemfd --no-pid -s http::8088 -- cargo watch -x run
