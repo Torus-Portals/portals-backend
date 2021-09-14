@@ -96,7 +96,7 @@ async fn main() -> std::io::Result<()> {
         Cors::default()
           .allowed_origin("http://localhost:8088") // TODO: env var this
           .allowed_origin("https://local.portals-dev.rocks") // TODO: env var this
-          .allowed_origin("https://backend-dev.portals-dev.rocks") // TODO: env var this
+          .allowed_origin("https://backend-dev.backend.portals-dev.rocks") // TODO: env var this
           .allowed_origin("https://www.portals-dev.rocks") // TODO: env var this
           .allowed_methods(vec!["GET", "POST", "PATCH", "OPTIONS"])
           .allow_any_header()
