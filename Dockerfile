@@ -5,6 +5,8 @@ WORKDIR /usr/src/torus-backend
 
 COPY . .
 
+EXPOSE 5432
+
 RUN cargo build --release
 
 
