@@ -8,7 +8,7 @@ use actix_web_httpauth::middleware::HttpAuthentication;
 use futures::lock::Mutex;
 
 use super::context::GQLContext;
-use super::juniper_actix::{graphql_handler, playground_handler};
+use juniper_actix::{graphql_handler, playground_handler};
 use super::schema::Schema;
 use crate::middleware::auth::validator;
 // use crate::models::user::Auth0UserId;
@@ -27,11 +27,11 @@ async fn graphql_route(
   auth0_user_id: Auth0UserId,
 ) -> Result<HttpResponse, Error> {
   let p = state.pool.clone();
+  let s = schema.get_ref();
   let a = auth0_api.into_inner();
-
   let ctx = GQLContext::new(p, auth0_user_id.id, a);
 
-  graphql_handler(schema.get_ref(), &ctx, req, payload).await
+  graphql_handler(s, &ctx, req, payload).await
 }
 
 pub fn get_graphql_routes() -> impl dev::HttpServiceFactory + 'static {
