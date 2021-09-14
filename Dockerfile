@@ -5,9 +5,7 @@ WORKDIR /usr/src/torus-backend
 
 COPY . .
 
-EXPOSE 8088
-
-EXPOSE 5432
+ENV SQLX_OFFLINE true
 
 RUN cargo build --release --verbose
 
