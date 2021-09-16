@@ -1,6 +1,6 @@
-use crate::utils::general::env_var;
+use crate::config;
 use anyhow;
-use chrono::{Utc};
+use chrono::Utc;
 use percent_encoding::{utf8_percent_encode, NON_ALPHANUMERIC};
 use reqwest;
 
@@ -47,11 +47,20 @@ pub struct Auth0Service {
 
 impl Auth0Service {
   pub fn new() -> Self {
+    let auth0 = &config::server_config().auth0;
     Auth0Service {
-      auth0_client_id: env_var("AUTH0_CLIENT_ID"),
-      auth0_client_secret: env_var("AUTH0_CLIENT_SECRET"),
-      auth_api_url: env_var("AUTH0_API_ENDPOINT"),
-      token_url: env_var("AUTH0_TOKEN_ENDPOINT"),
+      auth0_client_id: auth0
+        .client_id
+        .to_owned(),
+      auth0_client_secret: auth0
+        .client_secret
+        .to_owned(),
+      auth_api_url: auth0
+        .api_endpoint
+        .to_owned(),
+      token_url: auth0
+        .token_endpoint
+        .to_owned(),
       auth_token: None,
       token_expiration: 0,
     }
