@@ -101,7 +101,7 @@ async fn main() -> std::io::Result<()> {
     let decoding_key = DecodingKey::from_secret(
       config
         .auth0
-        .client_secret
+        .api_signing_secret
         .as_bytes(),
     )
     .into_static();
