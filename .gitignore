@@ -1,3 +1,6 @@
 /target
 **/*.rs.bk
 /proc_macros/**/target
+config.ron
+.env
+.vscode/settings.json
