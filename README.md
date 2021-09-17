@@ -16,6 +16,35 @@ You must have `sqlx` installed on you system
 
 ### Running during development
 
+Most configuration is done via a [.ron file](https://github.com/ron-rs/ron) made available either via an env var, or a local file. The `config.ron` file is not included as part of this repo, due to security reasons.
+
+In order to run this project locally, you will need to set up a couple environment variables, and create a `config.ron` file.
+
+```bash
+# Fill in the parameters
+$ export DATABASE_URL='postgres://<username>:<password>@localhost:5432/<dbname>' 
+# Path to your config.ron file
+$ export CONFIG_PATH='path/to/config'
+```
+
+if you are using VSCode, it's recommended to create a `.vscode/settings.json` file, and add the env vars there.
+
+```json
+{
+	"terminal.integrated.env.osx": {
+    "DATABASE_URL": "<db_url>",
+    "CONFIG_PATH": "path/to/config"
+	},
+}
+```
+
+Note that you might need to use `terminal.integrated.env.linux` or `"terminal.integrated.env.windows"` if you are using those systems.
+
+
+### Local SQLx Development
+
+SQLx has ability to check your SQL queries in real time. If you plan to use this feature, and are using VSCode, you will need to add a `.env` file with the `DATABASE_URL` env var so that it may be picked up by the tooling (rust analyzer).
+
 This project uses [auto reloading](https://actix.rs/docs/autoreload/) in dev.
 
 You must have `cargo-watch` installed on your system
