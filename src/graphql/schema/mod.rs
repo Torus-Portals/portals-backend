@@ -1,4 +1,4 @@
-use juniper::{graphql_object, DefaultScalarValue, EmptySubscription, FieldResult, RootNode};
+use juniper::{graphql_object, EmptySubscription, FieldResult, RootNode};
 use uuid::Uuid;
 
 pub mod org;
@@ -25,9 +25,7 @@ use dimension::{Dimension};
 use block::{Block};
 use cell::{Cell};
 
-pub type Schema =
-  RootNode<'static, Query, Mutation, EmptySubscription<GQLContext>, DefaultScalarValue>;
-
+pub type Schema = RootNode<'static, Query, Mutation, EmptySubscription<GQLContext>>;
 pub struct Query;
 
 // Have to split the impls up in this weird way do to the graphql macro here:

@@ -1505,8 +1505,9 @@ dependencies = [
 
 [[package]]
 name = "juniper"
-version = "0.15.3"
-source = "git+https://github.com/graphql-rust/juniper#e7f7e7bff3b88da95fe05aa6bae6b2a76a43378c"
+version = "0.15.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "637ffa8a8d8a05aed3331449e311f145864adcd82442d82e54d0522decb7cecf"
 dependencies = [
  "async-trait",
  "bson",
@@ -1516,29 +1517,12 @@ dependencies = [
  "futures-enum",
  "graphql-parser",
  "indexmap",
- "juniper_codegen 0.15.3",
+ "juniper_codegen",
  "serde",
  "smartstring",
  "static_assertions",
  "url",
  "uuid",
-]
-
-[[package]]
-name = "juniper"
-version = "0.15.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "637ffa8a8d8a05aed3331449e311f145864adcd82442d82e54d0522decb7cecf"
-dependencies = [
- "async-trait",
- "fnv",
- "futures",
- "futures-enum",
- "indexmap",
- "juniper_codegen 0.15.7",
- "serde",
- "smartstring",
- "static_assertions",
 ]
 
 [[package]]
@@ -1554,21 +1538,10 @@ dependencies = [
  "anyhow",
  "futures",
  "http",
- "juniper 0.15.7",
+ "juniper",
  "serde",
  "serde_json",
  "thiserror",
-]
-
-[[package]]
-name = "juniper_codegen"
-version = "0.15.3"
-source = "git+https://github.com/graphql-rust/juniper#e7f7e7bff3b88da95fe05aa6bae6b2a76a43378c"
-dependencies = [
- "proc-macro-error",
- "proc-macro2",
- "quote",
- "syn",
 ]
 
 [[package]]
@@ -2027,7 +2000,7 @@ dependencies = [
  "futures",
  "json_payload_derive",
  "jsonwebtoken",
- "juniper 0.15.3",
+ "juniper",
  "juniper_actix",
  "log",
  "once_cell",
