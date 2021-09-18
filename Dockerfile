@@ -7,7 +7,7 @@ COPY . .
 
 ENV SQLX_OFFLINE true
 
-RUN cargo build --release --verbose
+RUN cargo build --release
 
 
 # RUN

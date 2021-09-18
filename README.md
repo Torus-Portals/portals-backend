@@ -81,3 +81,9 @@ Once the server is running, a GrapQL development playground should be available 
 After this you should be able to reach the playground at http://localhost:8088/dev/playground
 
 http://localhost:8088/dev/playground
+
+### Deployment
+
+```bash
+$ cargo sqlx prepare -- --bin torus-backend
+```
