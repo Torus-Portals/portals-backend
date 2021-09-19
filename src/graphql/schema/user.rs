@@ -1,4 +1,5 @@
 use crate::services::db::user_service::create_user;
+use crate::services::db::user_service::create_user_with_new_org;
 use crate::services::db::user_service::get_user;
 use crate::services::db::user_service::get_user_by_auth0_id;
 use crate::services::db::user_service::user_exists;
@@ -231,8 +232,13 @@ impl Query {
         role_ids: None,
       };
 
-      let db_user = create_user(
-        &ctx.pool,
+      dbg!(&new_user);
+
+      // While we figure out what to do with Orgs, each user will have a personal org created when they are first created.
+      // This will help in making sure that portals are coupled to Orgs, and not users. 
+      let user_and_org = create_user_with_new_org(
+        ctx.pool.clone(),
+        &ctx.auth0_user_id,
         new_user.into_db_new_user(
           ctx
             .auth0_user_id
@@ -241,7 +247,7 @@ impl Query {
       )
       .await?;
 
-      Ok(db_user.into())
+      Ok(user_and_org.0.into())
     }
   }
 }

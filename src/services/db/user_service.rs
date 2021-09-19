@@ -1,10 +1,12 @@
 use anyhow::Result;
 use chrono::{DateTime, Utc};
 
-use sqlx::{Executor, Postgres};
+use sqlx::{Executor, Postgres, PgPool};
 use uuid::Uuid;
 
 use crate::graphql::schema::user::UpdateUser;
+
+use super::org_service::{DBNewOrg, DBOrg, create_org};
 
 // DBUser
 
@@ -41,7 +43,7 @@ pub struct DBUser {
 }
 
 // DBNewUser
-#[derive(Debug, Serialize)]
+#[derive(Debug, Clone, Serialize)]
 pub struct DBNewUser {
   pub auth0id: String,
 
@@ -146,6 +148,37 @@ pub async fn create_user<'e>(pool: impl Executor<'e, Database = Postgres>, new_u
     .fetch_one(pool)
     .await
     .map_err(anyhow::Error::from)
+}
+
+pub async fn create_user_with_new_org<'e>(pool: PgPool, auth0id: &str, new_user: DBNewUser) -> Result<(DBUser, DBOrg)> {
+  let mut tx = pool.begin().await?;
+
+  let mut user = create_user(&mut tx, new_user).await?;
+
+  let new_org = DBNewOrg {
+    name: format!("{} personal org", &user.id),
+    personal: true,
+  };
+
+  let user_org = create_org(&mut tx, auth0id, new_org).await?;
+
+  user.org_ids.push(user_org.id);
+
+  let user_update = DBUpdateUser {
+    id: user.id,
+    name: None,
+    nickname: None,
+    email: None,
+    status: None,
+    org_ids: Some(user.org_ids),
+    role_ids: None,
+  };
+
+  let user_with_org_id = update_user(&mut tx, auth0id, user_update).await?;
+
+  tx.commit().await?;
+
+  Ok((user_with_org_id, user_org))
 }
 
 // Might be a good optimization for the future to use something like:

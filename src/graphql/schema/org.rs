@@ -9,7 +9,7 @@ use super::Query;
 use super::user::{UpdateUser, User};
 
 use crate::graphql::context::GQLContext;
-use crate::services::db::org_service::{DBNewOrg, DBOrg, get_org, create_org };
+use crate::services::db::org_service::{create_org, get_org, DBNewOrg, DBOrg};
 use crate::services::db::user_service::{get_user_by_auth0_id, update_user};
 use uuid::Uuid;
 
@@ -18,6 +18,8 @@ pub struct Org {
   pub id: Uuid,
 
   pub name: String,
+
+  pub personal: bool,
 
   #[serde(rename = "createdAt")]
   pub created_at: DateTime<Utc>,
@@ -37,6 +39,7 @@ impl From<DBOrg> for Org {
     Org {
       id: org.id,
       name: org.name,
+      personal: org.personal,
       created_at: org.created_at,
       created_by: org.created_by,
       updated_at: org.updated_at,
@@ -52,8 +55,7 @@ pub struct NewOrg {
 
 impl Query {
   pub async fn orgs_impl(ctx: &GQLContext) -> FieldResult<Vec<Org>> {
-    let user = get_user_by_auth0_id(&ctx.pool, &ctx.auth0_user_id)
-      .await?;
+    let user = get_user_by_auth0_id(&ctx.pool, &ctx.auth0_user_id).await?;
 
     let user_org_ids = user.org_ids.clone();
 
@@ -75,7 +77,7 @@ impl Query {
   }
 
   pub async fn org_impl(ctx: &GQLContext, org_id: Uuid) -> FieldResult<Org> {
-      get_org(&ctx.pool, org_id)
+    get_org(&ctx.pool, org_id)
       .await
       .map(|org| -> Org { org.into() })
       .map_err(FieldError::from)
@@ -84,10 +86,17 @@ impl Query {
 
 impl Mutation {
   pub async fn create_org_impl(ctx: &GQLContext, new_org: NewOrg) -> FieldResult<Org> {
-    let created_org = create_org(&ctx.pool, &ctx.auth0_user_id, DBNewOrg { name: new_org.name })
-      .await
-      .map(|org| -> Org { org.into() })
-      .map_err(FieldError::from)?;
+    let created_org = create_org(
+      &ctx.pool,
+      &ctx.auth0_user_id,
+      DBNewOrg {
+        name: new_org.name,
+        personal: false,
+      },
+    )
+    .await
+    .map(|org| -> Org { org.into() })
+    .map_err(FieldError::from)?;
 
     let user = get_user_by_auth0_id(&ctx.pool, &ctx.auth0_user_id)
       .await
@@ -108,7 +117,7 @@ impl Mutation {
     };
 
     // Add the user who created the org to the org.
-      update_user(&ctx.pool, &ctx.auth0_user_id, user_patch.into())
+    update_user(&ctx.pool, &ctx.auth0_user_id, user_patch.into())
       .await
       .map_err(FieldError::from)?;
 
