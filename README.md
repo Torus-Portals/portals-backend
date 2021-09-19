@@ -84,6 +84,8 @@ http://localhost:8088/dev/playground
 
 ### Deployment
 
+SQLx needs to run in "offline mode" when building in Docker. Before pushing to a branch that will be deployed, run the following command:
+
 ```bash
-$ cargo sqlx prepare -- --bin torus-backend
+$ cargo sqlx prepare -- --bin portals-backend
 ```

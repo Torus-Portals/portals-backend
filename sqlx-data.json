@@ -204,57 +204,6 @@
       ]
     }
   },
-  "23e6702906c8b5ff609ca737aa284ce5113454eb7f8693fdeed31453dfdb0ee1": {
-    "query": "\n    with _user as (select * from users where auth0id = $1)\n    insert into orgs (name, created_by, updated_by) values ($2, (select id from _user), (select id from _user))\n    returning name, id, created_at, created_by, updated_at, updated_by\n    ",
-    "describe": {
-      "columns": [
-        {
-          "ordinal": 0,
-          "name": "name",
-          "type_info": "Text"
-        },
-        {
-          "ordinal": 1,
-          "name": "id",
-          "type_info": "Uuid"
-        },
-        {
-          "ordinal": 2,
-          "name": "created_at",
-          "type_info": "Timestamptz"
-        },
-        {
-          "ordinal": 3,
-          "name": "created_by",
-          "type_info": "Uuid"
-        },
-        {
-          "ordinal": 4,
-          "name": "updated_at",
-          "type_info": "Timestamptz"
-        },
-        {
-          "ordinal": 5,
-          "name": "updated_by",
-          "type_info": "Uuid"
-        }
-      ],
-      "parameters": {
-        "Left": [
-          "Text",
-          "Text"
-        ]
-      },
-      "nullable": [
-        false,
-        false,
-        false,
-        false,
-        false,
-        false
-      ]
-    }
-  },
   "24493d08d3a366b86b30e8fe2fe95d5dc91f7f56867b2168fbde7ae1bc6fb901": {
     "query": "\n      with _user as (select * from users where auth0id = $1)\n      insert into portalviews (\n        portal_id,\n        name,\n        egress,\n        access,\n        structure_id,\n        created_by,\n        updated_by\n      ) values (\n        $2,\n        $3,\n        $4,\n        $5,\n        $6,\n        (select id from _user),\n        (select id from _user)\n      ) returning *\n\n      ",
     "describe": {
@@ -509,6 +458,11 @@
           "ordinal": 5,
           "name": "updated_by",
           "type_info": "Uuid"
+        },
+        {
+          "ordinal": 6,
+          "name": "personal",
+          "type_info": "Bool"
         }
       ],
       "parameters": {
@@ -517,6 +471,7 @@
         ]
       },
       "nullable": [
+        false,
         false,
         false,
         false,
@@ -714,6 +669,64 @@
         false,
         false,
         false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  },
+  "539b8e80a3af9442885ff6c47dacb2f16e3f00d94c85ee1c38b31b0299f2b82b": {
+    "query": "\n    with _user as (select * from users where auth0id = $1)\n    insert into orgs (name, personal, created_by, updated_by) values ($2, $3, (select id from _user), (select id from _user))\n    returning id, name, personal, created_at, created_by, updated_at, updated_by\n    ",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 1,
+          "name": "name",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 2,
+          "name": "personal",
+          "type_info": "Bool"
+        },
+        {
+          "ordinal": 3,
+          "name": "created_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 4,
+          "name": "created_by",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 5,
+          "name": "updated_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 6,
+          "name": "updated_by",
+          "type_info": "Uuid"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Text",
+          "Bool"
+        ]
+      },
+      "nullable": [
         false,
         false,
         false,
@@ -1324,6 +1337,11 @@
           "ordinal": 5,
           "name": "updated_by",
           "type_info": "Uuid"
+        },
+        {
+          "ordinal": 6,
+          "name": "personal",
+          "type_info": "Bool"
         }
       ],
       "parameters": {
@@ -1332,6 +1350,7 @@
         ]
       },
       "nullable": [
+        false,
         false,
         false,
         false,
