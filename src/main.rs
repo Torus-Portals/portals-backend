@@ -56,7 +56,6 @@ static INFO: OnceCell<Info> = OnceCell::new();
 
 #[get("/info")]
 async fn get_info() -> Result<HttpResponse, Error> {
-  let config = ron::ser::PrettyConfig::new();
   let info = INFO.get_or_init(|| Info {
     app: info::PKG_NAME,
     version: info::PKG_VERSION,
@@ -67,15 +66,7 @@ async fn get_info() -> Result<HttpResponse, Error> {
     git_commit_hash: info::GIT_COMMIT_HASH,
     build_time_utc: info::BUILT_TIME_UTC,
   });
-  let response = match ron::ser::to_string_pretty(info, config) {
-    Ok(info) => HttpResponse::Ok()
-      .content_type("application/ron; charset=utf-8")
-      .body(info),
-    Err(_) => HttpResponse::Ok()
-      .content_type("text/html; charset=utf-8")
-      .body(format!("{:?}", info)),
-  };
-  Ok(response)
+  Ok(HttpResponse::Ok().json(info))
 }
 
 #[actix_web::main]
