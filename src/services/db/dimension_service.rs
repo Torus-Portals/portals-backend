@@ -3,6 +3,8 @@ use crate::graphql::schema::{
   dimensions::{
     basic_table_column_dimension::BasicTableColumnDimension,
     basic_table_row_dimension::BasicTableRowDimension, empty_dimension::EmptyDimension,
+    google_sheets_column_dimension::GoogleSheetsColumnDimension,
+    google_sheets_row_dimension::GoogleSheetsRowDimension,
     owner_text_dimension::OwnerTextDimension, portal_member_dimension::PortalMemberDimension,
   },
 };
@@ -78,6 +80,18 @@ impl From<NewDimension> for DBNewDimension {
         serde_json::to_value(dim)
           .expect("Unable to convert OwnerTextDimension back to serde_json::Value")
       }
+      DimensionTypes::GoogleSheetsRow => {
+        let dim: GoogleSheetsRowDimension = serde_json::from_str(&new_dim.dimension_data)
+          .expect("Unable to parse GoogleSheetsRow data");
+        serde_json::to_value(dim)
+          .expect("Unable to convert GoogleSheetsRow back to serde_json::Value")
+      }
+      DimensionTypes::GoogleSheetsColumn => {
+        let dim: GoogleSheetsColumnDimension = serde_json::from_str(&new_dim.dimension_data)
+          .expect("Unable to parse GoogleSheetsColumn data");
+        serde_json::to_value(dim)
+          .expect("Unable to convert GoogleSheetsColumn back to serde_json::Value")
+      }
       DimensionTypes::Empty => {
         let dim: EmptyDimension = serde_json::from_str(&new_dim.dimension_data)
           .expect("Unable to parse EmptyDimension data");
@@ -89,12 +103,24 @@ impl From<NewDimension> for DBNewDimension {
     DBNewDimension {
       portal_id: new_dim.portal_id,
       name: new_dim.name,
-      dimension_type: new_dim
-        .dimension_type
-        .to_string(),
+      dimension_type: new_dim.dimension_type.to_string(),
       dimension_data,
     }
   }
+}
+
+pub async fn get_dimension<'e>(
+  pool: impl Executor<'e, Database = Postgres>,
+  dimension_id: Uuid,
+) -> Result<DBDimension> {
+  sqlx::query_as!(
+    DBDimension,
+    r#"select * from dimensions where id = $1 "#,
+    dimension_id
+  )
+  .fetch_one(pool)
+  .await
+  .map_err(anyhow::Error::from)
 }
 
 pub async fn get_dimensions<'e>(
@@ -152,18 +178,12 @@ pub async fn create_dimensions<'e>(
 
   let dimension_types = new_dimensions
     .iter()
-    .map(|nd| {
-      nd.dimension_type
-        .clone()
-    })
+    .map(|nd| nd.dimension_type.clone())
     .collect::<Vec<String>>();
 
   let dimension_datas = new_dimensions
     .iter()
-    .map(|nd| {
-      nd.dimension_data
-        .clone()
-    })
+    .map(|nd| nd.dimension_data.clone())
     .collect::<Vec<serde_json::Value>>();
 
   sqlx::query_as!(

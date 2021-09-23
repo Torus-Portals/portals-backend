@@ -4,12 +4,19 @@ use crate::{
   graphql::schema::{
     block::{BlockTypes, NewBlock, UpdateBlock},
     blocks::{
-      basic_table_block::BasicTableBlock, owner_text_block::OwnerTextBlock,
+      basic_table_block::BasicTableBlock,
+      integration_block::{IntegrationBlock, NewIntegrationBlock},
+      owner_text_block::OwnerTextBlock,
       vendor_text_block::VendorTextBlock,
     },
+    cells::google_sheets_cell::GoogleSheetsCell,
     dimensions::owner_text_dimension::OwnerTextDimension,
+    integration::Integration,
   },
-  services::db::cell_service::create_cell,
+  services::db::{
+    cell_service::create_cell, dimension_service::create_dimensions,
+    integration_service::get_integration,
+  },
 };
 
 use anyhow::Result;
@@ -58,9 +65,7 @@ impl DBBlock {
   pub fn get_current_dimensions(&self) -> Result<HashSet<Uuid>> {
     let block_type = BlockTypes::from_str(&self.block_type)?;
 
-    let bd = self
-      .block_data
-      .clone();
+    let bd = self.block_data.clone();
 
     let current_dims = match block_type {
       BlockTypes::BasicTable => {
@@ -89,11 +94,24 @@ impl DBBlock {
           None => vec![],
         }
       }
+      BlockTypes::Integration => {
+        let block_data: IntegrationBlock = serde_json::from_value(bd)?;
+
+        let mut dims: Vec<Uuid> = vec![];
+
+        if let Some(row_dim_id) = block_data.row_dim {
+          dims.push(row_dim_id);
+        }
+
+        if let Some(col_dim_id) = block_data.col_dim {
+          dims.push(col_dim_id);
+        }
+
+        dims
+      }
     };
 
-    let current_dims_set: HashSet<Uuid> = current_dims
-      .into_iter()
-      .collect();
+    let current_dims_set: HashSet<Uuid> = current_dims.into_iter().collect();
 
     Ok(current_dims_set)
   }
@@ -102,43 +120,22 @@ impl DBBlock {
     let block_type = BlockTypes::from_str(&self.block_type)
       .expect("Unable to convert db block block_type to BlockTypes enum");
 
-    let bd = self
-      .block_data
-      .clone();
+    let bd = self.block_data.clone();
 
     let was_updated = match block_type {
       BlockTypes::BasicTable => {
         let mut block_data: BasicTableBlock = serde_json::from_value(bd)?;
 
-        let dims_set: HashSet<Uuid> = dimensions
-          .clone()
-          .into_iter()
-          .collect();
-        let rows_set: HashSet<Uuid> = block_data
-          .rows
-          .clone()
-          .into_iter()
-          .collect();
-        let columns_set: HashSet<Uuid> = block_data
-          .columns
-          .clone()
-          .into_iter()
-          .collect();
+        let dims_set: HashSet<Uuid> = dimensions.clone().into_iter().collect();
+        let rows_set: HashSet<Uuid> = block_data.rows.clone().into_iter().collect();
+        let columns_set: HashSet<Uuid> = block_data.columns.clone().into_iter().collect();
 
-        let has_in_rows: Vec<&Uuid> = rows_set
-          .intersection(&dims_set)
-          .collect();
-        let has_in_columns: Vec<&Uuid> = columns_set
-          .intersection(&dims_set)
-          .collect();
+        let has_in_rows: Vec<&Uuid> = rows_set.intersection(&dims_set).collect();
+        let has_in_columns: Vec<&Uuid> = columns_set.intersection(&dims_set).collect();
 
         if has_in_rows.len() > 0 || has_in_columns.len() > 0 {
-          block_data
-            .rows
-            .retain(|r| !&dimensions.contains(&r));
-          block_data
-            .columns
-            .retain(|r| !&dimensions.contains(&r));
+          block_data.rows.retain(|r| !&dimensions.contains(&r));
+          block_data.columns.retain(|r| !&dimensions.contains(&r));
 
           self.block_data = serde_json::to_value(block_data)?;
 
@@ -177,6 +174,39 @@ impl DBBlock {
           false
         }
       }
+      BlockTypes::Integration => {
+        let mut block_data: IntegrationBlock = serde_json::from_value(bd)?;
+
+        // TODO: Can IntegrationBlock be _updated_ to remove Integration?
+        if let Some(_) = block_data.integration_id {
+          let dims_set: HashSet<Uuid> = dimensions.clone().into_iter().collect();
+
+          let has_in_rows = if let Some(row_dim_id) = block_data.row_dim {
+            dims_set.contains(&row_dim_id)
+          } else {
+            false
+          };
+          let has_in_columns = if let Some(col_dim_id) = block_data.col_dim {
+            dims_set.contains(&col_dim_id)
+          } else {
+            false
+          };
+
+          if has_in_rows {
+            block_data.row_dim = None;
+          }
+
+          if has_in_columns {
+            block_data.col_dim = None;
+          }
+
+          self.block_data = serde_json::to_value(block_data)?;
+
+          has_in_rows | has_in_columns
+        } else {
+          false
+        }
+      }
     };
 
     Ok(was_updated)
@@ -210,9 +240,7 @@ pub struct DBNewBlock {
 impl From<NewBlock> for DBNewBlock {
   fn from(new_block: NewBlock) -> Self {
     DBNewBlock {
-      block_type: new_block
-        .block_type
-        .to_string(),
+      block_type: new_block.block_type.to_string(),
       portal_id: new_block.portal_id,
       portal_view_id: new_block.portal_view_id,
       egress: new_block.egress,
@@ -253,6 +281,12 @@ impl From<UpdateBlock> for DBUpdateBlock {
             serde_json::from_str(&bc).expect("Unable to parse VendorTextBlock data");
           serde_json::to_value(block)
             .expect("Unable to convert VendorTextBlock back to serde_json::Value")
+        }
+        BlockTypes::Integration => {
+          let block: IntegrationBlock =
+            serde_json::from_str(&bc).expect("Unable to parse IntegrationBlock data");
+          serde_json::to_value(block)
+            .expect("Unable to convert IntegrationBlock back to serde_json::Value")
         }
       });
 
@@ -392,10 +426,7 @@ pub async fn clean_delete_block<'e>(
 
   let block = get_block(&mut tx, block_id).await?;
 
-  if block
-    .egress
-    .contains("owner")
-  {
+  if block.egress.contains("owner") {
     // Get all dimensions currently being used by the block that is to be destroyed
     let block_dims = block.get_current_dimensions()?;
 
@@ -475,11 +506,7 @@ pub async fn create_owner_text_block(
     portal_view_id,
     egress: String::from("owner"),
     block_data: serde_json::to_value(OwnerTextBlock {
-      content_dimension_id: Some(
-        db_dimension
-          .id
-          .clone(),
-      ),
+      content_dimension_id: Some(db_dimension.id.clone()),
     })?,
   };
 
@@ -518,4 +545,86 @@ pub async fn create_vendor_text_block(
   tx.commit().await?;
 
   Ok(db_block)
+}
+
+pub async fn create_integration_block(
+  pool: PgPool,
+  auth0_id: &str,
+  new_integration_block: NewIntegrationBlock,
+) -> Result<DBBlockParts> {
+  let mut tx = pool.begin().await?;
+
+  // Create Dimension
+  let new_row_dim = DBNewDimension {
+    portal_id: new_integration_block.portal_id,
+    name: new_integration_block.row_dim,
+    dimension_type: String::from("GoogleSheets-row"),
+    dimension_data: serde_json::Value::Null,
+  };
+
+  let new_col_dim = DBNewDimension {
+    portal_id: new_integration_block.portal_id,
+    name: new_integration_block.col_dim,
+    dimension_type: String::from("GoogleSheets-column"),
+    dimension_data: serde_json::Value::Null,
+  };
+
+  let db_dimensions = create_dimensions(&mut tx, auth0_id, vec![new_row_dim, new_col_dim]).await?;
+
+  // Uses Integration id in NewIntegrationBlock to fetch value
+  let integration: Integration = get_integration(&mut tx, new_integration_block.integration_id)
+    .await?
+    .into();
+  let google_sheet_cell = GoogleSheetsCell {
+    integration_id: new_integration_block.integration_id,
+    row_dimension: db_dimensions[0].id,
+    col_dimension: db_dimensions[1].id,
+    value: integration
+      .fetch_value(
+        db_dimensions
+          .iter()
+          .map(|db_dim| db_dim.name.clone())
+          .collect(),
+      )
+      .await
+      .unwrap(),
+  };
+
+  let new_cell = DBNewCell {
+    portal_id: new_integration_block.portal_id,
+    dimensions: db_dimensions
+      .iter()
+      .map(|db_dim| db_dim.id.clone())
+      .collect(),
+    cell_type: String::from("GoogleSheets"),
+    cell_data: serde_json::to_value(google_sheet_cell)
+      .expect("Unable to serialize GoogleSheetsCell into valid JSON format."),
+  };
+
+  let db_cell = create_cell(&mut tx, auth0_id, new_cell).await?;
+
+  // Create Block
+  let new_block = DBNewBlock {
+    block_type: String::from("Integration"),
+    portal_id: new_integration_block.portal_id,
+    portal_view_id: new_integration_block.portal_view_id,
+    // TODO: figure out egress for IntegrationBlock
+    egress: String::from("Integration"),
+    block_data: serde_json::to_value(IntegrationBlock {
+      integration_id: Some(new_integration_block.integration_id),
+      row_dim: Some(db_dimensions[0].id),
+      col_dim: Some(db_dimensions[1].id),
+    })
+    .expect("Unable to serialize IntegrationBlock into valid JSON format."),
+  };
+
+  let db_block = create_block(&mut tx, auth0_id, new_block).await?;
+
+  tx.commit().await?;
+
+  Ok(DBBlockParts {
+    blocks: vec![db_block],
+    dimensions: db_dimensions,
+    cells: vec![db_cell],
+  })
 }

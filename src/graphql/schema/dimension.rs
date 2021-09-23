@@ -1,4 +1,4 @@
-use crate::services::db::dimension_service::{create_dimensions, get_dimensions, DBNewDimension};
+use crate::services::db::dimension_service::{DBNewDimension, create_dimensions, get_dimension, get_dimensions};
 use crate::{graphql::context::GQLContext, services::db::dimension_service::DBDimension};
 use chrono::{DateTime, Utc};
 use juniper::{
@@ -11,6 +11,8 @@ use uuid::Uuid;
 use super::Mutation;
 use super::Query;
 
+use super::dimensions::google_sheets_column_dimension::GoogleSheetsColumnDimension;
+use super::dimensions::google_sheets_row_dimension::GoogleSheetsRowDimension;
 use super::dimensions::{
   basic_table_column_dimension::BasicTableColumnDimension,
   basic_table_row_dimension::BasicTableRowDimension, empty_dimension::EmptyDimension,
@@ -35,6 +37,14 @@ pub enum DimensionTypes {
   #[graphql(name = "OwnerText")]
   OwnerText,
 
+  #[strum(serialize = "GoogleSheetsRow")]
+  #[graphql(name = "GoogleSheetsRow")]
+  GoogleSheetsRow,
+
+  #[strum(serialize = "GoogleSheetsColumn")]
+  #[graphql(name = "GoogleSheetsColumn")]
+  GoogleSheetsColumn,
+
   #[strum(serialize = "Empty")]
   #[graphql(name = "Empty")]
   Empty,
@@ -46,6 +56,8 @@ pub enum GQLDimensions {
   BasicTableColumn(BasicTableColumnDimension),
   PortalMember(PortalMemberDimension),
   OwnerText(OwnerTextDimension),
+  GoogleSheetsRow(GoogleSheetsRowDimension),
+  GoogleSheetsColumn(GoogleSheetsColumnDimension),
   Empty(EmptyDimension),
 }
 
@@ -100,6 +112,16 @@ impl From<DBDimension> for Dimension {
           .expect("Can't deserialize OwnerTextDimension");
         GQLDimensions::OwnerText(d)
       }
+      "GoogleSheetsRow" => {
+        let d: GoogleSheetsRowDimension = serde_json::from_value(db_dimension.dimension_data)
+          .expect("Can't deserialize GoogleSheetsRowDimension");
+        GQLDimensions::GoogleSheetsRow(d)
+      }
+      "GoogleSheetsColumn" => {
+        let d: GoogleSheetsColumnDimension = serde_json::from_value(db_dimension.dimension_data)
+          .expect("Can't deserialize GoogleSheetsColumnDimension");
+        GQLDimensions::GoogleSheetsColumn(d)
+      }
       "Empty" => {
         let d: EmptyDimension = serde_json::from_value(db_dimension.dimension_data)
           .expect("Can't deserialize EmptyDimension");
@@ -137,6 +159,13 @@ pub struct NewDimension {
 }
 
 impl Query {
+  pub async fn dimension_impl(ctx: &GQLContext, dimension_id: Uuid) -> FieldResult<Dimension> {
+    get_dimension(&ctx.pool, dimension_id)
+      .await
+      .map(|db_dimension| db_dimension.into())
+      .map_err(FieldError::from)
+  }
+
   pub async fn dimensions_impl(ctx: &GQLContext, portal_id: Uuid) -> FieldResult<Vec<Dimension>> {
     get_dimensions(&ctx.pool, portal_id)
       .await

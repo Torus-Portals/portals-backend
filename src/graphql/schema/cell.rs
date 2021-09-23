@@ -1,6 +1,7 @@
 use std::str::FromStr;
 
 use chrono::{DateTime, Utc};
+use juniper::graphql_object;
 use juniper::{
   FieldError, FieldResult, GraphQLEnum, GraphQLInputObject, GraphQLObject, GraphQLUnion,
 };
@@ -8,7 +9,10 @@ use strum_macros::{Display, EnumString};
 
 use super::cells::basic_text_cell::BasicTextCell;
 use super::cells::empty_cell::EmptyCell;
+use super::cells::google_sheets_cell::GoogleSheetsCell;
 use super::cells::owner_text_cell::OwnerTextCell;
+use super::dimension::Dimension;
+use super::integration::{Integration, IntegrationData};
 use super::Mutation;
 use super::Query;
 
@@ -16,12 +20,15 @@ use crate::graphql::context::GQLContext;
 use crate::services::db::cell_service::{
   get_cell, get_cells_with_all_dimensions, get_cells_with_any_dimensions, update_cell, DBCell,
 };
+use crate::services::db::dimension_service::get_dimension;
+use crate::services::db::integration_service::get_integration;
 use uuid::Uuid;
 
 #[derive(Debug, GraphQLUnion, Serialize, Deserialize)]
 pub enum GQLCells {
   BasicTextCell(BasicTextCell),
   OwnerTextCell(OwnerTextCell),
+  GoogleSheetsCell(GoogleSheetsCell),
   Empty(EmptyCell),
 }
 
@@ -29,34 +36,29 @@ pub enum GQLCells {
 pub enum CellTypes {
   BasicText,
   OwnerText,
+  GoogleSheets,
 }
 
 #[derive(GraphQLObject, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Cell {
   pub id: Uuid,
 
-  #[serde(rename = "portalId")]
   pub portal_id: Uuid,
 
   // NOTE: Should probably be good to make this an enum.
-  #[serde(rename = "cellType")]
   pub cell_type: CellTypes,
 
   pub dimensions: Vec<Uuid>,
 
-  #[serde(rename = "cellData")]
   pub cell_data: GQLCells,
 
-  #[serde(rename = "createdAt")]
   pub created_at: DateTime<Utc>,
 
-  #[serde(rename = "createdBy")]
   pub created_by: Uuid,
 
-  #[serde(rename = "updatedAt")]
   pub updated_at: DateTime<Utc>,
 
-  #[serde(rename = "updatedBy")]
   pub updated_by: Uuid,
 }
 
@@ -75,6 +77,11 @@ impl From<DBCell> for Cell {
         let c: OwnerTextCell =
           serde_json::from_value(db_cell.cell_data).expect("Can't deserialize OwnerTextCell");
         GQLCells::OwnerTextCell(c)
+      }
+      "GoogleSheets" => {
+        let c: GoogleSheetsCell =
+          serde_json::from_value(db_cell.cell_data).expect("Can't deserialize GoogleSheetsCell");
+        GQLCells::GoogleSheetsCell(c)
       }
       &_ => GQLCells::Empty(EmptyCell {
         cell_type: String::from("nothing"),

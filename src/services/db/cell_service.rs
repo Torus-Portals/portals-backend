@@ -6,7 +6,10 @@ use uuid::Uuid;
 
 use crate::graphql::schema::{
   cell::{CellTypes, UpdateCell},
-  cells::{basic_text_cell::BasicTextCell, owner_text_cell::OwnerTextCell},
+  cells::{
+    basic_text_cell::BasicTextCell, google_sheets_cell::GoogleSheetsCell,
+    owner_text_cell::OwnerTextCell,
+  },
 };
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -77,14 +80,18 @@ impl From<UpdateCell> for DBUpdateCell {
           serde_json::to_value(cell)
             .expect("Unable to convert OwnerTextCell back to serde_json::Value")
         }
+        CellTypes::GoogleSheets => {
+          let cell: GoogleSheetsCell =
+            serde_json::from_str(&cd).expect("Unable to parse GoogleSheets Cell data");
+          serde_json::to_value(cell)
+            .expect("Unable to convert GoogleSheetsCell back to serde_json::Value")
+        }
       });
 
     DBUpdateCell {
       id: update_cell.id,
       dimensions: update_cell.dimensions,
-      cell_type: update_cell
-        .cell_type
-        .to_string(),
+      cell_type: update_cell.cell_type.to_string(),
       cell_data,
     }
   }
@@ -144,9 +151,7 @@ pub async fn update_cell<'e>(
     "#,
     auth0_user_id,
     update_cell.id,
-    update_cell
-      .dimensions
-      .as_deref(),
+    update_cell.dimensions.as_deref(),
     update_cell.cell_type,
     update_cell.cell_data
   )

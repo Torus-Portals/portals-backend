@@ -74,6 +74,10 @@ async fn get_info() -> Result<HttpResponse, Error> {
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
   color_backtrace::install();
+  
+  if std::env::var("CONFIG_PATH").is_err() {
+    std::env::set_var("CONFIG_PATH", "config.ron");
+  }
 
   let config = config::server_config();
 

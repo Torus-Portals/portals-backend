@@ -18,8 +18,9 @@ pub mod user;
 use self::{block::{BlockParts, UpdateBlock}, blocks::{
     basic_table_block::NewBasicTableBlock, owner_text_block::NewOwnerTextBlock,
     vendor_text_block::NewVendorTextBlock,
+    integration_block::NewIntegrationBlock,
   }, cell::UpdateCell, dimension::NewDimension, portal::{NewPortal, PortalAndUsers, PortalInviteParams, UpdatePortal}, structure::UpdateStructure, 
-  integration::GoogleRowSheet};
+  integration::{Integration, NewIntegration}};
 
 use super::context::GQLContext;
 use block::Block;
@@ -113,8 +114,16 @@ impl Query {
   async fn blocks(ctx: &GQLContext, portal_id: Uuid) -> FieldResult<Vec<Block>> {
     Query::blocks_impl(ctx, portal_id).await
   }
+  
+  async fn integration_block_options(ctx: &GQLContext, block_id: Uuid) -> FieldResult<Integration> {
+    Query::integration_block_options_impl(ctx, block_id).await
+  }
 
   // Dimension
+  
+  async fn dimension(ctx: &GQLContext, dimension_id: Uuid) -> FieldResult<Dimension> {
+    Query::dimension_impl(ctx, dimension_id).await
+  }
 
   async fn dimensions(ctx: &GQLContext, portal_id: Uuid) -> FieldResult<Vec<Dimension>> {
     Query::dimensions_impl(ctx, portal_id).await
@@ -140,8 +149,14 @@ impl Query {
     Query::cells_all_dimensions_impl(ctx, dimension_ids).await
   }
 
-  async fn sheet() -> GoogleRowSheet {
-    Query::sheet_impl().await
+  // Integration
+
+  async fn integration(ctx: &GQLContext, integration_id: Uuid) -> FieldResult<Integration> {
+    Query::integration_impl(ctx, integration_id).await
+  }
+
+  async fn integrations(ctx: &GQLContext, portal_id: Uuid) -> FieldResult<Vec<Integration>> {
+    Query::integrations_impl(ctx, portal_id).await
   }
 }
 
@@ -248,6 +263,13 @@ impl Mutation {
     Mutation::create_vendor_text_block_impl(ctx, new_vendor_text_block).await
   }
 
+  async fn create_integration_block(
+    ctx: &GQLContext,
+    new_integration_block: NewIntegrationBlock,
+  ) -> FieldResult<BlockParts> {
+    Mutation::create_integration_block_impl(ctx, new_integration_block).await
+  }
+
   // Dimension
 
   async fn create_dimensions(
@@ -262,6 +284,17 @@ impl Mutation {
   async fn update_cell(ctx: &GQLContext, update_cell: UpdateCell) -> FieldResult<Cell> {
     Mutation::update_cell_impl(ctx, update_cell).await
   }
+
+  async fn create_integration(
+    ctx: &GQLContext,
+    new_integration: NewIntegration,
+  ) -> FieldResult<Integration> {
+    Mutation::create_integration_impl(ctx, new_integration).await
+  }
+
+  // async fn delete_integration(ctx: &GQLContext, integration_id: Uuid) -> FieldResult<i32> {
+  //   Mutation::delete_integration(ctx, integration_id).await
+  // }
 }
 
 pub fn create_schema() -> Schema {

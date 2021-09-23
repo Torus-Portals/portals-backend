@@ -1,85 +1,205 @@
-use juniper::{graphql_object, GraphQLInputObject, GraphQLObject};
+use juniper::{
+  graphql_object, FieldError, FieldResult, GraphQLEnum, GraphQLInputObject, GraphQLObject,
+  GraphQLUnion,
+};
+use strum_macros::{Display, EnumString};
+use uuid::Uuid;
 
 use crate::graphql::context::GQLContext;
-use crate::services::integration_service::{SheetsCells, SheetsObject};
+use crate::services::db::dimension_service::{create_dimensions, DBDimension, DBNewDimension};
+use crate::services::db::integration_service::{
+  create_integration, get_integration, get_integrations, DBIntegration, DBNewIntegration,
+};
+use crate::services::integration_service::SheetsObject;
 
-use super::Query;
+use super::dimension::Dimension;
+use super::{Mutation, Query};
 
-// A Google spreadsheet represented with dimensions (row == major dimension)
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct GoogleRowSheet {
-  pub row_dimensions: Vec<String>,
-  pub col_dimensions: Vec<String>,
-  pub data: Vec<Vec<String>>,
+#[derive(GraphQLEnum, EnumString, Display, Clone, Debug, Deserialize, Serialize)]
+pub enum IntegrationTypes {
+  #[strum(serialize = "GoogleSheets")]
+  GoogleSheets,
 }
 
-#[derive(GraphQLInputObject)]
-pub struct IntegrationData {
-  pub row_dimension: String,
-  pub col_dimension: String,
+// TODO: figure out how to pass this as GraphQLInput.
+// Note that the spec says "Unions are never valid inputs" (https://spec.graphql.org/June2018/#sec-Unions)
+#[derive(GraphQLUnion, Clone, Debug, Deserialize, Serialize)]
+#[graphql(Context = GQLContext)]
+pub enum IntegrationData {
+  GoogleSheets(GoogleSheetsIntegration),
 }
 
-impl From<SheetsObject> for GoogleRowSheet {
-  fn from(obj: SheetsObject) -> Self {
-    let values = &obj.value_ranges[0].values;
-    let col_dimensions = values[0].clone();
-    let row_dimensions: Vec<String> = values.iter().skip(1).map(|row| row[0].clone()).collect();
+#[derive(GraphQLObject, Clone, Debug, Deserialize, Serialize)]
+#[graphql(Context = GQLContext)]
+pub struct Integration {
+  pub id: Uuid,
 
-    GoogleRowSheet {
-      row_dimensions,
-      col_dimensions,
-      // TODO: very inefficient copy; redundant once not handling entire spreadsheet anymore?
-      data: values.to_vec(),
+  pub name: String,
+
+  pub portal_id: Uuid,
+
+  pub integration_type: IntegrationTypes,
+
+  pub integration_data: IntegrationData,
+}
+
+impl Integration {
+  pub async fn fetch_value(&self, dims: Vec<String>) -> FieldResult<String> {
+    match &self.integration_data {
+      IntegrationData::GoogleSheets(data) => {
+        let mut dims = dims.into_iter();
+        let row_dim = dims.next().expect("Row dimension to query not found");
+        let col_dim = dims.next().expect("Column dimension to query not found");
+
+        let row_idx = data
+          .row_dimensions
+          .iter()
+          .position(|s| s == &row_dim)
+          .expect(&format!("Unable to find row dimension: {}", row_dim));
+
+        let col_idx = data
+          .col_dimensions
+          .iter()
+          .position(|s| s == &col_dim)
+          .expect(&format!("Unable to find column dimension: {}", col_dim));
+
+        let client = reqwest::Client::new();
+        let resp = client
+          .get("http://localhost:8088/get_sheets_value")
+          .query(&[
+            ("sheet_url", data.sheet_url.as_str()),
+            ("sheet_name", data.sheet_name.as_str()),
+            ("range", &format!("R{}C{}", row_idx + 2, col_idx + 1)),
+          ])
+          .send()
+          .await
+          // TODO: handle failed request better
+          .unwrap();
+
+        let sheets_obj: SheetsObject = serde_json::from_str(&resp.text().await.unwrap()).unwrap();
+
+        Ok(sheets_obj.value_ranges[0].values[0][0].clone())
+      }
     }
   }
 }
 
-// TODO: implement juniper Scalar for u64?
-// Currently working with `users` as row dimensions
-#[graphql_object(context = GQLContext)]
-impl GoogleRowSheet {
-  // Returns all column values, including `users`
-  pub async fn col_dimensions(&self) -> &Vec<String> {
-    &self.col_dimensions
-  }
+impl From<DBIntegration> for Integration {
+  fn from(db_integration: DBIntegration) -> Self {
+    let data = serde_json::from_value(db_integration.integration_data)
+      .expect("Unable to deserialize JSON integration_data.");
 
-  // Currently returns all row values (`users` names)
-  pub async fn row_dimensions(&self) -> &Vec<String> {
-    &self.row_dimensions
-  }
-
-  // TODO: retain col and row dimension as metadata?
-  pub async fn cell_by_dimensions(&self, data: IntegrationData) -> &String {
-    let row_dim = &data.row_dimension;
-    let col_dim = &data.col_dimension;
-
-    let row_idx = self
-      .row_dimensions
-      .iter()
-      .position(|s| s == row_dim)
-      .expect(&format!("Unable to find row dimension: {}", row_dim));
-
-    let col_idx = self
-      .col_dimensions
-      .iter()
-      .position(|s| s == col_dim)
-      .expect(&format!("Unable to find column dimension: {}", col_dim));
-
-    &self.data[row_idx + 1][col_idx]
+    Integration {
+      portal_id: db_integration.portal_id,
+      id: db_integration.id,
+      name: db_integration.name,
+      integration_type: db_integration
+        .integration_type
+        .parse()
+        .expect("Unable to convert integration_type string to enum variant"),
+      integration_data: IntegrationData::GoogleSheets(data),
+    }
   }
 }
 
+#[derive(GraphQLInputObject, Clone, Debug, Deserialize, Serialize)]
+pub struct NewIntegration {
+  pub portal_id: Uuid,
+
+  pub name: String,
+
+  pub integration_type: IntegrationTypes,
+
+  // JSON response from API call
+  pub integration_data: GoogleSheetsIntegrationInput,
+}
+
+#[derive(GraphQLInputObject, Clone, Debug, Deserialize, Serialize)]
+pub struct GoogleSheetsIntegrationInput {
+  pub sheet_url: String,
+  pub sheet_name: String,
+}
+
+#[derive(GraphQLObject, Clone, Debug, Deserialize, Serialize)]
+pub struct GoogleSheetsIntegration {
+  pub sheet_url: String,
+  pub sheet_name: String,
+  pub row_dimensions: Vec<String>,
+  pub col_dimensions: Vec<String>,
+}
+
 impl Query {
-  pub async fn sheet_impl() -> GoogleRowSheet {
+  pub async fn integration_impl(
+    ctx: &GQLContext,
+    integration_id: Uuid,
+  ) -> FieldResult<Integration> {
+    get_integration(&ctx.pool, integration_id)
+      .await
+      .map(|db_integration| db_integration.into())
+      .map_err(FieldError::from)
+  }
+
+  pub async fn integrations_impl(
+    ctx: &GQLContext,
+    portal_id: Uuid,
+  ) -> FieldResult<Vec<Integration>> {
+    get_integrations(&ctx.pool, portal_id)
+      .await
+      .map(|db_integrations| db_integrations.into_iter().map(|b| b.into()).collect())
+      .map_err(FieldError::from)
+  }
+}
+
+impl Mutation {
+  pub async fn create_integration_impl(
+    ctx: &GQLContext,
+    new_integration: NewIntegration,
+  ) -> FieldResult<Integration> {
     let client = reqwest::Client::new();
-    let resp = client
-      .get("http://localhost:8088/auth")
+    let sheet = client
+      .get("http://localhost:8088/get_sheets_value")
+      .query(&[
+        (
+          "sheet_url",
+          new_integration.integration_data.sheet_url.as_str(),
+        ),
+        (
+          "sheet_name",
+          new_integration.integration_data.sheet_name.as_str(),
+        ),
+      ])
       .send()
       .await
       .unwrap();
-    let sheets_obj: SheetsObject = serde_json::from_str(&resp.text().await.unwrap()).unwrap();
-    let google_sheet: GoogleRowSheet = sheets_obj.into();
 
-    google_sheet
+    let sheets_obj: SheetsObject = serde_json::from_str(&sheet.text().await.unwrap()).unwrap();
+    let row_dimensions: Vec<String> = sheets_obj.value_ranges[0]
+      .values
+      .iter()
+      .skip(1)
+      .map(|row| row[0].clone())
+      .collect();
+    let col_dimensions: Vec<String> = sheets_obj.value_ranges[0].values[0].clone();
+    let google_sheets_data = GoogleSheetsIntegration {
+      sheet_url: new_integration.integration_data.sheet_url,
+      sheet_name: new_integration.integration_data.sheet_name,
+      row_dimensions,
+      col_dimensions,
+    };
+
+    let db_new_integration = DBNewIntegration {
+      portal_id: new_integration.portal_id,
+      name: new_integration.name,
+      integration_type: new_integration.integration_type.to_string(),
+      integration_data: serde_json::to_value(google_sheets_data)
+        .expect("Unable to serialize GoogleSheetsIntegration data into valid JSON format."),
+    };
+
+    create_integration(&ctx.pool, &ctx.auth0_user_id, db_new_integration)
+      .await
+      .map(|integration| integration.into())
+      .map_err(FieldError::from)
   }
+
+  // pub async fn delete_integration(ctx: &GQLContext, integration_id: Uuid) -> FieldResult<i32> {}
 }
