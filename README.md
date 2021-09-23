@@ -43,7 +43,7 @@ Note that you might need to use `terminal.integrated.env.linux` or `"terminal.in
 
 ### Local SQLx Development
 
-SQLx has ability to check your SQL queries in real time. If you plan to use this feature, and are using VSCode, you will need to add a `.env` file with the `DATABASE_URL` env var so that it may be picked up by the tooling (rust analyzer).
+SQLx has ability to check your SQL queries in real time. If you plan to use this feature, and are using VSCode, you will need to add a `.env` file with the `DATABASE_URL` env var so that it may be picked up by the tooling (rust analyzer). If you are using VSCode, you may need to completely close the entire VSCode app and restart in order to prevent a "Lazy instance has previously been poisoned" error from popping up in the editor. 
 
 This project uses [auto reloading](https://actix.rs/docs/autoreload/) in dev.
 
@@ -55,6 +55,8 @@ You must have `cargo-watch` installed on your system
 To recompile and rerun on source or config changes
 
     cargo watch -x run --clear --no-gitignore
+
+
 
 ### Dealing with a "error: EADDRINUSE: Address already in use"
 

@@ -1,5 +1,77 @@
 {
   "db": "PostgreSQL",
+  "03155bd2db88d0e5261a448c84d1469df78a1906f0cacb88633293d0c9745bdd": {
+    "query": "\n    with _user as (select * from users where auth0id = $1)\n    insert into dimensions (portal_id, name, dimension_type, dimension_data, created_by, updated_by)\n    values ($2, $3, $4, $5, (select id from _user), (select id from _user))\n    returning *;\n    ",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 1,
+          "name": "portal_id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 2,
+          "name": "name",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 3,
+          "name": "dimension_type",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 4,
+          "name": "dimension_data",
+          "type_info": "Jsonb"
+        },
+        {
+          "ordinal": 5,
+          "name": "created_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 6,
+          "name": "created_by",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 7,
+          "name": "updated_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 8,
+          "name": "updated_by",
+          "type_info": "Uuid"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Uuid",
+          "Text",
+          "Text",
+          "Jsonb"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  },
   "0e240b87b5944b73fb49e41fb71c2b2946ed20b2fc57ab7c703f08a87628967c": {
     "query": "select * from blocks where portal_id = $1",
     "describe": {
@@ -74,6 +146,92 @@
       ]
     }
   },
+  "0e91216681674f0d3d3ab77fefc6c2bff0e9c9dac57ed5f517af8475216976ca": {
+    "query": "select * from users where auth0id = $1;",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 1,
+          "name": "auth0id",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 2,
+          "name": "name",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 3,
+          "name": "nickname",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 4,
+          "name": "email",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 5,
+          "name": "status",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 6,
+          "name": "org_ids",
+          "type_info": "UuidArray"
+        },
+        {
+          "ordinal": 7,
+          "name": "role_ids",
+          "type_info": "UuidArray"
+        },
+        {
+          "ordinal": 8,
+          "name": "created_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 9,
+          "name": "created_by",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 10,
+          "name": "updated_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 11,
+          "name": "updated_by",
+          "type_info": "Uuid"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  },
   "1811af4a32f8f7a56b747de365de17e3aed1097ea0fc1a9c1cb5a64fcf0b451a": {
     "query": "\n      with _user as (select * from users where auth0id = $1)\n      insert into dimensions (\n        portal_id,\n        name,\n        dimension_type,\n        created_by,\n        updated_by\n      ) select * from unnest(\n        $3::UUID[], \n        $4::TEXT[], \n        $5::TEXT[], \n        array_fill((select id from _user), ARRAY[$2::INT]::INT[]),\n        array_fill((select id from _user), ARRAY[$2::INT]::INT[])\n      )\n      returning *;\n      ",
     "describe": {
@@ -100,7 +258,7 @@
         },
         {
           "ordinal": 4,
-          "name": "meta",
+          "name": "dimension_data",
           "type_info": "Jsonb"
         },
         {
@@ -283,92 +441,6 @@
       ]
     }
   },
-  "2d415d4c8753e1d2b57d72ebe8879238bc197207c306fd16c58ce6e08d6691e4": {
-    "query": "select * from users where auth0id = $1",
-    "describe": {
-      "columns": [
-        {
-          "ordinal": 0,
-          "name": "id",
-          "type_info": "Uuid"
-        },
-        {
-          "ordinal": 1,
-          "name": "auth0id",
-          "type_info": "Text"
-        },
-        {
-          "ordinal": 2,
-          "name": "name",
-          "type_info": "Text"
-        },
-        {
-          "ordinal": 3,
-          "name": "nickname",
-          "type_info": "Text"
-        },
-        {
-          "ordinal": 4,
-          "name": "email",
-          "type_info": "Text"
-        },
-        {
-          "ordinal": 5,
-          "name": "status",
-          "type_info": "Text"
-        },
-        {
-          "ordinal": 6,
-          "name": "org_ids",
-          "type_info": "UuidArray"
-        },
-        {
-          "ordinal": 7,
-          "name": "role_ids",
-          "type_info": "UuidArray"
-        },
-        {
-          "ordinal": 8,
-          "name": "created_at",
-          "type_info": "Timestamptz"
-        },
-        {
-          "ordinal": 9,
-          "name": "created_by",
-          "type_info": "Uuid"
-        },
-        {
-          "ordinal": 10,
-          "name": "updated_at",
-          "type_info": "Timestamptz"
-        },
-        {
-          "ordinal": 11,
-          "name": "updated_by",
-          "type_info": "Uuid"
-        }
-      ],
-      "parameters": {
-        "Left": [
-          "Text"
-        ]
-      },
-      "nullable": [
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false
-      ]
-    }
-  },
   "31b2405c8d70b1e8e57c394d246b7ae05e621391ace7eb6ca768afe358de566b": {
     "query": "select * from roles where id = $1",
     "describe": {
@@ -481,6 +553,78 @@
       ]
     }
   },
+  "3e84baa91273903ac96860630ef5909f10095e3dd414cbabd415939efd9df0fe": {
+    "query": "\n    with _user as (select * from users where auth0id = $1)\n    update cells\n      set\n        dimensions = coalesce($3, dimensions),\n        cell_type = coalesce($4, cell_type),\n        cell_data = coalesce($5, cell_data)\n    where id = $2\n    returning *;\n    ",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 1,
+          "name": "portal_id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 2,
+          "name": "cell_type",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 3,
+          "name": "dimensions",
+          "type_info": "UuidArray"
+        },
+        {
+          "ordinal": 4,
+          "name": "cell_data",
+          "type_info": "Jsonb"
+        },
+        {
+          "ordinal": 5,
+          "name": "created_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 6,
+          "name": "created_by",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 7,
+          "name": "updated_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 8,
+          "name": "updated_by",
+          "type_info": "Uuid"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Uuid",
+          "UuidArray",
+          "Text",
+          "Jsonb"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  },
   "3f090442ecea78af0abffac5fd83c5ccf36ca65ed76246de747a4ac57524560b": {
     "query": "\n      insert into users (auth0id, name, nickname, email, status, org_ids, role_ids, created_by, updated_by)\n      values ($1, $2, $3, $4, $5, $6, $7, $8, $8)\n      returning *;\n      ",
     "describe": {
@@ -562,6 +706,78 @@
         false,
         false,
         false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  },
+  "46c7f298bc70c08159e3db7e4667f23d763d177940d721424d81729e93f042d3": {
+    "query": "\n    with _user as (select * from users where auth0id = $1)\n    insert into cells (portal_id, dimensions, cell_type, cell_data, created_by, updated_by)\n    values ($2, $3, $4, $5, (select id from _user), (select id from _user))\n    returning *;\n    ",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 1,
+          "name": "portal_id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 2,
+          "name": "cell_type",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 3,
+          "name": "dimensions",
+          "type_info": "UuidArray"
+        },
+        {
+          "ordinal": 4,
+          "name": "cell_data",
+          "type_info": "Jsonb"
+        },
+        {
+          "ordinal": 5,
+          "name": "created_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 6,
+          "name": "created_by",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 7,
+          "name": "updated_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 8,
+          "name": "updated_by",
+          "type_info": "Uuid"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Uuid",
+          "UuidArray",
+          "Text",
+          "Jsonb"
+        ]
+      },
+      "nullable": [
         false,
         false,
         false,
@@ -819,7 +1035,7 @@
         },
         {
           "ordinal": 4,
-          "name": "data",
+          "name": "cell_data",
           "type_info": "Jsonb"
         },
         {
@@ -923,6 +1139,74 @@
       },
       "nullable": [
         false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  },
+  "6974846af81aacf7ac0128f80a1c390a49776cfeed4f872955be2fc84c49ee20": {
+    "query": "select * from cells where $1::UUID[] && dimensions",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 1,
+          "name": "portal_id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 2,
+          "name": "cell_type",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 3,
+          "name": "dimensions",
+          "type_info": "UuidArray"
+        },
+        {
+          "ordinal": 4,
+          "name": "cell_data",
+          "type_info": "Jsonb"
+        },
+        {
+          "ordinal": 5,
+          "name": "created_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 6,
+          "name": "created_by",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 7,
+          "name": "updated_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 8,
+          "name": "updated_by",
+          "type_info": "Uuid"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "UuidArray"
+        ]
+      },
+      "nullable": [
         false,
         false,
         false,
@@ -1097,6 +1381,92 @@
         ]
       },
       "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  },
+  "9d031d8f74263ae3bfde00238edc162fe32305547f1aa190e1856f6251021361": {
+    "query": "\n    select * from users where id = any($1);\n    ",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 1,
+          "name": "auth0id",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 2,
+          "name": "name",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 3,
+          "name": "nickname",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 4,
+          "name": "email",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 5,
+          "name": "status",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 6,
+          "name": "org_ids",
+          "type_info": "UuidArray"
+        },
+        {
+          "ordinal": 7,
+          "name": "role_ids",
+          "type_info": "UuidArray"
+        },
+        {
+          "ordinal": 8,
+          "name": "created_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 9,
+          "name": "created_by",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 10,
+          "name": "updated_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 11,
+          "name": "updated_by",
+          "type_info": "Uuid"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "UuidArray"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
         false,
         false,
         false,
@@ -1443,7 +1813,7 @@
         },
         {
           "ordinal": 4,
-          "name": "meta",
+          "name": "dimension_data",
           "type_info": "Jsonb"
         },
         {
@@ -1541,6 +1911,74 @@
           "Text",
           "Uuid",
           "UuidArray",
+          "UuidArray"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  },
+  "dee0fa82dcdfe502ea4d472d4de6500ceb585da2f268661608a8927df75125b4": {
+    "query": "select * from cells where $1::UUID[] <@ dimensions",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 1,
+          "name": "portal_id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 2,
+          "name": "cell_type",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 3,
+          "name": "dimensions",
+          "type_info": "UuidArray"
+        },
+        {
+          "ordinal": 4,
+          "name": "cell_data",
+          "type_info": "Jsonb"
+        },
+        {
+          "ordinal": 5,
+          "name": "created_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 6,
+          "name": "created_by",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 7,
+          "name": "updated_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 8,
+          "name": "updated_by",
+          "type_info": "Uuid"
+        }
+      ],
+      "parameters": {
+        "Left": [
           "UuidArray"
         ]
       },

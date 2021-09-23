@@ -1,11 +1,7 @@
-use crate::services::db::user_service::create_user;
-use crate::services::db::user_service::create_user_with_new_org;
-use crate::services::db::user_service::get_user;
-use crate::services::db::user_service::get_user_by_auth0_id;
-use crate::services::db::user_service::user_exists;
-use crate::services::db::user_service::update_user;
-use crate::services::db::user_service::DBNewUser;
-use crate::services::db::user_service::DBUser;
+use crate::services::db::user_service::{
+  create_user, create_user_with_new_org, get_user, get_user_by_auth0_id, get_users, update_user,
+  user_exists, DBNewUser, DBUser,
+};
 use chrono::{DateTime, Utc};
 use juniper::{graphql_object, FieldError, FieldResult, GraphQLInputObject};
 use uuid::Uuid;
@@ -235,7 +231,7 @@ impl Query {
       dbg!(&new_user);
 
       // While we figure out what to do with Orgs, each user will have a personal org created when they are first created.
-      // This will help in making sure that portals are coupled to Orgs, and not users. 
+      // This will help in making sure that portals are coupled to Orgs, and not users.
       let user_and_org = create_user_with_new_org(
         ctx.pool.clone(),
         &ctx.auth0_user_id,
@@ -247,8 +243,24 @@ impl Query {
       )
       .await?;
 
-      Ok(user_and_org.0.into())
+      Ok(
+        user_and_org
+          .0
+          .into(),
+      )
     }
+  }
+
+  pub async fn users_impl(ctx: &GQLContext, user_ids: Vec<Uuid>) -> FieldResult<Vec<User>> {
+    get_users(&ctx.pool, user_ids)
+      .await
+      .map(|db_users| {
+        db_users
+          .into_iter()
+          .map(|db_user| db_user.into())
+          .collect()
+      })
+      .map_err(FieldError::from)
   }
 }
 

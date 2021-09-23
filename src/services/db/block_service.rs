@@ -1,10 +1,19 @@
-use crate::graphql::schema::block::NewBlock;
+use crate::{
+  graphql::schema::{block::NewBlock, blocks::owner_text_block::OwnerTextBlock},
+  services::db::cell_service::create_cell,
+};
 
 use anyhow::Result;
 use chrono::{DateTime, Utc};
 use serde_json;
-use sqlx::{Executor, Postgres};
+use serde_json::json;
+use sqlx::{Executor, PgPool, Postgres};
 use uuid::Uuid;
+
+use super::{
+  cell_service::{DBCell, DBNewCell},
+  dimension_service::{create_dimension, DBDimension, DBNewDimension},
+};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct DBBlock {
@@ -61,6 +70,14 @@ impl From<NewBlock> for DBNewBlock {
       block_data: new_block.block_data,
     }
   }
+}
+
+pub struct DBBlockParts {
+  pub blocks: Vec<DBBlock>,
+
+  pub dimensions: Vec<DBDimension>,
+
+  pub cells: Vec<DBCell>,
 }
 
 pub async fn get_block<'e>(
@@ -132,4 +149,56 @@ pub async fn delete_blocks<'e>(
     .await
     .map(|qr| qr.rows_affected() as i32)
     .map_err(anyhow::Error::from)
+}
+
+pub async fn create_owner_text_block<'e>(
+  pool: PgPool,
+  auth0_id: &str,
+  portal_id: Uuid,
+  portal_view_id: Uuid,
+) -> Result<DBBlockParts> {
+  let mut tx = pool.begin().await?;
+
+  // Create Dimension
+  let new_dim = DBNewDimension {
+    portal_id: portal_id,
+    name: format!("owner_text_block_{}", Uuid::new_v4()),
+    dimension_type: String::from("OwnerText"), // TODO: Probably should have an enum of dimension types.
+    dimension_data: serde_json::Value::Null,      // TODO: Propagate this all the way to graphql
+  };
+
+  let db_dimension = create_dimension(&mut tx, auth0_id, new_dim).await?;
+
+  // Create Cell
+  let new_cell = DBNewCell {
+    portal_id,
+    dimensions: vec![db_dimension.id],
+    cell_type: String::from("OwnerText"), // TODO: Figure types for cells out.
+    cell_data: json!({
+      "text": "Little bit of starting text..."
+    }),
+  };
+
+  let db_cell = create_cell(&mut tx, auth0_id, new_cell).await?;
+
+  // Create Block
+  let new_block = DBNewBlock {
+    block_type: String::from("OwnerText"),
+    portal_id,
+    portal_view_id,
+    egress: String::from("owner"),
+    block_data: serde_json::to_value(OwnerTextBlock {
+      content_dimension_id: Some(db_dimension.id.clone()),
+    })?,
+  };
+
+  let db_block = create_block(&mut tx, auth0_id, new_block).await?;
+
+  tx.commit().await?;
+
+  Ok(DBBlockParts {
+    blocks: vec![db_block],
+    dimensions: vec![db_dimension],
+    cells: vec![db_cell]
+  })
 }

@@ -18,7 +18,7 @@ pub struct DBDimension {
   #[serde(rename = "dimensionType")]
   pub dimension_type: String,
 
-  pub meta: serde_json::Value,
+  pub dimension_data: serde_json::Value,
 
   #[serde(rename = "createdAt")]
   pub created_at: DateTime<Utc>,
@@ -40,6 +40,8 @@ pub struct DBNewDimension {
   pub name: String,
 
   pub dimension_type: String,
+
+  pub dimension_data: serde_json::Value,
 }
 
 impl From<NewDimension> for DBNewDimension {
@@ -50,6 +52,7 @@ impl From<NewDimension> for DBNewDimension {
       dimension_type: new_dim
         .dimension_type
         .to_string(),
+      dimension_data: serde_json::Value::Null, // TODO: Propagate this all the way to graphql
     }
   }
 }
@@ -64,6 +67,30 @@ pub async fn get_dimensions<'e>(
     portal_id
   )
   .fetch_all(pool)
+  .await
+  .map_err(anyhow::Error::from)
+}
+
+pub async fn create_dimension<'e>(
+  pool: impl Executor<'e, Database = Postgres>,
+  auth0_user_id: &str,
+  new_dim: DBNewDimension
+) -> Result<DBDimension> {
+  sqlx::query_as!(
+    DBDimension,
+    r#"
+    with _user as (select * from users where auth0id = $1)
+    insert into dimensions (portal_id, name, dimension_type, dimension_data, created_by, updated_by)
+    values ($2, $3, $4, $5, (select id from _user), (select id from _user))
+    returning *;
+    "#,
+    auth0_user_id,
+    new_dim.portal_id,
+    new_dim.name,
+    new_dim.dimension_type,
+    new_dim.dimension_data
+  )
+  .fetch_one(pool)
   .await
   .map_err(anyhow::Error::from)
 }

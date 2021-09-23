@@ -185,7 +185,7 @@ impl Mutation {
       &ctx.auth0_user_id,
       DBNewPortalView {
         portal_id: portal.id,
-        name: String::from("Default Owner View"),
+        name: String::from("Default Vendor View"),
         egress: String::from("vendor"),
         access: String::from("private"),
       },

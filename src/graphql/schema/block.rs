@@ -6,16 +6,21 @@ use strum_macros::{Display, EnumString};
 use uuid::Uuid;
 
 use super::blocks::basic_table_block::BasicTableBlock;
+use super::blocks::owner_text_block::OwnerTextBlock;
 use super::blocks::empty_block::EmptyBlock;
 use super::Mutation;
 use super::Query;
+use super::dimension::Dimension;
+use super::cell::Cell;
 use crate::graphql::context::GQLContext;
+use crate::services::db::block_service::DBBlockParts;
 use crate::services::db::block_service::{get_block, get_blocks, delete_block, delete_blocks};
 use crate::services::db::block_service::DBBlock;
 
 #[derive(Debug, GraphQLUnion, Serialize, Deserialize)]
 pub enum GQLBlocks {
   BasicTable(BasicTableBlock),
+  OwnerText(OwnerTextBlock),
   Empty(EmptyBlock),
 }
 
@@ -23,6 +28,8 @@ pub enum GQLBlocks {
 pub enum BlockTypes {
   #[strum(serialize = "BasicTable")]
   BasicTable,
+  #[strum(serialize = "OwnerText")]
+  OwnerText
 }
 
 #[derive(GraphQLObject, Debug, Serialize, Deserialize)]
@@ -70,6 +77,10 @@ impl From<DBBlock> for Block {
       "BasicTable" => {
         let b: BasicTableBlock = serde_json::from_value(db_block.block_data).expect("come on");
         GQLBlocks::BasicTable(b)
+      },
+      "OwnerText" => {
+        let t: OwnerTextBlock = serde_json::from_value(db_block.block_data).expect("not OwnerText??");
+        GQLBlocks::OwnerText(t)
       }
       &_ => GQLBlocks::Empty(EmptyBlock {
         block_type: String::from("nothing"),
@@ -108,6 +119,23 @@ pub struct NewBlock {
   pub egress: String,
 
   pub block_data: serde_json::Value, // For now the json should be stringified
+}
+
+#[derive(GraphQLObject, Debug, Serialize, Deserialize)]
+pub struct BlockParts {
+  blocks: Vec<Block>,
+  dimensions: Vec<Dimension>,
+  cells: Vec<Cell>
+}
+
+impl From<DBBlockParts> for BlockParts {
+  fn from(db_block_parts: DBBlockParts) -> Self {
+    BlockParts {
+      blocks: db_block_parts.blocks.into_iter().map(|b| b.into()).collect(),
+      dimensions: db_block_parts.dimensions.into_iter().map(|d| d.into()).collect(),
+      cells: db_block_parts.cells.into_iter().map(|c| c.into()).collect(),
+    }
+  }
 }
 
 impl Query {

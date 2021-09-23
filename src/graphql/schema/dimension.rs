@@ -1,13 +1,13 @@
-use crate::services::db::dimension_service::{DBNewDimension, get_dimensions, create_dimensions};
+use crate::services::db::dimension_service::{create_dimensions, get_dimensions, DBNewDimension};
 use crate::{graphql::context::GQLContext, services::db::dimension_service::DBDimension};
 use chrono::{DateTime, Utc};
 use juniper::{FieldError, FieldResult, GraphQLEnum, GraphQLInputObject, GraphQLObject};
 use std::str::FromStr;
-use strum_macros::{EnumString, Display};
+use strum_macros::{Display, EnumString};
 use uuid::Uuid;
 
-use super::Query;
 use super::Mutation;
+use super::Query;
 
 #[derive(Debug, Serialize, Deserialize, GraphQLEnum, EnumString, Display)]
 pub enum DimensionTypes {
@@ -15,6 +15,8 @@ pub enum DimensionTypes {
   BasicTableRow,
   #[strum(serialize = "BasicTable-column")]
   BasicTableColumn,
+  #[strum(serialize = "OwnerText")]
+  OwnerText,
 }
 
 #[derive(GraphQLObject, Debug, Serialize, Deserialize)]
@@ -70,8 +72,7 @@ pub struct NewDimension {
 
 impl Query {
   pub async fn dimensions_impl(ctx: &GQLContext, portal_id: Uuid) -> FieldResult<Vec<Dimension>> {
-
-      get_dimensions(&ctx.pool, portal_id)
+    get_dimensions(&ctx.pool, portal_id)
       .await
       .map(|dimensions| {
         dimensions
@@ -93,7 +94,7 @@ impl Mutation {
       .map(|db_dim| db_dim.into())
       .collect::<Vec<DBNewDimension>>();
 
-      create_dimensions(&ctx.pool, &ctx.auth0_user_id, db_dims)
+    create_dimensions(&ctx.pool, &ctx.auth0_user_id, db_dims)
       .await
       .map(|db_dimensions| {
         db_dimensions

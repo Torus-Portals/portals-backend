@@ -119,10 +119,24 @@ pub async fn get_user_by_auth0_id<'e>(
 ) -> Result<DBUser> {
   sqlx::query_as!(
     DBUser,
-    "select * from users where auth0id = $1",
+    "select * from users where auth0id = $1;",
     auth0_user_id
   )
   .fetch_one(pool)
+  .await
+  .map_err(anyhow::Error::from)
+}
+
+// NOTE: This is not at all secure, and some kinda permissions check for this should be done in the future. 
+pub async fn get_users<'e>(pool: impl Executor<'e, Database = Postgres>, user_ids: Vec<Uuid>) -> Result<Vec<DBUser>> {
+  sqlx::query_as!(
+    DBUser,
+    r#"
+    select * from users where id = any($1);
+    "#,
+    &user_ids
+  )
+  .fetch_all(pool)
   .await
   .map_err(anyhow::Error::from)
 }
