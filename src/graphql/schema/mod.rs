@@ -15,11 +15,14 @@ pub mod user;
 
 use self::{
   block::BlockParts,
-  blocks::{basic_table_block::NewBasicTableBlock, owner_text_block::NewOwnerTextBlock},
+  blocks::{
+    basic_table_block::NewBasicTableBlock, owner_text_block::NewOwnerTextBlock,
+    vendor_text_block::NewVendorTextBlock,
+  },
   cell::UpdateCell,
   dimension::NewDimension,
   portal::NewPortal,
-  structure::UpdateStructure
+  structure::UpdateStructure,
 };
 
 use super::context::GQLContext;
@@ -127,11 +130,17 @@ impl Query {
     Query::cell_impl(ctx, cell_id).await
   }
 
-  async fn cells_any_dimensions(ctx: &GQLContext, dimension_ids: Vec<Uuid>) -> FieldResult<Vec<Cell>> {
+  async fn cells_any_dimensions(
+    ctx: &GQLContext,
+    dimension_ids: Vec<Uuid>,
+  ) -> FieldResult<Vec<Cell>> {
     Query::cells_any_dimensions_impl(ctx, dimension_ids).await
   }
 
-  async fn cells_all_dimensions(ctx: &GQLContext, dimension_ids: Vec<Uuid>) -> FieldResult<Vec<Cell>> {
+  async fn cells_all_dimensions(
+    ctx: &GQLContext,
+    dimension_ids: Vec<Uuid>,
+  ) -> FieldResult<Vec<Cell>> {
     Query::cells_all_dimensions_impl(ctx, dimension_ids).await
   }
 }
@@ -219,6 +228,15 @@ impl Mutation {
   ) -> FieldResult<BlockParts> {
     Mutation::create_owner_text_block_impl(ctx, new_owner_text_block).await
   }
+
+  async fn create_vendor_text_block(
+    ctx: &GQLContext,
+    new_vendor_text_block: NewVendorTextBlock,
+  ) -> FieldResult<Block> {
+    Mutation::create_vendor_text_block_impl(ctx, new_vendor_text_block).await
+  }
+
+  // Dimension
 
   async fn create_dimensions(
     ctx: &GQLContext,

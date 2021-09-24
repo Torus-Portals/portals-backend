@@ -28,8 +28,12 @@ pub enum GQLBlocks {
 pub enum BlockTypes {
   #[strum(serialize = "BasicTable")]
   BasicTable,
+
   #[strum(serialize = "OwnerText")]
-  OwnerText
+  OwnerText,
+  
+  #[strum(serialize = "VendorText")]
+  VendorText,
 }
 
 #[derive(GraphQLObject, Debug, Serialize, Deserialize)]

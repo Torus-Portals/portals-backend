@@ -1,5 +1,8 @@
 use crate::{
-  graphql::schema::{block::NewBlock, blocks::owner_text_block::OwnerTextBlock},
+  graphql::schema::{
+    block::NewBlock,
+    blocks::{owner_text_block::OwnerTextBlock, vendor_text_block::VendorTextBlock},
+  },
   services::db::cell_service::create_cell,
 };
 
@@ -151,7 +154,7 @@ pub async fn delete_blocks<'e>(
     .map_err(anyhow::Error::from)
 }
 
-pub async fn create_owner_text_block<'e>(
+pub async fn create_owner_text_block(
   pool: PgPool,
   auth0_id: &str,
   portal_id: Uuid,
@@ -164,7 +167,7 @@ pub async fn create_owner_text_block<'e>(
     portal_id: portal_id,
     name: format!("owner_text_block_{}", Uuid::new_v4()),
     dimension_type: String::from("OwnerText"), // TODO: Probably should have an enum of dimension types.
-    dimension_data: serde_json::Value::Null,      // TODO: Propagate this all the way to graphql
+    dimension_data: serde_json::Value::Null,   // TODO: Propagate this all the way to graphql
   };
 
   let db_dimension = create_dimension(&mut tx, auth0_id, new_dim).await?;
@@ -188,7 +191,11 @@ pub async fn create_owner_text_block<'e>(
     portal_view_id,
     egress: String::from("owner"),
     block_data: serde_json::to_value(OwnerTextBlock {
-      content_dimension_id: Some(db_dimension.id.clone()),
+      content_dimension_id: Some(
+        db_dimension
+          .id
+          .clone(),
+      ),
     })?,
   };
 
@@ -199,6 +206,32 @@ pub async fn create_owner_text_block<'e>(
   Ok(DBBlockParts {
     blocks: vec![db_block],
     dimensions: vec![db_dimension],
-    cells: vec![db_cell]
+    cells: vec![db_cell],
   })
+}
+
+pub async fn create_vendor_text_block(
+  pool: PgPool,
+  auth0_id: &str,
+  portal_id: Uuid,
+  portal_view_id: Uuid,
+) -> Result<DBBlock> {
+  let mut tx = pool.begin().await?;
+
+  // Create Block
+  let new_block = DBNewBlock {
+    block_type: String::from("VendorText"),
+    portal_id,
+    portal_view_id,
+    egress: String::from("vendor"),
+    block_data: serde_json::to_value(VendorTextBlock {
+      content_dimension_id: None,
+    })?,
+  };
+
+  let db_block = create_block(&mut tx, auth0_id, new_block).await?;
+
+  tx.commit().await?;
+
+  Ok(db_block)
 }
