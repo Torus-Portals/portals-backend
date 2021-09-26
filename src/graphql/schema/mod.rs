@@ -13,17 +13,10 @@ pub mod role;
 pub mod structure;
 pub mod user;
 
-use self::{
-  block::BlockParts,
-  blocks::{
+use self::{block::{BlockParts, UpdateBlock}, blocks::{
     basic_table_block::NewBasicTableBlock, owner_text_block::NewOwnerTextBlock,
     vendor_text_block::NewVendorTextBlock,
-  },
-  cell::UpdateCell,
-  dimension::NewDimension,
-  portal::NewPortal,
-  structure::UpdateStructure,
-};
+  }, cell::UpdateCell, dimension::NewDimension, portal::NewPortal, structure::UpdateStructure};
 
 use super::context::GQLContext;
 use block::Block;
@@ -206,6 +199,10 @@ impl Mutation {
   // async fn create_block(ctx: &GQLContext, new_block: NewBlock) -> FieldResult<Block> {
   //   Mutation::create_block(ctx, new_block).await
   // }
+
+  async fn update_block(ctx: &GQLContext, update_block: UpdateBlock) -> FieldResult<Block> {
+    Mutation::update_block_impl(ctx, update_block).await
+  }
 
   async fn delete_block(ctx: &GQLContext, block_id: Uuid) -> FieldResult<i32> {
     Mutation::delete_block(ctx, block_id).await

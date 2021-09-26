@@ -1,7 +1,10 @@
 use crate::{
   graphql::schema::{
-    block::NewBlock,
-    blocks::{owner_text_block::OwnerTextBlock, vendor_text_block::VendorTextBlock},
+    block::{BlockTypes, NewBlock, UpdateBlock},
+    blocks::{
+      basic_table_block::BasicTableBlock, owner_text_block::OwnerTextBlock,
+      vendor_text_block::VendorTextBlock,
+    },
   },
   services::db::cell_service::create_cell,
 };
@@ -75,6 +78,52 @@ impl From<NewBlock> for DBNewBlock {
   }
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct DBUpdateBlock {
+  pub id: Uuid,
+
+  pub block_type: BlockTypes,
+
+  pub block_data: Option<serde_json::Value>,
+}
+
+impl From<UpdateBlock> for DBUpdateBlock {
+  fn from(update_block: UpdateBlock) -> Self {
+    let block_data = update_block
+      .block_data
+      .clone()
+      .map(|bc| match &update_block.block_type {
+        BlockTypes::BasicTable => {
+          let block: BasicTableBlock =
+            serde_json::from_str(&bc).expect("Unable to parse BasicTableBlock data");
+          serde_json::to_value(block)
+            .expect("Unable to convert BasicTableBlock back to serde_json::Value")
+        }
+        BlockTypes::OwnerText => {
+          let block: OwnerTextBlock =
+            serde_json::from_str(&bc).expect("Unable to parse OwnerTextBlock data");
+          serde_json::to_value(block)
+            .expect("Unable to convert OwnerTextBlock back to serde_json::Value")
+        }
+        BlockTypes::VendorText => {
+          println!("in heerererer.");
+          let block: VendorTextBlock =
+            serde_json::from_str(&bc).expect("Unable to parse VendorTextBlock data");
+          serde_json::to_value(block)
+            .expect("Unable to convert VendorTextBlock back to serde_json::Value")
+        }
+      });
+
+    dbg!(&block_data);
+
+    DBUpdateBlock {
+      id: update_block.id,
+      block_type: update_block.block_type,
+      block_data,
+    }
+  }
+}
+
 pub struct DBBlockParts {
   pub blocks: Vec<DBBlock>,
 
@@ -126,6 +175,33 @@ pub async fn create_block<'e>(
     new_block.portal_view_id,
     new_block.egress,
     new_block.block_data,
+  )
+  .fetch_one(pool)
+  .await
+  .map_err(anyhow::Error::from)
+}
+
+pub async fn update_block<'e>(
+  pool: impl Executor<'e, Database = Postgres>,
+  auth0_user_id: &str,
+  updated_block: DBUpdateBlock,
+) -> Result<DBBlock> {
+  // dbg!(&updated_block);
+
+  sqlx::query_as!(
+    DBBlock,
+    r#"
+    with _user as (select * from users where auth0id = $1)
+    update blocks
+      set
+        block_data = coalesce($3, block_data),
+        updated_by = (select id from _user)
+      where id = $2
+      returning *;
+    "#,
+    auth0_user_id,
+    updated_block.id,
+    updated_block.block_data
   )
   .fetch_one(pool)
   .await

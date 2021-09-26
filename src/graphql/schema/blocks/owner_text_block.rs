@@ -9,6 +9,7 @@ use crate::services::db::block_service::{create_owner_text_block};
 
 #[derive(GraphQLObject, Debug, Serialize, Deserialize)]
 pub struct OwnerTextBlock {
+  #[serde(rename = "contentDimensionId")]
   pub content_dimension_id: Option<Uuid>,
 }
 

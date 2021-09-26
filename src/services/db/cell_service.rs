@@ -137,7 +137,8 @@ pub async fn update_cell<'e>(
       set
         dimensions = coalesce($3, dimensions),
         cell_type = coalesce($4, cell_type),
-        cell_data = coalesce($5, cell_data)
+        cell_data = coalesce($5, cell_data),
+        updated_by = (select id from _user)
     where id = $2
     returning *;
     "#,
