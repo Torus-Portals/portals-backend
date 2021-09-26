@@ -1,8 +1,6 @@
 FROM fedora:34 as builder
 WORKDIR /build
 
-RUN dnf -y install ca-certificates
-
 # compile openssl for static linking
 RUN dnf -y install gcc-c++ pkg-config musl-gcc git perl-core binaryen
 RUN git clone git://git.openssl.org/openssl.git
@@ -27,4 +25,5 @@ RUN strip target/x86_64-unknown-linux-musl/release/portals-backend
 FROM scratch
 COPY --from=builder /build/target/x86_64-unknown-linux-musl/release/portals-backend /
 EXPOSE 8088
+EXPOSE 443
 ENTRYPOINT ["/portals-backend"]
