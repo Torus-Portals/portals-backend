@@ -1,6 +1,8 @@
 FROM fedora:34 as builder
 WORKDIR /build
 
+RUN dnf -y install ca-certificates
+
 # compile openssl for static linking
 RUN dnf -y install gcc-c++ pkg-config musl-gcc git perl-core binaryen
 RUN git clone git://git.openssl.org/openssl.git
