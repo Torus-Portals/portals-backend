@@ -304,6 +304,92 @@
       ]
     }
   },
+  "1c28bcb2d45ec83c2a7fda330c8d6218c5a1d7ebb4cae91b351770e4b2119522": {
+    "query": "select * from users where email = $1;",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 1,
+          "name": "auth0id",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 2,
+          "name": "name",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 3,
+          "name": "nickname",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 4,
+          "name": "email",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 5,
+          "name": "status",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 6,
+          "name": "org_ids",
+          "type_info": "UuidArray"
+        },
+        {
+          "ordinal": 7,
+          "name": "role_ids",
+          "type_info": "UuidArray"
+        },
+        {
+          "ordinal": 8,
+          "name": "created_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 9,
+          "name": "created_by",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 10,
+          "name": "updated_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 11,
+          "name": "updated_by",
+          "type_info": "Uuid"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  },
   "1efdbc1aa4153ac20b1fd72bb591a75f2b331e9913fa372fc6322269d90e729b": {
     "query": "\n      with _user as (select * from users where auth0id = $1)\n      insert into structures (\n        structure_type,\n        structure_data,\n        created_by,\n        updated_by\n      ) values (\n        $2,\n        $3,\n        (select id from _user),\n        (select id from _user)\n      ) returning *\n      ",
     "describe": {
@@ -553,6 +639,100 @@
       ]
     }
   },
+  "3aa4a351781d2446d6a7883fe40c9019f715404cc1fd01fc6cf1e5242e31b2a7": {
+    "query": "\n      with _user as (select * from users where auth0id = $1)\n      update users\n        set\n          auth0id = coalesce($3, auth0id),\n          name = coalesce($4, name),\n          nickname = coalesce($5, nickname),\n          email = coalesce($6, email),\n          org_ids = coalesce($7, org_ids),\n          role_ids = coalesce($8, role_ids),\n          status = coalesce($9, status),\n          updated_by = coalesce((select id from _user), '11111111-2222-3333-4444-555555555555')\n      where id = $2\n      returning *;\n      ",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 1,
+          "name": "auth0id",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 2,
+          "name": "name",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 3,
+          "name": "nickname",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 4,
+          "name": "email",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 5,
+          "name": "status",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 6,
+          "name": "org_ids",
+          "type_info": "UuidArray"
+        },
+        {
+          "ordinal": 7,
+          "name": "role_ids",
+          "type_info": "UuidArray"
+        },
+        {
+          "ordinal": 8,
+          "name": "created_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 9,
+          "name": "created_by",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 10,
+          "name": "updated_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 11,
+          "name": "updated_by",
+          "type_info": "Uuid"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Uuid",
+          "Text",
+          "Text",
+          "Text",
+          "Text",
+          "UuidArray",
+          "UuidArray",
+          "Text"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  },
   "3f090442ecea78af0abffac5fd83c5ccf36ca65ed76246de747a4ac57524560b": {
     "query": "\n      insert into users (auth0id, name, nickname, email, status, org_ids, role_ids, created_by, updated_by)\n      values ($1, $2, $3, $4, $5, $6, $7, $8, $8)\n      returning *;\n      ",
     "describe": {
@@ -728,99 +908,6 @@
         ]
       },
       "nullable": []
-    }
-  },
-  "5286af2d686234049be3020b560558e5843b18e9551449d98d6a9591e3eb6962": {
-    "query": "\n      with _user as (select * from users where auth0id = $1)\n      update users\n        set\n          name = coalesce($3, name),\n          nickname = coalesce($4, nickname),\n          email = coalesce($5, email),\n          org_ids = coalesce($6, org_ids),\n          role_ids = coalesce($7, role_ids),\n          status = coalesce($8, status),\n          updated_by = (select id from _user)\n      where id = $2\n      returning *;\n      ",
-    "describe": {
-      "columns": [
-        {
-          "ordinal": 0,
-          "name": "id",
-          "type_info": "Uuid"
-        },
-        {
-          "ordinal": 1,
-          "name": "auth0id",
-          "type_info": "Text"
-        },
-        {
-          "ordinal": 2,
-          "name": "name",
-          "type_info": "Text"
-        },
-        {
-          "ordinal": 3,
-          "name": "nickname",
-          "type_info": "Text"
-        },
-        {
-          "ordinal": 4,
-          "name": "email",
-          "type_info": "Text"
-        },
-        {
-          "ordinal": 5,
-          "name": "status",
-          "type_info": "Text"
-        },
-        {
-          "ordinal": 6,
-          "name": "org_ids",
-          "type_info": "UuidArray"
-        },
-        {
-          "ordinal": 7,
-          "name": "role_ids",
-          "type_info": "UuidArray"
-        },
-        {
-          "ordinal": 8,
-          "name": "created_at",
-          "type_info": "Timestamptz"
-        },
-        {
-          "ordinal": 9,
-          "name": "created_by",
-          "type_info": "Uuid"
-        },
-        {
-          "ordinal": 10,
-          "name": "updated_at",
-          "type_info": "Timestamptz"
-        },
-        {
-          "ordinal": 11,
-          "name": "updated_by",
-          "type_info": "Uuid"
-        }
-      ],
-      "parameters": {
-        "Left": [
-          "Text",
-          "Uuid",
-          "Text",
-          "Text",
-          "Text",
-          "UuidArray",
-          "UuidArray",
-          "Text"
-        ]
-      },
-      "nullable": [
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false
-      ]
     }
   },
   "539b8e80a3af9442885ff6c47dacb2f16e3f00d94c85ee1c38b31b0299f2b82b": {
@@ -1147,6 +1234,78 @@
       ]
     }
   },
+  "6d9902a26f29b383f61a12770cbc7a30adbe847e8740f9e7021623f6d506e724": {
+    "query": "\n    with _user as (select * from users where auth0id = $1)\n    update portals\n      set\n        name = coalesce($3, name),\n        owner_ids = coalesce($4, owner_ids),\n        vendor_ids = coalesce($5, vendor_ids)\n      where id = $2\n      returning *;\n    ",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 1,
+          "name": "name",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 2,
+          "name": "org_id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 3,
+          "name": "owner_ids",
+          "type_info": "UuidArray"
+        },
+        {
+          "ordinal": 4,
+          "name": "vendor_ids",
+          "type_info": "UuidArray"
+        },
+        {
+          "ordinal": 5,
+          "name": "created_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 6,
+          "name": "created_by",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 7,
+          "name": "updated_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 8,
+          "name": "updated_by",
+          "type_info": "Uuid"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Uuid",
+          "Text",
+          "UuidArray",
+          "UuidArray"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  },
   "6e8b32b55a0fc93ce11eeac2bf55f980ddd35c6894468777e175d70088727abf": {
     "query": "\n    with _user as (select * from users where auth0id = $1)\n    update cells\n      set\n        dimensions = coalesce($3, dimensions),\n        cell_type = coalesce($4, cell_type),\n        cell_data = coalesce($5, cell_data),\n        updated_by = (select id from _user)\n    where id = $2\n    returning *;\n    ",
     "describe": {
@@ -1302,6 +1461,26 @@
         false,
         false,
         false
+      ]
+    }
+  },
+  "8fb8df5d07b38a875d2baf7a2cdb221886ccfb0ae5ffaeb9dbf19949c7c6700a": {
+    "query": "select exists(select 1 from users where id = $1) as user_exists",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "user_exists",
+          "type_info": "Bool"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      },
+      "nullable": [
+        null
       ]
     }
   },
@@ -1623,6 +1802,26 @@
       ]
     }
   },
+  "aa1a8e5ada92b65213bc8bd767bd00c1aca6816610177e9995432a443ea426dc": {
+    "query": "select exists(select 1 from users where email = $1) as user_exists",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "user_exists",
+          "type_info": "Bool"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      },
+      "nullable": [
+        null
+      ]
+    }
+  },
   "b631db00deee74bc0aecfeedeb1d029e901704d8735134821e944b1a516afd92": {
     "query": "\n      with _user as (select * from users where auth0id = $1)\n      update structures\n        set\n          structure_type = coalesce($3, structure_type),\n          structure_data = coalesce($4, structure_data)\n      where id = $2\n      returning *;\n      ",
     "describe": {
@@ -1738,6 +1937,80 @@
         ]
       },
       "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  },
+  "bd7bc0c26ddb0097d3a5c53c7565198930579e7b4fef821f82880a0261345674": {
+    "query": "select * from blocks where portal_id = $1 and egress = 'vendor';",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 1,
+          "name": "block_type",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 2,
+          "name": "portal_id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 3,
+          "name": "portal_view_id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 4,
+          "name": "egress",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 5,
+          "name": "block_data",
+          "type_info": "Jsonb"
+        },
+        {
+          "ordinal": 6,
+          "name": "created_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 7,
+          "name": "created_by",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 8,
+          "name": "updated_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 9,
+          "name": "updated_by",
+          "type_info": "Uuid"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      },
+      "nullable": [
+        false,
         false,
         false,
         false,
