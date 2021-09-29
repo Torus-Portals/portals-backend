@@ -7,17 +7,14 @@ use super::Mutation;
 use super::Query;
 
 use crate::graphql::context::GQLContext;
-use crate::services::db::portal_service::create_portal;
-use crate::services::db::portal_service::delete_portal;
-use crate::services::db::portal_service::get_auth0_user_portals;
-use crate::services::db::portal_service::get_portal;
-use crate::services::db::portal_service::DBNewPortal;
-use crate::services::db::portal_service::DBPortal;
-use crate::services::db::portal_service::get_portals;
-use crate::services::db::portalview_service::DBNewPortalView;
-use crate::services::db::portalview_service::create_portalview;
+use crate::graphql::schema::user::{User, NewUser};
+use crate::services::db::portal_service::*;
+use crate::services::db::portalview_service::{create_portalview, DBNewPortalView};
+use crate::services::db::user_service::{
+  create_user_with_new_org, get_user_by_email, user_exists_by_email,
+};
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Portal {
   pub id: Uuid,
 
@@ -123,6 +120,44 @@ impl From<DBNewPortal> for NewPortal {
   }
 }
 
+#[derive(GraphQLInputObject, Debug, Serialize, Deserialize)]
+pub struct UpdatePortal {
+  pub id: Uuid,
+
+  pub name: Option<String>,
+
+  pub owner_ids: Option<Vec<Uuid>>,
+
+  pub vendor_ids: Option<Vec<Uuid>>,
+}
+
+#[derive(GraphQLInputObject, Debug, Serialize, Deserialize)]
+pub struct PortalInviteParams {
+  pub portal_id: Uuid,
+
+  pub user_email: String,
+
+  pub egress: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct PortalAndUsers {
+  pub portal: Portal,
+  
+  pub users: Vec<User>,
+}
+
+#[graphql_object(context = GQLContext)]
+impl PortalAndUsers {
+  fn portal(&self) -> Portal {
+    self.portal.clone()
+  }
+
+  fn users(&self) -> Vec<User> {
+    self.users.clone()
+  }
+}
+
 impl Query {
   pub async fn portal_impl(ctx: &GQLContext, portal_id: Uuid) -> FieldResult<Portal> {
     get_portal(&ctx.pool, portal_id)
@@ -195,9 +230,95 @@ impl Mutation {
     Ok(portal)
   }
 
+  pub async fn update_portal_impl(
+    ctx: &GQLContext,
+    portal_update: UpdatePortal,
+  ) -> FieldResult<Portal> {
+    update_portal(&ctx.pool, &ctx.auth0_user_id, portal_update.into())
+      .await
+      .map(|db_portal| db_portal.into())
+      .map_err(FieldError::from)
+  }
+
   pub async fn delete_portal_impl(ctx: &GQLContext, portal_id: Uuid) -> FieldResult<i32> {
     let local_pool = ctx.pool.clone();
-    delete_portal(local_pool, portal_id).await
-    .map_err(FieldError::from)
+    delete_portal(local_pool, portal_id)
+      .await
+      .map_err(FieldError::from)
+  }
+
+  pub async fn invite_user_to_portal_impl(
+    ctx: &GQLContext,
+    portal_invite_params: PortalInviteParams,
+  ) -> FieldResult<PortalAndUsers> {
+    // Check to see if user already exists in Portals
+    // let local_pool = ctx.pool.clone();
+
+    let portal = get_portal(&ctx.pool, portal_invite_params.portal_id).await?;
+
+    let exists = user_exists_by_email(&ctx.pool, &portal_invite_params.user_email).await?;
+
+    let user = match exists {
+      true => {
+        get_user_by_email(&ctx.pool, &portal_invite_params.user_email).await?
+      }
+      false => {
+        let new_user = NewUser {
+          name: String::new(),
+          nickname: String::new(),
+          email: portal_invite_params
+            .user_email
+            .to_owned(),
+          status: String::from("invited"),
+          org_ids: None,
+          role_ids: None,
+        };
+
+        let user_and_org = create_user_with_new_org(
+          ctx.pool.clone(),
+          &ctx.auth0_user_id,
+          new_user.into_db_new_user(String::new()),
+        )
+        .await?;
+
+        user_and_org.0
+      }
+    };
+
+    // update portal
+    let portal_update = match portal_invite_params.egress.as_str() {
+      "owner" => {
+        let mut owner_ids = portal.owner_ids;
+
+        owner_ids.push(user.id);
+
+        Ok(DBUpdatePortal {
+            id: portal.id,
+            name: None,
+            owner_ids: Some(owner_ids),
+            vendor_ids: None,
+        })
+      },
+      "vendor" => {
+        let mut vendor_ids = portal.vendor_ids;
+
+        vendor_ids.push(user.id);
+
+        Ok(DBUpdatePortal {
+            id: portal.id,
+            name: None,
+            owner_ids: None,
+            vendor_ids: Some(vendor_ids),
+        })
+      },
+      _ => Err("portal_invite_params.egress is neither owner or vendor")
+    }?;
+
+    let updated_portal = update_portal(&ctx.pool, &ctx.auth0_user_id, portal_update).await?;
+
+    Ok(PortalAndUsers {
+      portal: updated_portal.into(),
+      users: vec![user.into()],
+    })
   }
 }

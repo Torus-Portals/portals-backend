@@ -18,7 +18,7 @@ use super::Query;
 use crate::graphql::context::GQLContext;
 use crate::services::db::block_service::DBBlock;
 use crate::services::db::block_service::DBBlockParts;
-use crate::services::db::block_service::{delete_block, delete_blocks, get_block, get_blocks, update_block};
+use crate::services::db::block_service::{clean_delete_block, delete_blocks, get_block, get_blocks, update_block};
 
 #[derive(Debug, GraphQLUnion, Serialize, Deserialize)]
 pub enum GQLBlocks {
@@ -216,7 +216,9 @@ impl Mutation {
   }
 
   pub async fn delete_block(ctx: &GQLContext, block_id: Uuid) -> FieldResult<i32> {
-    delete_block(&ctx.pool, block_id)
+    let local_pool = ctx.pool.clone();
+
+    clean_delete_block(local_pool, &ctx.auth0_user_id, block_id)
       .await
       .map_err(FieldError::from)
   }

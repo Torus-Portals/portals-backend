@@ -3,7 +3,7 @@ use chrono::{DateTime, Utc};
 use sqlx::{Executor, PgPool, Postgres};
 use uuid::Uuid;
 
-use crate::graphql::schema::portal::NewPortal;
+use crate::graphql::schema::portal::{NewPortal, UpdatePortal};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct DBPortal {
@@ -48,6 +48,28 @@ impl From<NewPortal> for DBNewPortal {
       name: new_portal.name,
       owner_ids: new_portal.owner_ids,
       vendor_ids: new_portal.vendor_ids,
+    }
+  }
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct DBUpdatePortal {
+  pub id: Uuid,
+
+  pub name: Option<String>,
+
+  pub owner_ids: Option<Vec<Uuid>>,
+
+  pub vendor_ids: Option<Vec<Uuid>>,
+}
+
+impl From<UpdatePortal> for DBUpdatePortal {
+  fn from(update_portal: UpdatePortal) -> Self {
+    DBUpdatePortal {
+        id: update_portal.id,
+        name: update_portal.name,
+        owner_ids: update_portal.owner_ids,
+        vendor_ids: update_portal.vendor_ids,
     }
   }
 }
@@ -125,6 +147,34 @@ pub async fn create_portal<'e>(
     new_portal.org_id,
     &new_portal.owner_ids,
     &new_portal.vendor_ids
+  )
+  .fetch_one(pool)
+  .await
+  .map_err(anyhow::Error::from)
+}
+
+pub async fn update_portal<'e>(
+  pool: impl Executor<'e, Database = Postgres>,
+  auth0_user_id: &str,
+  update_portal: DBUpdatePortal,
+) -> Result<DBPortal> {
+  sqlx::query_as!(
+    DBPortal,
+    r#"
+    with _user as (select * from users where auth0id = $1)
+    update portals
+      set
+        name = coalesce($3, name),
+        owner_ids = coalesce($4, owner_ids),
+        vendor_ids = coalesce($5, vendor_ids)
+      where id = $2
+      returning *;
+    "#,
+    auth0_user_id,
+    update_portal.id,
+    update_portal.name,
+    update_portal.owner_ids.as_deref(),
+    update_portal.vendor_ids.as_deref()
   )
   .fetch_one(pool)
   .await

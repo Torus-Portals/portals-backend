@@ -108,6 +108,7 @@ impl Mutation {
 
     let user_patch = UpdateUser {
       id: user.id,
+      auth0id: None,
       name: None,
       nickname: None,
       email: None,
