@@ -20,18 +20,23 @@ use super::dimensions::{
 #[derive(Debug, Serialize, Deserialize, GraphQLEnum, EnumString, Display)]
 pub enum DimensionTypes {
   #[strum(serialize = "PortalMember")]
+  #[graphql(name = "PortalMember")]
   PortalMember,
 
   #[strum(serialize = "BasicTableRow")]
+  #[graphql(name = "BasicTableRow")]
   BasicTableRow,
 
   #[strum(serialize = "BasicTableColumn")]
+  #[graphql(name = "BasicTableColumn")]
   BasicTableColumn,
 
   #[strum(serialize = "OwnerText")]
+  #[graphql(name = "OwnerText")]
   OwnerText,
 
   #[strum(serialize = "Empty")]
+  #[graphql(name = "Empty")]
   Empty,
 }
 

@@ -158,6 +158,14 @@ pub async fn create_dimensions<'e>(
     })
     .collect::<Vec<String>>();
 
+  let dimension_datas = new_dimensions
+    .iter()
+    .map(|nd| {
+      nd.dimension_data
+        .clone()
+    })
+    .collect::<Vec<serde_json::Value>>();
+
   sqlx::query_as!(
     DBDimension,
     r#"
@@ -166,12 +174,14 @@ pub async fn create_dimensions<'e>(
         portal_id,
         name,
         dimension_type,
+        dimension_data,
         created_by,
         updated_by
       ) select * from unnest(
         $3::UUID[], 
         $4::TEXT[], 
         $5::TEXT[], 
+        $6::JSONB[],
         array_fill((select id from _user), ARRAY[$2::INT]::INT[]),
         array_fill((select id from _user), ARRAY[$2::INT]::INT[])
       )
@@ -181,7 +191,8 @@ pub async fn create_dimensions<'e>(
     (new_dimensions.len() as i32),
     &portal_ids,
     &names,
-    &dimension_types
+    &dimension_types,
+    &dimension_datas,
   )
   .fetch_all(pool)
   .await

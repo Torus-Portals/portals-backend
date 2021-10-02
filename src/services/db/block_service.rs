@@ -342,8 +342,6 @@ pub async fn update_block<'e>(
   auth0_user_id: &str,
   updated_block: DBUpdateBlock,
 ) -> Result<DBBlock> {
-  // dbg!(&updated_block);
-
   sqlx::query_as!(
     DBBlock,
     r#"
