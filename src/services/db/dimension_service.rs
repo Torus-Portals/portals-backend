@@ -1,4 +1,11 @@
-use crate::graphql::schema::dimension::NewDimension;
+use crate::graphql::schema::{
+  dimension::{DimensionTypes, NewDimension},
+  dimensions::{
+    basic_table_column_dimension::BasicTableColumnDimension,
+    basic_table_row_dimension::BasicTableRowDimension, empty_dimension::EmptyDimension,
+    owner_text_dimension::OwnerTextDimension, portal_member_dimension::PortalMemberDimension,
+  },
+};
 
 use anyhow::Result;
 use chrono::{DateTime, Utc};
@@ -46,13 +53,46 @@ pub struct DBNewDimension {
 
 impl From<NewDimension> for DBNewDimension {
   fn from(new_dim: NewDimension) -> Self {
+    let dimension_data = match &new_dim.dimension_type {
+      DimensionTypes::BasicTableRow => {
+        let dim: BasicTableRowDimension = serde_json::from_str(&new_dim.dimension_data)
+          .expect("Unable to parse BasicTableRowDimension data");
+        serde_json::to_value(dim)
+          .expect("Unable to convert BasicTableRowDimension back to serde_json::Value")
+      }
+      DimensionTypes::BasicTableColumn => {
+        let dim: BasicTableColumnDimension = serde_json::from_str(&new_dim.dimension_data)
+          .expect("Unable to parse BasicTableColumnDimension data");
+        serde_json::to_value(dim)
+          .expect("Unable to convert BasicTableColumnDimension back to serde_json::Value")
+      }
+      DimensionTypes::PortalMember => {
+        let dim: PortalMemberDimension = serde_json::from_str(&new_dim.dimension_data)
+          .expect("Unable to parse PortalMemberDimension data");
+        serde_json::to_value(dim)
+          .expect("Unable to convert PortalMemeberDimension back to serde_json::Value")
+      }
+      DimensionTypes::OwnerText => {
+        let dim: OwnerTextDimension = serde_json::from_str(&new_dim.dimension_data)
+          .expect("Unable to parse OwnerTextDimension data");
+        serde_json::to_value(dim)
+          .expect("Unable to convert OwnerTextDimension back to serde_json::Value")
+      }
+      DimensionTypes::Empty => {
+        let dim: EmptyDimension = serde_json::from_str(&new_dim.dimension_data)
+          .expect("Unable to parse EmptyDimension data");
+        serde_json::to_value(dim)
+          .expect("Unable to convert EmptyDimension back to serde_json::Value")
+      }
+    };
+
     DBNewDimension {
       portal_id: new_dim.portal_id,
       name: new_dim.name,
       dimension_type: new_dim
         .dimension_type
         .to_string(),
-      dimension_data: serde_json::Value::Null, // TODO: Propagate this all the way to graphql
+      dimension_data,
     }
   }
 }
@@ -74,7 +114,7 @@ pub async fn get_dimensions<'e>(
 pub async fn create_dimension<'e>(
   pool: impl Executor<'e, Database = Postgres>,
   auth0_user_id: &str,
-  new_dim: DBNewDimension
+  new_dim: DBNewDimension,
 ) -> Result<DBDimension> {
   sqlx::query_as!(
     DBDimension,

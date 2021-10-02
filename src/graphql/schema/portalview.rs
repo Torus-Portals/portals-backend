@@ -1,5 +1,5 @@
 use chrono::{DateTime, Utc};
-use juniper::{graphql_object, FieldError, FieldResult, GraphQLInputObject};
+use juniper::{graphql_object, FieldError, FieldResult, GraphQLObject, GraphQLInputObject};
 use uuid::Uuid;
 
 use super::Mutation;
@@ -122,6 +122,14 @@ pub struct NewPortalView {
   pub access: String,
 }
 
+#[derive(GraphQLObject, Debug, Serialize, Deserialize)]
+#[graphql(context = GQLContext)]
+pub struct PortalViewParts {
+  pub portalview: PortalView,
+
+  pub structure: Structure,
+}
+
 impl Query {
   pub async fn portalviews_impl(ctx: &GQLContext, portal_id: Uuid) -> FieldResult<Vec<PortalView>> {
     get_portal_views(&ctx.pool, portal_id)
@@ -140,10 +148,13 @@ impl Mutation {
   pub async fn create_portalview_impl(
     ctx: &GQLContext,
     new_portalview: NewPortalView,
-  ) -> FieldResult<PortalView> {
-    create_portalview(&ctx.pool, &ctx.auth0_user_id, new_portalview.into())
+  ) -> FieldResult<PortalViewParts> {
+    create_portalview(ctx.pool.clone(), &ctx.auth0_user_id, new_portalview.into())
       .await
-      .map(|db_portalview| db_portalview.into())
+      .map(|db_portalview| PortalViewParts {
+        portalview: db_portalview.0.into(),
+        structure: db_portalview.1.into()
+      })
       .map_err(FieldError::from)
   }
 }

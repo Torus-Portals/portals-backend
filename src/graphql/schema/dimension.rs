@@ -1,7 +1,9 @@
 use crate::services::db::dimension_service::{create_dimensions, get_dimensions, DBNewDimension};
 use crate::{graphql::context::GQLContext, services::db::dimension_service::DBDimension};
 use chrono::{DateTime, Utc};
-use juniper::{FieldError, FieldResult, GraphQLEnum, GraphQLInputObject, GraphQLObject};
+use juniper::{
+  FieldError, FieldResult, GraphQLEnum, GraphQLInputObject, GraphQLObject, GraphQLUnion,
+};
 use std::str::FromStr;
 use strum_macros::{Display, EnumString};
 use uuid::Uuid;
@@ -9,14 +11,37 @@ use uuid::Uuid;
 use super::Mutation;
 use super::Query;
 
+use super::dimensions::{
+  basic_table_column_dimension::BasicTableColumnDimension,
+  basic_table_row_dimension::BasicTableRowDimension, empty_dimension::EmptyDimension,
+  owner_text_dimension::OwnerTextDimension, portal_member_dimension::PortalMemberDimension,
+};
+
 #[derive(Debug, Serialize, Deserialize, GraphQLEnum, EnumString, Display)]
 pub enum DimensionTypes {
-  #[strum(serialize = "BasicTable-row")]
+  #[strum(serialize = "PortalMember")]
+  PortalMember,
+
+  #[strum(serialize = "BasicTableRow")]
   BasicTableRow,
-  #[strum(serialize = "BasicTable-column")]
+
+  #[strum(serialize = "BasicTableColumn")]
   BasicTableColumn,
+
   #[strum(serialize = "OwnerText")]
   OwnerText,
+
+  #[strum(serialize = "Empty")]
+  Empty,
+}
+
+#[derive(Debug, Clone, GraphQLUnion, Serialize, Deserialize)]
+pub enum GQLDimensions {
+  BasicTableRow(BasicTableRowDimension),
+  BasicTableColumn(BasicTableColumnDimension),
+  PortalMember(PortalMemberDimension),
+  OwnerText(OwnerTextDimension),
+  Empty(EmptyDimension),
 }
 
 #[derive(GraphQLObject, Debug, Serialize, Deserialize)]
@@ -29,7 +54,8 @@ pub struct Dimension {
 
   pub dimension_type: DimensionTypes,
 
-  // pub meta: serde_json::Value,
+  pub dimension_data: GQLDimensions,
+
   pub created_at: DateTime<Utc>,
 
   pub created_by: Uuid,
@@ -48,11 +74,41 @@ impl From<DBDimension> for Dimension {
     let dimension_type = DimensionTypes::from_str(dim_type_str)
       .expect("Unable to convert dimension_type to enum variant");
 
+    let dimension_data = match dim_type_str {
+      "PortalMember" => {
+        let d: PortalMemberDimension = serde_json::from_value(db_dimension.dimension_data)
+          .expect("Can't deserialize PortalMemberDimension");
+        GQLDimensions::PortalMember(d)
+      }
+      "BasicTableRow" => {
+        let d: BasicTableRowDimension = serde_json::from_value(db_dimension.dimension_data)
+          .expect("Can't deserialize BasicTableRowDimension");
+        GQLDimensions::BasicTableRow(d)
+      }
+      "BasicTableColumn" => {
+        let d: BasicTableColumnDimension = serde_json::from_value(db_dimension.dimension_data)
+          .expect("Can't deserialize BasicTableColumnDimension");
+        GQLDimensions::BasicTableColumn(d)
+      }
+      "OwnerText" => {
+        let d: OwnerTextDimension = serde_json::from_value(db_dimension.dimension_data)
+          .expect("Can't deserialize OwnerTextDimension");
+        GQLDimensions::OwnerText(d)
+      }
+      "Empty" => {
+        let d: EmptyDimension = serde_json::from_value(db_dimension.dimension_data)
+          .expect("Can't deserialize EmptyDimension");
+        GQLDimensions::Empty(d)
+      }
+      &_ => GQLDimensions::Empty(EmptyDimension { empty: true }),
+    };
+
     Dimension {
       id: db_dimension.id,
       portal_id: db_dimension.portal_id,
       name: db_dimension.name,
       dimension_type,
+      dimension_data,
       created_at: db_dimension.created_at,
       created_by: db_dimension.created_by,
       updated_at: db_dimension.updated_at,
@@ -68,6 +124,11 @@ pub struct NewDimension {
   pub name: String,
 
   pub dimension_type: DimensionTypes,
+
+  #[graphql(
+    description = "For now dimension_data needs to be stringified, but it is type checked when parsed!"
+  )]
+  pub dimension_data: String,
 }
 
 impl Query {

@@ -1,15 +1,17 @@
 use chrono::{DateTime, Utc};
-use juniper::{graphql_object, FieldError, FieldResult, GraphQLInputObject};
+use juniper::{graphql_object, FieldError, FieldResult, GraphQLInputObject, GraphQLObject};
 
 use uuid::Uuid;
 
+use super::dimension::Dimension;
+use super::portalview::PortalView;
+use super::structure::Structure;
 use super::Mutation;
 use super::Query;
 
 use crate::graphql::context::GQLContext;
-use crate::graphql::schema::user::{User, NewUser};
+use crate::graphql::schema::user::{NewUser, User};
 use crate::services::db::portal_service::*;
-use crate::services::db::portalview_service::{create_portalview, DBNewPortalView};
 use crate::services::db::user_service::{
   create_user_with_new_org, get_user_by_email, user_exists_by_email,
 };
@@ -140,21 +142,56 @@ pub struct PortalInviteParams {
   pub egress: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(GraphQLObject, Debug, Serialize, Deserialize)]
+#[graphql(Context = GQLContext)]
 pub struct PortalAndUsers {
   pub portal: Portal,
-  
+
   pub users: Vec<User>,
 }
 
-#[graphql_object(context = GQLContext)]
-impl PortalAndUsers {
-  fn portal(&self) -> Portal {
-    self.portal.clone()
-  }
+#[derive(GraphQLObject, Debug, Serialize, Deserialize)]
+#[graphql(Context = GQLContext)]
+pub struct PortalParts {
+  pub portal: Portal,
 
-  fn users(&self) -> Vec<User> {
-    self.users.clone()
+  pub portal_views: Vec<PortalView>,
+
+  pub structures: Vec<Structure>,
+
+  pub dimensions: Vec<Dimension>,
+}
+
+impl From<DBPortalParts> for PortalParts {
+  fn from(db_portal_parts: DBPortalParts) -> Self {
+    let portal: Portal = db_portal_parts
+      .portal
+      .into();
+
+    let portal_views: Vec<PortalView> = db_portal_parts
+      .portal_views
+      .into_iter()
+      .map(|db_pv| db_pv.into())
+      .collect();
+
+    let structures: Vec<Structure> = db_portal_parts
+      .structures
+      .into_iter()
+      .map(|db_s| db_s.into())
+      .collect();
+
+    let dimensions: Vec<Dimension> = db_portal_parts
+      .dimensions
+      .into_iter()
+      .map(|db_d| db_d.into())
+      .collect();
+
+    PortalParts {
+      portal,
+      portal_views,
+      structures,
+      dimensions,
+    }
   }
 }
 
@@ -196,38 +233,18 @@ impl Query {
 }
 
 impl Mutation {
-  pub async fn create_portal_impl(ctx: &GQLContext, new_portal: NewPortal) -> FieldResult<Portal> {
-    let portal: Portal = create_portal(&ctx.pool, &ctx.auth0_user_id, new_portal.into())
+  pub async fn create_portal_impl(
+    ctx: &GQLContext,
+    new_portal: NewPortal,
+  ) -> FieldResult<PortalParts> {
+    let local_pool = ctx.pool.clone();
+
+    let portal_parts = create_portal(local_pool, &ctx.auth0_user_id, new_portal.into())
       .await
-      .map(|db_portal| db_portal.into())
+      .map(|db_pp| db_pp.into())
       .map_err(FieldError::from)?;
 
-    // Create a default owner and vendor portalview
-    create_portalview(
-      &ctx.pool,
-      &ctx.auth0_user_id,
-      DBNewPortalView {
-        portal_id: portal.id,
-        name: String::from("Default Owner View"),
-        egress: String::from("owner"),
-        access: String::from("private"),
-      },
-    )
-    .await?;
-
-    create_portalview(
-      &ctx.pool,
-      &ctx.auth0_user_id,
-      DBNewPortalView {
-        portal_id: portal.id,
-        name: String::from("Default Vendor View"),
-        egress: String::from("vendor"),
-        access: String::from("private"),
-      },
-    )
-    .await?;
-
-    Ok(portal)
+    Ok(portal_parts)
   }
 
   pub async fn update_portal_impl(
@@ -251,17 +268,12 @@ impl Mutation {
     ctx: &GQLContext,
     portal_invite_params: PortalInviteParams,
   ) -> FieldResult<PortalAndUsers> {
-    // Check to see if user already exists in Portals
-    // let local_pool = ctx.pool.clone();
-
     let portal = get_portal(&ctx.pool, portal_invite_params.portal_id).await?;
 
     let exists = user_exists_by_email(&ctx.pool, &portal_invite_params.user_email).await?;
 
     let user = match exists {
-      true => {
-        get_user_by_email(&ctx.pool, &portal_invite_params.user_email).await?
-      }
+      true => get_user_by_email(&ctx.pool, &portal_invite_params.user_email).await?,
       false => {
         let new_user = NewUser {
           name: String::new(),
@@ -286,32 +298,35 @@ impl Mutation {
     };
 
     // update portal
-    let portal_update = match portal_invite_params.egress.as_str() {
+    let portal_update = match portal_invite_params
+      .egress
+      .as_str()
+    {
       "owner" => {
         let mut owner_ids = portal.owner_ids;
 
         owner_ids.push(user.id);
 
         Ok(DBUpdatePortal {
-            id: portal.id,
-            name: None,
-            owner_ids: Some(owner_ids),
-            vendor_ids: None,
+          id: portal.id,
+          name: None,
+          owner_ids: Some(owner_ids),
+          vendor_ids: None,
         })
-      },
+      }
       "vendor" => {
         let mut vendor_ids = portal.vendor_ids;
 
         vendor_ids.push(user.id);
 
         Ok(DBUpdatePortal {
-            id: portal.id,
-            name: None,
-            owner_ids: None,
-            vendor_ids: Some(vendor_ids),
+          id: portal.id,
+          name: None,
+          owner_ids: None,
+          vendor_ids: Some(vendor_ids),
         })
-      },
-      _ => Err("portal_invite_params.egress is neither owner or vendor")
+      }
+      _ => Err("portal_invite_params.egress is neither owner or vendor"),
     }?;
 
     let updated_portal = update_portal(&ctx.pool, &ctx.auth0_user_id, portal_update).await?;

@@ -7,6 +7,7 @@ use crate::{
       basic_table_block::BasicTableBlock, owner_text_block::OwnerTextBlock,
       vendor_text_block::VendorTextBlock,
     },
+    dimensions::owner_text_dimension::OwnerTextDimension,
   },
   services::db::cell_service::create_cell,
 };
@@ -57,38 +58,42 @@ impl DBBlock {
   pub fn get_current_dimensions(&self) -> Result<HashSet<Uuid>> {
     let block_type = BlockTypes::from_str(&self.block_type)?;
 
-    let bd = self.block_data.clone();
+    let bd = self
+      .block_data
+      .clone();
 
     let current_dims = match block_type {
-        BlockTypes::BasicTable => {
-          let mut block_data: BasicTableBlock = serde_json::from_value(bd)?;
+      BlockTypes::BasicTable => {
+        let mut block_data: BasicTableBlock = serde_json::from_value(bd)?;
 
-          let mut dims: Vec<Uuid> = vec![];
+        let mut dims: Vec<Uuid> = vec![];
 
-          dims.append(&mut block_data.rows);
-          dims.append(&mut block_data.columns);
+        dims.append(&mut block_data.rows);
+        dims.append(&mut block_data.columns);
 
-          dims
-        },
-        BlockTypes::OwnerText => {
-          let block_data: OwnerTextBlock = serde_json::from_value(bd)?;
+        dims
+      }
+      BlockTypes::OwnerText => {
+        let block_data: OwnerTextBlock = serde_json::from_value(bd)?;
 
-          match block_data.content_dimension_id {
-            Some(cdi) => vec![cdi],
-            None => vec![],
-          }
-        },
-        BlockTypes::VendorText => {
-          let block_data: VendorTextBlock = serde_json::from_value(bd)?;
+        match block_data.content_dimension_id {
+          Some(cdi) => vec![cdi],
+          None => vec![],
+        }
+      }
+      BlockTypes::VendorText => {
+        let block_data: VendorTextBlock = serde_json::from_value(bd)?;
 
-          match block_data.content_dimension_id {
-            Some(cdi) => vec![cdi],
-            None => vec![],
-          }
-        },
+        match block_data.content_dimension_id {
+          Some(cdi) => vec![cdi],
+          None => vec![],
+        }
+      }
     };
 
-    let current_dims_set: HashSet<Uuid> = current_dims.into_iter().collect();
+    let current_dims_set: HashSet<Uuid> = current_dims
+      .into_iter()
+      .collect();
 
     Ok(current_dims_set)
   }
@@ -105,22 +110,43 @@ impl DBBlock {
       BlockTypes::BasicTable => {
         let mut block_data: BasicTableBlock = serde_json::from_value(bd)?;
 
-        let dims_set: HashSet<Uuid> = dimensions.clone().into_iter().collect();
-        let rows_set: HashSet<Uuid> = block_data.rows.clone().into_iter().collect();
-        let columns_set: HashSet<Uuid> = block_data.columns.clone().into_iter().collect();
+        let dims_set: HashSet<Uuid> = dimensions
+          .clone()
+          .into_iter()
+          .collect();
+        let rows_set: HashSet<Uuid> = block_data
+          .rows
+          .clone()
+          .into_iter()
+          .collect();
+        let columns_set: HashSet<Uuid> = block_data
+          .columns
+          .clone()
+          .into_iter()
+          .collect();
 
-        let has_in_rows: Vec<&Uuid> = rows_set.intersection(&dims_set).collect();
-        let has_in_columns: Vec<&Uuid> = columns_set.intersection(&dims_set).collect();
+        let has_in_rows: Vec<&Uuid> = rows_set
+          .intersection(&dims_set)
+          .collect();
+        let has_in_columns: Vec<&Uuid> = columns_set
+          .intersection(&dims_set)
+          .collect();
 
         if has_in_rows.len() > 0 || has_in_columns.len() > 0 {
-          block_data.rows.retain(|r| !&dimensions.contains(&r));
-          block_data.columns.retain(|r| !&dimensions.contains(&r));
-  
+          block_data
+            .rows
+            .retain(|r| !&dimensions.contains(&r));
+          block_data
+            .columns
+            .retain(|r| !&dimensions.contains(&r));
+
           self.block_data = serde_json::to_value(block_data)?;
 
           true
-        } else { false }
-      },
+        } else {
+          false
+        }
+      }
       BlockTypes::OwnerText => {
         let mut block_data: OwnerTextBlock = serde_json::from_value(bd)?;
 
@@ -129,9 +155,12 @@ impl DBBlock {
             block_data.content_dimension_id = None;
             self.block_data = serde_json::to_value(block_data)?;
             true
-          } else { false }
-        } else { false }
-
+          } else {
+            false
+          }
+        } else {
+          false
+        }
       }
       BlockTypes::VendorText => {
         let mut block_data: VendorTextBlock = serde_json::from_value(bd)?;
@@ -141,8 +170,12 @@ impl DBBlock {
             block_data.content_dimension_id = None;
             self.block_data = serde_json::to_value(block_data)?;
             true
-          } else { false }
-        } else { false }
+          } else {
+            false
+          }
+        } else {
+          false
+        }
       }
     };
 
@@ -153,9 +186,10 @@ impl DBBlock {
 impl From<DBBlock> for DBUpdateBlock {
   fn from(db_block: DBBlock) -> Self {
     DBUpdateBlock {
-        id: db_block.id,
-        block_type: BlockTypes::from_str(&db_block.block_type).expect("Unable to convert block_type string to BlockTypes Enum"),
-        block_data: Some(db_block.block_data),
+      id: db_block.id,
+      block_type: BlockTypes::from_str(&db_block.block_type)
+        .expect("Unable to convert block_type string to BlockTypes Enum"),
+      block_data: Some(db_block.block_data),
     }
   }
 }
@@ -330,17 +364,17 @@ pub async fn update_block<'e>(
   .map_err(anyhow::Error::from)
 }
 
-// Does not perform any cleanup, just deletes a block in the db. 
+// Does not perform any cleanup, just deletes a block in the db.
 // You probably want to use clean_delete_block() below!
 pub async fn dangerous_delete_block<'e>(
   pool: impl Executor<'e, Database = Postgres>,
   block_id: Uuid,
 ) -> Result<i32> {
   sqlx::query!("delete from blocks where id = $1", block_id)
-  .execute(pool)
-  .await
-  .map(|qr| qr.rows_affected() as i32)
-  .map_err(anyhow::Error::from)
+    .execute(pool)
+    .await
+    .map(|qr| qr.rows_affected() as i32)
+    .map_err(anyhow::Error::from)
 }
 
 pub async fn clean_delete_block<'e>(
@@ -351,32 +385,36 @@ pub async fn clean_delete_block<'e>(
   let mut tx = pool.begin().await?;
 
   // Below is a...naive aproach to disassociating dimensions that are used in an Owner block
-  // from Vendor Blocks when the Owner block is deleted. 
+  // from Vendor Blocks when the Owner block is deleted.
   // The logic goes that when an Owner Block is deleted, any Vendor Blocks that use dimensions (and cells)
   // that were originally created for the Owner Block should be deleted as well.
-  // I think that at some point in the future we will need a Portal clean up (garbage collect) method to delete all 
-  // dims and cells Which are not connected to any blocks. It might also be good to add an 
+  // I think that at some point in the future we will need a Portal clean up (garbage collect) method to delete all
+  // dims and cells Which are not connected to any blocks. It might also be good to add an
   // "owned_dimensions" column to the block table so that we can track what dimensions should be deleted
 
   let block = get_block(&mut tx, block_id).await?;
 
-  if block.egress.contains("owner") {
+  if block
+    .egress
+    .contains("owner")
+  {
     // Get all dimensions currently being used by the block that is to be destroyed
     let block_dims = block.get_current_dimensions()?;
-  
+
     // Get all the vendor blocks in the portal
     let portal_vendor_blocks = get_portal_vendor_blocks(&mut tx, block.portal_id).await?;
-  
+
     for mut vendor_block in portal_vendor_blocks {
       let vendor_block_dims = vendor_block.get_current_dimensions()?;
-  
-      let dims_in_both_blocks: Vec<Uuid> = block_dims.intersection(&vendor_block_dims)
-      .map(|d| d.to_owned())
-      .collect();
-  
+
+      let dims_in_both_blocks: Vec<Uuid> = block_dims
+        .intersection(&vendor_block_dims)
+        .map(|d| d.to_owned())
+        .collect();
+
       if dims_in_both_blocks.len() > 0 {
         let updated = vendor_block.remove_dimensions(dims_in_both_blocks)?;
-  
+
         if updated {
           update_block(&mut tx, auth0_user_id, vendor_block.into()).await?;
         }
@@ -415,7 +453,7 @@ pub async fn create_owner_text_block(
     portal_id: portal_id,
     name: format!("owner_text_block_{}", Uuid::new_v4()),
     dimension_type: String::from("OwnerText"), // TODO: Probably should have an enum of dimension types.
-    dimension_data: serde_json::Value::Null,   // TODO: Propagate this all the way to graphql
+    dimension_data: serde_json::to_value(OwnerTextDimension { empty: true })?,
   };
 
   let db_dimension = create_dimension(&mut tx, auth0_id, new_dim).await?;

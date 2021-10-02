@@ -6,6 +6,7 @@ pub mod blocks;
 pub mod cell;
 pub mod cells;
 pub mod dimension;
+pub mod dimensions;
 pub mod org;
 pub mod portal;
 pub mod portalview;
@@ -23,8 +24,8 @@ use block::Block;
 use cell::Cell;
 use dimension::Dimension;
 use org::{NewOrg, Org};
-use portal::Portal;
-use portalview::{NewPortalView, PortalView};
+use portal::{Portal, PortalParts};
+use portalview::{NewPortalView, PortalView, PortalViewParts};
 use role::{NewRole, Role};
 use structure::Structure;
 use user::{NewUser, UpdateUser, User};
@@ -166,7 +167,7 @@ impl Mutation {
 
   // Portal
 
-  async fn create_portal(ctx: &GQLContext, new_portal: NewPortal) -> FieldResult<Portal> {
+  async fn create_portal(ctx: &GQLContext, new_portal: NewPortal) -> FieldResult<PortalParts> {
     Mutation::create_portal_impl(ctx, new_portal).await
   }
 
@@ -188,7 +189,7 @@ impl Mutation {
   async fn create_portal_view(
     ctx: &GQLContext,
     new_portalview: NewPortalView,
-  ) -> FieldResult<PortalView> {
+  ) -> FieldResult<PortalViewParts> {
     Mutation::create_portalview_impl(ctx, new_portalview).await
   }
 
