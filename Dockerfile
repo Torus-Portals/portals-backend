@@ -17,6 +17,10 @@ RUN rustup target add x86_64-unknown-linux-musl
 
 COPY . .
 
+# run unit tests
+RUN cargo test
+RUN cargo test -- --ignored
+
 # build prod binary
 RUN cargo build --release --target x86_64-unknown-linux-musl
 RUN strip target/x86_64-unknown-linux-musl/release/portals-backend

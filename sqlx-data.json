@@ -232,8 +232,8 @@
       ]
     }
   },
-  "1811af4a32f8f7a56b747de365de17e3aed1097ea0fc1a9c1cb5a64fcf0b451a": {
-    "query": "\n      with _user as (select * from users where auth0id = $1)\n      insert into dimensions (\n        portal_id,\n        name,\n        dimension_type,\n        created_by,\n        updated_by\n      ) select * from unnest(\n        $3::UUID[], \n        $4::TEXT[], \n        $5::TEXT[], \n        array_fill((select id from _user), ARRAY[$2::INT]::INT[]),\n        array_fill((select id from _user), ARRAY[$2::INT]::INT[])\n      )\n      returning *;\n      ",
+  "18dedb5d807057e9681b914670048c9222d73629345c82356f775bf577b46d20": {
+    "query": "\n      with _user as (select * from users where auth0id = $1)\n      insert into dimensions (\n        portal_id,\n        name,\n        dimension_type,\n        dimension_data,\n        created_by,\n        updated_by\n      ) select * from unnest(\n        $3::UUID[],\n        $4::TEXT[],\n        $5::TEXT[],\n        $6::JSONB[],\n        array_fill((select id from _user), ARRAY[$2::INT]::INT[]),\n        array_fill((select id from _user), ARRAY[$2::INT]::INT[])\n      )\n      returning *;\n      ",
     "describe": {
       "columns": [
         {
@@ -288,7 +288,8 @@
           "Int4",
           "UuidArray",
           "TextArray",
-          "TextArray"
+          "TextArray",
+          "JsonbArray"
         ]
       },
       "nullable": [
@@ -599,28 +600,28 @@
         },
         {
           "ordinal": 2,
+          "name": "personal",
+          "type_info": "Bool"
+        },
+        {
+          "ordinal": 3,
           "name": "created_at",
           "type_info": "Timestamptz"
         },
         {
-          "ordinal": 3,
+          "ordinal": 4,
           "name": "created_by",
           "type_info": "Uuid"
         },
         {
-          "ordinal": 4,
+          "ordinal": 5,
           "name": "updated_at",
           "type_info": "Timestamptz"
         },
         {
-          "ordinal": 5,
+          "ordinal": 6,
           "name": "updated_by",
           "type_info": "Uuid"
-        },
-        {
-          "ordinal": 6,
-          "name": "personal",
-          "type_info": "Bool"
         }
       ],
       "parameters": {
@@ -2039,28 +2040,28 @@
         },
         {
           "ordinal": 2,
+          "name": "personal",
+          "type_info": "Bool"
+        },
+        {
+          "ordinal": 3,
           "name": "created_at",
           "type_info": "Timestamptz"
         },
         {
-          "ordinal": 3,
+          "ordinal": 4,
           "name": "created_by",
           "type_info": "Uuid"
         },
         {
-          "ordinal": 4,
+          "ordinal": 5,
           "name": "updated_at",
           "type_info": "Timestamptz"
         },
         {
-          "ordinal": 5,
+          "ordinal": 6,
           "name": "updated_by",
           "type_info": "Uuid"
-        },
-        {
-          "ordinal": 6,
-          "name": "personal",
-          "type_info": "Bool"
         }
       ],
       "parameters": {
