@@ -11,7 +11,9 @@ ENV OPENSSL_STATIC true
 ENV OPENSSL_DIR /usr/local/ssl
 
 # setup rust tooling
-RUN curl --proto '=https' --tlsv1.3 -sSf https://sh.rustup.rs | sh -s -- -y
+RUN curl --proto '=https' --tlsv1.3 -O https://static.rust-lang.org/rustup/dist/x86_64-unknown-linux-gnu/rustup-init
+RUN chmod +x rustup-init
+RUN ./rustup-init -y
 ENV PATH="/root/.cargo/bin:${PATH}"
 RUN rustup target add x86_64-unknown-linux-musl
 
