@@ -899,6 +899,74 @@
       ]
     }
   },
+  "47c0c641c23d8d080466b69c0579830a562d98f305f3e0ee5b5215b673d9385c": {
+    "query": "select * from dimensions where id = $1 ",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 1,
+          "name": "portal_id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 2,
+          "name": "name",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 3,
+          "name": "dimension_type",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 4,
+          "name": "dimension_data",
+          "type_info": "Jsonb"
+        },
+        {
+          "ordinal": 5,
+          "name": "created_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 6,
+          "name": "created_by",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 7,
+          "name": "updated_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 8,
+          "name": "updated_by",
+          "type_info": "Uuid"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  },
   "484998ec221f8d46c9d4fdb99f8fc887db7d169f0f75b3f5df5b708dd32dfe4c": {
     "query": "delete from blocks where id = $1",
     "describe": {
@@ -1155,6 +1223,74 @@
       },
       "nullable": [
         false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  },
+  "64f71497d0fc68c756a60bc8d6aed7cad8e00e0f5a3cbde57e1d734b680006a0": {
+    "query": "select * from integrations where portal_id = $1",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 1,
+          "name": "name",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 2,
+          "name": "portal_id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 3,
+          "name": "integration_type",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 4,
+          "name": "integration_data",
+          "type_info": "Jsonb"
+        },
+        {
+          "ordinal": 5,
+          "name": "created_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 6,
+          "name": "created_by",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 7,
+          "name": "updated_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 8,
+          "name": "updated_by",
+          "type_info": "Uuid"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      },
+      "nullable": [
         false,
         false,
         false,
@@ -1453,6 +1589,74 @@
         false,
         false,
         false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  },
+  "7d43545e96ee287663451d27b4efd24a26ff7cc3c46c618ae7a18a746dec78d8": {
+    "query": "select * from integrations where id = $1",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 1,
+          "name": "name",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 2,
+          "name": "portal_id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 3,
+          "name": "integration_type",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 4,
+          "name": "integration_data",
+          "type_info": "Jsonb"
+        },
+        {
+          "ordinal": 5,
+          "name": "created_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 6,
+          "name": "created_by",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 7,
+          "name": "updated_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 8,
+          "name": "updated_by",
+          "type_info": "Uuid"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      },
+      "nullable": [
         false,
         false,
         false,
@@ -1821,6 +2025,18 @@
       "nullable": [
         null
       ]
+    }
+  },
+  "b506765a056330367395c0e42f149dd22b858053c3da2f18d26ae1106083f654": {
+    "query": "delete from integrations where id = $1",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      },
+      "nullable": []
     }
   },
   "b631db00deee74bc0aecfeedeb1d029e901704d8735134821e944b1a516afd92": {
@@ -2330,6 +2546,78 @@
       "parameters": {
         "Left": [
           "UuidArray"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  },
+  "df5c6c8139bce8facab65772f30fcfb6eb09cadea5f4fdccc363cc085f681943": {
+    "query": "\n    with _user as (select * from users where auth0id = $1)\n    insert into integrations (name, portal_id, integration_type, integration_data, created_by, updated_by)\n    values ($2, $3, $4, $5, (select id from _user), (select id from _user))\n    returning *;\n    ",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 1,
+          "name": "name",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 2,
+          "name": "portal_id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 3,
+          "name": "integration_type",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 4,
+          "name": "integration_data",
+          "type_info": "Jsonb"
+        },
+        {
+          "ordinal": 5,
+          "name": "created_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 6,
+          "name": "created_by",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 7,
+          "name": "updated_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 8,
+          "name": "updated_by",
+          "type_info": "Uuid"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Text",
+          "Uuid",
+          "Text",
+          "Jsonb"
         ]
       },
       "nullable": [
