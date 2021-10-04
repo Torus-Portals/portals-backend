@@ -1,23 +1,14 @@
 use std::{collections::HashSet, str::FromStr};
 
-use crate::{
-  graphql::schema::{
-    block::{BlockTypes, NewBlock, UpdateBlock},
-    blocks::{
+use crate::{graphql::schema::{block::{BlockTypes, NewBlock, UpdateBlock}, blocks::{
       basic_table_block::BasicTableBlock,
       integration_block::{IntegrationBlock, NewIntegrationBlock},
       owner_text_block::OwnerTextBlock,
       vendor_text_block::VendorTextBlock,
-    },
-    cells::google_sheets_cell::GoogleSheetsCell,
-    dimensions::owner_text_dimension::OwnerTextDimension,
-    integration::Integration,
-  },
-  services::db::{
+    }, cells::google_sheets_cell::GoogleSheetsCell, dimensions::{google_sheets_column_dimension::GoogleSheetsColumnDimension, google_sheets_row_dimension::GoogleSheetsRowDimension, owner_text_dimension::OwnerTextDimension}, integration::Integration}, services::db::{
     cell_service::create_cell, dimension_service::create_dimensions,
     integration_service::get_integration,
-  },
-};
+  }};
 
 use anyhow::Result;
 use chrono::{DateTime, Utc};
@@ -558,15 +549,15 @@ pub async fn create_integration_block(
   let new_row_dim = DBNewDimension {
     portal_id: new_integration_block.portal_id,
     name: new_integration_block.row_dim,
-    dimension_type: String::from("GoogleSheets-row"),
-    dimension_data: serde_json::Value::Null,
+    dimension_type: String::from("GoogleSheetsRow"),
+    dimension_data: serde_json::to_value(GoogleSheetsRowDimension { empty: true })?,
   };
 
   let new_col_dim = DBNewDimension {
     portal_id: new_integration_block.portal_id,
     name: new_integration_block.col_dim,
-    dimension_type: String::from("GoogleSheets-column"),
-    dimension_data: serde_json::Value::Null,
+    dimension_type: String::from("GoogleSheetsColumn"),
+    dimension_data: serde_json::to_value(GoogleSheetsColumnDimension { empty: true })?,
   };
 
   let db_dimensions = create_dimensions(&mut tx, auth0_id, vec![new_row_dim, new_col_dim]).await?;
