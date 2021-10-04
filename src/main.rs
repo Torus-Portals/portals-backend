@@ -73,7 +73,6 @@ async fn get_info() -> Result<HttpResponse, Error> {
 async fn main() -> std::io::Result<()> {
   color_backtrace::install();
   openssl_probe::init_ssl_cert_env_vars();
-
   let config = config::server_config();
 
   let mut log_builder = env_logger::Builder::new();
