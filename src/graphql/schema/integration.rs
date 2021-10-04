@@ -10,9 +10,8 @@ use crate::services::db::dimension_service::{create_dimensions, DBDimension, DBN
 use crate::services::db::integration_service::{
   create_integration, get_integration, get_integrations, DBIntegration, DBNewIntegration,
 };
-use crate::services::integration_service::SheetsObject;
+use crate::services::google_sheets_service::fetch_sheets_value;
 
-use super::dimension::Dimension;
 use super::{Mutation, Query};
 
 #[derive(GraphQLEnum, EnumString, Display, Clone, Debug, Deserialize, Serialize)]
@@ -44,6 +43,7 @@ pub struct Integration {
 }
 
 impl Integration {
+  // TODO: Allow for fetching of >1 cells (possibly return Vec<Vec<String>> instead)
   pub async fn fetch_value(&self, dims: Vec<String>) -> FieldResult<String> {
     match &self.integration_data {
       IntegrationData::GoogleSheets(data) => {
@@ -63,20 +63,12 @@ impl Integration {
           .position(|s| s == &col_dim)
           .expect(&format!("Unable to find column dimension: {}", col_dim));
 
-        let client = reqwest::Client::new();
-        let resp = client
-          .get("http://localhost:8088/get_sheets_value")
-          .query(&[
-            ("sheet_url", data.sheet_url.as_str()),
-            ("sheet_name", data.sheet_name.as_str()),
-            ("range", &format!("R{}C{}", row_idx + 2, col_idx + 1)),
-          ])
-          .send()
-          .await
-          // TODO: handle failed request better
-          .unwrap();
-
-        let sheets_obj: SheetsObject = serde_json::from_str(&resp.text().await.unwrap()).unwrap();
+        let sheets_obj = fetch_sheets_value(
+          data.sheet_url.clone(),
+          data.sheet_name.clone(),
+          Some(format!("R{}C{}", row_idx + 2, col_idx + 1)),
+        )
+        .await;
 
         Ok(sheets_obj.value_ranges[0].values[0][0].clone())
       }
@@ -155,24 +147,13 @@ impl Mutation {
     ctx: &GQLContext,
     new_integration: NewIntegration,
   ) -> FieldResult<Integration> {
-    let client = reqwest::Client::new();
-    let sheet = client
-      .get("http://localhost:8088/get_sheets_value")
-      .query(&[
-        (
-          "sheet_url",
-          new_integration.integration_data.sheet_url.as_str(),
-        ),
-        (
-          "sheet_name",
-          new_integration.integration_data.sheet_name.as_str(),
-        ),
-      ])
-      .send()
-      .await
-      .unwrap();
+    let sheets_obj = fetch_sheets_value(
+      new_integration.integration_data.sheet_url.clone(),
+      new_integration.integration_data.sheet_name.clone(),
+      None,
+    )
+    .await;
 
-    let sheets_obj: SheetsObject = serde_json::from_str(&sheet.text().await.unwrap()).unwrap();
     let row_dimensions: Vec<String> = sheets_obj.value_ranges[0]
       .values
       .iter()

@@ -5,7 +5,6 @@ use actix_web::{get, web, HttpResponse};
 use anyhow;
 use chrono::Utc;
 use futures::lock::Mutex;
-use juniper::{FieldError, FieldResult, GraphQLEnum, GraphQLInputObject, GraphQLObject};
 use oauth2::basic::{BasicClient, BasicTokenResponse, BasicTokenType};
 use oauth2::reqwest::async_http_client;
 use oauth2::{
@@ -17,12 +16,9 @@ use oauth2::{
 use reqwest;
 use serde::Deserialize;
 use serde_json::Value;
-use url::Url;
 
 use crate::config::CONFIG;
 
-const SAMPLE_WORKSHEET: &str =
-  "https://docs.google.com/spreadsheets/d/1iqJIuqxulhM0VRVfXaQOxj9rSP5zW59UE3PeOk8Vhn0/edit#gid=0";
 const SHEETS_READ_URL: &str =
   "https://sheets.googleapis.com/v4/spreadsheets/spreadsheetId/values:batchGet";
 const SPREADSHEET_SHEETS_URL: &str = "https://sheets.googleapis.com/v4/spreadsheets/spreadsheetId";
@@ -144,6 +140,27 @@ impl OAuthService {
       None
     }
   }
+}
+
+// Wrapper around GET request to endpoint -- for external services
+pub async fn fetch_sheets_value(
+  sheet_url: String,
+  sheet_name: String,
+  range: Option<String>,
+) -> SheetsObject {
+  let client = reqwest::Client::new();
+  let mut req = client
+    .get("http://localhost:8088/get_sheets_value")
+    .query(&[("sheet_url", sheet_url), ("sheet_name", sheet_name)]);
+
+  // If no range argument provided, fetches all cells in entire sheet.
+  if let Some(range_str) = range.as_ref() {
+    req = req.query(&[("range", range_str.as_str())]);
+  }
+
+  let sheet = req.send().await.unwrap();
+
+  serde_json::from_str(&sheet.text().await.unwrap()).unwrap()
 }
 
 #[get("/get_sheets_value")]

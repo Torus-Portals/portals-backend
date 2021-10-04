@@ -30,7 +30,7 @@ use jsonwebtoken::DecodingKey;
 use once_cell::sync::OnceCell;
 use sqlx::postgres::PgPoolOptions;
 use std::sync::Arc;
-use crate::services::integration_service::{self, OAuthService};
+use crate::services::google_sheets_service::{self, OAuthService};
 
 #[get("/health")]
 async fn get_health() -> HttpResponse {
@@ -125,9 +125,9 @@ async fn main() -> std::io::Result<()> {
       .service(graphql_routes::get_graphql_dev_routes())
       .service(get_health)
       .service(get_info)
-      .service(integration_service::add_data_source)
-      .service(integration_service::exchange_token)
-      .service(integration_service::get_sheets_value)
+      .service(google_sheets_service::add_data_source)
+      .service(google_sheets_service::exchange_token)
+      .service(google_sheets_service::get_sheets_value)
   });
 
   let socket_address = format!("0.0.0.0:{}", config.tcp_port);
