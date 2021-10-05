@@ -10,11 +10,13 @@ use super::Mutation;
 use super::Query;
 
 use crate::graphql::context::GQLContext;
+use crate::graphql::schema::dimensions::portal_member_dimension::PortalMemberDimension;
 use crate::graphql::schema::user::{NewUser, User};
 use crate::services::db::portal_service::*;
 use crate::services::db::user_service::{
   create_user_with_new_org, get_user_by_email, user_exists_by_email,
 };
+use crate::services::db::dimension_service::{DBNewDimension, create_dimension};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Portal {
@@ -160,6 +162,8 @@ pub struct PortalParts {
   pub structures: Vec<Structure>,
 
   pub dimensions: Vec<Dimension>,
+
+  pub users: Vec<User>,
 }
 
 impl From<DBPortalParts> for PortalParts {
@@ -191,6 +195,7 @@ impl From<DBPortalParts> for PortalParts {
       portal_views,
       structures,
       dimensions,
+      users: vec![],
     }
   }
 }
@@ -267,7 +272,7 @@ impl Mutation {
   pub async fn invite_user_to_portal_impl(
     ctx: &GQLContext,
     portal_invite_params: PortalInviteParams,
-  ) -> FieldResult<PortalAndUsers> {
+  ) -> FieldResult<PortalParts> {
     let portal = get_portal(&ctx.pool, portal_invite_params.portal_id).await?;
 
     let exists = user_exists_by_email(&ctx.pool, &portal_invite_params.user_email).await?;
@@ -331,8 +336,20 @@ impl Mutation {
 
     let updated_portal = update_portal(&ctx.pool, &ctx.auth0_user_id, portal_update).await?;
 
-    Ok(PortalAndUsers {
+    let new_dim = DBNewDimension {
+      portal_id: updated_portal.id.clone(),
+      name: String::from("PortalMemberDimension"),
+      dimension_type: String::from("PortalMember"),
+      dimension_data: serde_json::to_value(PortalMemberDimension { user_id: user.id.clone() })?,
+    };
+
+    let dim = create_dimension(&ctx.pool, &ctx.auth0_user_id, new_dim).await?;
+
+    Ok(PortalParts {
       portal: updated_portal.into(),
+      portal_views: vec![],
+      structures: vec![],
+      dimensions: vec![dim.into()],
       users: vec![user.into()],
     })
   }

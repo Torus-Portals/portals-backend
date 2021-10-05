@@ -1,14 +1,27 @@
 use std::{collections::HashSet, str::FromStr};
 
-use crate::{graphql::schema::{block::{BlockTypes, NewBlock, UpdateBlock}, blocks::{
+use crate::{
+  graphql::schema::{
+    block::{BlockTypes, NewBlock, UpdateBlock},
+    blocks::{
       basic_table_block::BasicTableBlock,
       integration_block::{IntegrationBlock, NewIntegrationBlock},
       owner_text_block::OwnerTextBlock,
       vendor_text_block::VendorTextBlock,
-    }, cells::google_sheets_cell::GoogleSheetsCell, dimensions::{google_sheets_column_dimension::GoogleSheetsColumnDimension, google_sheets_row_dimension::GoogleSheetsRowDimension, owner_text_dimension::OwnerTextDimension}, integration::Integration}, services::db::{
+    },
+    cells::google_sheets_cell::GoogleSheetsCell,
+    dimensions::{
+      google_sheets_column_dimension::GoogleSheetsColumnDimension,
+      google_sheets_row_dimension::GoogleSheetsRowDimension,
+      owner_text_dimension::OwnerTextDimension,
+    },
+    integration::Integration,
+  },
+  services::db::{
     cell_service::create_cell, dimension_service::create_dimensions,
     integration_service::get_integration,
-  }};
+  },
+};
 
 use anyhow::Result;
 use chrono::{DateTime, Utc};
@@ -56,7 +69,9 @@ impl DBBlock {
   pub fn get_current_dimensions(&self) -> Result<HashSet<Uuid>> {
     let block_type = BlockTypes::from_str(&self.block_type)?;
 
-    let bd = self.block_data.clone();
+    let bd = self
+      .block_data
+      .clone();
 
     let current_dims = match block_type {
       BlockTypes::BasicTable => {
@@ -64,7 +79,16 @@ impl DBBlock {
 
         let mut dims: Vec<Uuid> = vec![];
 
-        dims.append(&mut block_data.rows);
+        let mut pm_dims: Vec<Uuid> = block_data
+          .rows
+          .iter()
+          .map(|r| {
+            r.portal_member_dimension
+              .clone()
+          })
+          .collect();
+
+        dims.append(&mut pm_dims);
         dims.append(&mut block_data.columns);
 
         dims
@@ -102,7 +126,9 @@ impl DBBlock {
       }
     };
 
-    let current_dims_set: HashSet<Uuid> = current_dims.into_iter().collect();
+    let current_dims_set: HashSet<Uuid> = current_dims
+      .into_iter()
+      .collect();
 
     Ok(current_dims_set)
   }
@@ -111,22 +137,47 @@ impl DBBlock {
     let block_type = BlockTypes::from_str(&self.block_type)
       .expect("Unable to convert db block block_type to BlockTypes enum");
 
-    let bd = self.block_data.clone();
+    let bd = self
+      .block_data
+      .clone();
 
     let was_updated = match block_type {
       BlockTypes::BasicTable => {
         let mut block_data: BasicTableBlock = serde_json::from_value(bd)?;
 
-        let dims_set: HashSet<Uuid> = dimensions.clone().into_iter().collect();
-        let rows_set: HashSet<Uuid> = block_data.rows.clone().into_iter().collect();
-        let columns_set: HashSet<Uuid> = block_data.columns.clone().into_iter().collect();
+        let dims_set: HashSet<Uuid> = dimensions
+          .clone()
+          .into_iter()
+          .collect();
+        let rows_set: HashSet<Uuid> = block_data
+          .rows
+          .clone()
+          .into_iter()
+          .map(|r| r.portal_member_dimension)
+          .collect();
+        let columns_set: HashSet<Uuid> = block_data
+          .columns
+          .clone()
+          .into_iter()
+          .collect();
 
-        let has_in_rows: Vec<&Uuid> = rows_set.intersection(&dims_set).collect();
-        let has_in_columns: Vec<&Uuid> = columns_set.intersection(&dims_set).collect();
+        let has_in_rows: Vec<&Uuid> = rows_set
+          .intersection(&dims_set)
+          .collect();
+        let has_in_columns: Vec<&Uuid> = columns_set
+          .intersection(&dims_set)
+          .collect();
 
         if has_in_rows.len() > 0 || has_in_columns.len() > 0 {
-          block_data.rows.retain(|r| !&dimensions.contains(&r));
-          block_data.columns.retain(|r| !&dimensions.contains(&r));
+          block_data
+            .rows
+            .iter()
+            .map(|r| &r.portal_member_dimension)
+            .collect::<Vec<&Uuid>>()
+            .retain(|r| !&dimensions.contains(r));
+          block_data
+            .columns
+            .retain(|r| !&dimensions.contains(&r));
 
           self.block_data = serde_json::to_value(block_data)?;
 
@@ -170,7 +221,10 @@ impl DBBlock {
 
         // TODO: Can IntegrationBlock be _updated_ to remove Integration?
         if let Some(_) = block_data.integration_id {
-          let dims_set: HashSet<Uuid> = dimensions.clone().into_iter().collect();
+          let dims_set: HashSet<Uuid> = dimensions
+            .clone()
+            .into_iter()
+            .collect();
 
           let has_in_rows = if let Some(row_dim_id) = block_data.row_dim {
             dims_set.contains(&row_dim_id)
@@ -231,7 +285,9 @@ pub struct DBNewBlock {
 impl From<NewBlock> for DBNewBlock {
   fn from(new_block: NewBlock) -> Self {
     DBNewBlock {
-      block_type: new_block.block_type.to_string(),
+      block_type: new_block
+        .block_type
+        .to_string(),
       portal_id: new_block.portal_id,
       portal_view_id: new_block.portal_view_id,
       egress: new_block.egress,
@@ -417,7 +473,10 @@ pub async fn clean_delete_block<'e>(
 
   let block = get_block(&mut tx, block_id).await?;
 
-  if block.egress.contains("owner") {
+  if block
+    .egress
+    .contains("owner")
+  {
     // Get all dimensions currently being used by the block that is to be destroyed
     let block_dims = block.get_current_dimensions()?;
 
@@ -497,7 +556,11 @@ pub async fn create_owner_text_block(
     portal_view_id,
     egress: String::from("owner"),
     block_data: serde_json::to_value(OwnerTextBlock {
-      content_dimension_id: Some(db_dimension.id.clone()),
+      content_dimension_id: Some(
+        db_dimension
+          .id
+          .clone(),
+      ),
     })?,
   };
 

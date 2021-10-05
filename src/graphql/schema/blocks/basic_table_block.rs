@@ -7,9 +7,25 @@ use crate::graphql::schema::block::{Block, BlockTypes, NewBlock};
 use crate::graphql::schema::Mutation;
 use crate::services::db::block_service::create_block;
 
+#[derive(GraphQLObject, Clone, Debug, Serialize, Deserialize)]
+pub struct BasicTableRow { 
+  #[serde(rename = "portalMemberDimension")]
+  pub portal_member_dimension: Uuid,
+  #[serde(rename = "rowIndex")]
+  pub row_index: i32,
+}
+
+#[derive(GraphQLInputObject, Clone, Debug, Serialize, Deserialize)]
+pub struct NewBasicTableRow { 
+  #[serde(rename = "portalMemberDimension")]
+  pub portal_member_dimension: Uuid,
+  #[serde(rename = "rowIndex")]
+  pub row_index: i32,
+}
+
 #[derive(GraphQLObject, Debug, Serialize, Deserialize)]
 pub struct BasicTableBlock {
-  pub rows: Vec<Uuid>,
+  pub rows: Vec<BasicTableRow>,
 
   pub columns: Vec<Uuid>,
 }
@@ -22,7 +38,7 @@ pub struct NewBasicTableBlock {
 
   pub egress: String,
 
-  pub rows: Vec<Uuid>,
+  pub rows: Vec<NewBasicTableRow>,
 
   pub columns: Vec<Uuid>,
 }
@@ -30,7 +46,10 @@ pub struct NewBasicTableBlock {
 impl From<NewBasicTableBlock> for NewBlock {
   fn from(new_basic_table_block: NewBasicTableBlock) -> Self {
     let block_data = BasicTableBlock {
-      rows: new_basic_table_block.rows,
+      rows: new_basic_table_block.rows.into_iter().map(|r| BasicTableRow {
+        portal_member_dimension: r.portal_member_dimension,
+        row_index: r.row_index
+    }).collect(),
       columns: new_basic_table_block.columns,
     };
 

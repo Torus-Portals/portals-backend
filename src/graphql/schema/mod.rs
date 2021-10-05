@@ -15,23 +15,21 @@ pub mod role;
 pub mod structure;
 pub mod user;
 
-use self::{block::{BlockParts, UpdateBlock}, blocks::{
-    basic_table_block::NewBasicTableBlock, owner_text_block::NewOwnerTextBlock,
-    vendor_text_block::NewVendorTextBlock,
-    integration_block::NewIntegrationBlock,
-  }, cell::UpdateCell, dimension::NewDimension, portal::{NewPortal, PortalAndUsers, PortalInviteParams, UpdatePortal}, structure::UpdateStructure, 
-  integration::{Integration, NewIntegration}};
-
 use super::context::GQLContext;
-use block::Block;
-use cell::Cell;
-use dimension::Dimension;
+use block::{Block, BlockParts, UpdateBlock};
+use blocks::{
+  basic_table_block::NewBasicTableBlock, integration_block::NewIntegrationBlock,
+  owner_text_block::NewOwnerTextBlock, vendor_text_block::NewVendorTextBlock,
+};
+use cell::{Cell, UpdateCell};
+use dimension::{Dimension, NewDimension};
 use org::{NewOrg, Org};
-use portal::{Portal, PortalParts};
+use portal::{Portal, PortalParts, NewPortal, PortalInviteParams, UpdatePortal};
 use portalview::{NewPortalView, PortalView, PortalViewParts};
 use role::{NewRole, Role};
-use structure::Structure;
+use structure::{Structure, UpdateStructure};
 use user::{NewUser, UpdateUser, User};
+use integration::{Integration, NewIntegration};
 
 pub type Schema = RootNode<'static, Query, Mutation, EmptySubscription<GQLContext>>;
 pub struct Query;
@@ -114,13 +112,13 @@ impl Query {
   async fn blocks(ctx: &GQLContext, portal_id: Uuid) -> FieldResult<Vec<Block>> {
     Query::blocks_impl(ctx, portal_id).await
   }
-  
+
   async fn integration_block_options(ctx: &GQLContext, block_id: Uuid) -> FieldResult<Integration> {
     Query::integration_block_options_impl(ctx, block_id).await
   }
 
   // Dimension
-  
+
   async fn dimension(ctx: &GQLContext, dimension_id: Uuid) -> FieldResult<Dimension> {
     Query::dimension_impl(ctx, dimension_id).await
   }
@@ -200,7 +198,10 @@ impl Mutation {
     Mutation::update_portal_impl(ctx, portal_update).await
   }
 
-  async fn invite_user_to_portal(ctx: &GQLContext, portal_invite_params: PortalInviteParams) -> FieldResult<PortalAndUsers> {
+  async fn invite_user_to_portal(
+    ctx: &GQLContext,
+    portal_invite_params: PortalInviteParams,
+  ) -> FieldResult<PortalParts> {
     Mutation::invite_user_to_portal_impl(ctx, portal_invite_params).await
   }
 
