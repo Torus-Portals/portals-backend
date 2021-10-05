@@ -31,12 +31,15 @@ pub enum GQLBlocks {
 #[derive(Debug, Serialize, Deserialize, GraphQLEnum, EnumString, Display)]
 pub enum BlockTypes {
   #[strum(serialize = "BasicTable")]
+  #[graphql(name = "BasicTable")]
   BasicTable,
 
   #[strum(serialize = "OwnerText")]
+  #[graphql(name = "OwnerText")]
   OwnerText,
 
   #[strum(serialize = "VendorText")]
+  #[graphql(name = "VendorText")]
   VendorText,
 }
 

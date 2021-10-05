@@ -68,7 +68,16 @@ impl DBBlock {
 
         let mut dims: Vec<Uuid> = vec![];
 
-        dims.append(&mut block_data.rows);
+        let mut pm_dims: Vec<Uuid> = block_data
+          .rows
+          .iter()
+          .map(|r| {
+            r.portal_member_dimension
+              .clone()
+          })
+          .collect();
+
+        dims.append(&mut pm_dims);
         dims.append(&mut block_data.columns);
 
         dims
@@ -118,6 +127,7 @@ impl DBBlock {
           .rows
           .clone()
           .into_iter()
+          .map(|r| r.portal_member_dimension)
           .collect();
         let columns_set: HashSet<Uuid> = block_data
           .columns
@@ -135,7 +145,10 @@ impl DBBlock {
         if has_in_rows.len() > 0 || has_in_columns.len() > 0 {
           block_data
             .rows
-            .retain(|r| !&dimensions.contains(&r));
+            .iter()
+            .map(|r| &r.portal_member_dimension)
+            .collect::<Vec<&Uuid>>()
+            .retain(|r| !&dimensions.contains(r));
           block_data
             .columns
             .retain(|r| !&dimensions.contains(&r));

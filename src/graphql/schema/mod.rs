@@ -17,7 +17,7 @@ pub mod user;
 use self::{block::{BlockParts, UpdateBlock}, blocks::{
     basic_table_block::NewBasicTableBlock, owner_text_block::NewOwnerTextBlock,
     vendor_text_block::NewVendorTextBlock,
-  }, cell::UpdateCell, dimension::NewDimension, portal::{NewPortal, PortalAndUsers, PortalInviteParams, UpdatePortal}, structure::UpdateStructure};
+  }, cell::UpdateCell, dimension::NewDimension, portal::{NewPortal, PortalInviteParams, UpdatePortal}, structure::UpdateStructure};
 
 use super::context::GQLContext;
 use block::Block;
@@ -179,7 +179,7 @@ impl Mutation {
     Mutation::update_portal_impl(ctx, portal_update).await
   }
 
-  async fn invite_user_to_portal(ctx: &GQLContext, portal_invite_params: PortalInviteParams) -> FieldResult<PortalAndUsers> {
+  async fn invite_user_to_portal(ctx: &GQLContext, portal_invite_params: PortalInviteParams) -> FieldResult<PortalParts> {
     Mutation::invite_user_to_portal_impl(ctx, portal_invite_params).await
   }
 
