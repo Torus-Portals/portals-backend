@@ -70,7 +70,7 @@ impl From<NewDimension> for DBNewDimension {
         let dim: PortalMemberDimension = serde_json::from_str(&new_dim.dimension_data)
           .expect("Unable to parse PortalMemberDimension data");
         serde_json::to_value(dim)
-          .expect("Unable to convert PortalMemeberDimension back to serde_json::Value")
+          .expect("Unable to convert PortalMemberDimension back to serde_json::Value")
       }
       DimensionTypes::OwnerText => {
         let dim: OwnerTextDimension = serde_json::from_str(&new_dim.dimension_data)
@@ -178,9 +178,9 @@ pub async fn create_dimensions<'e>(
         created_by,
         updated_by
       ) select * from unnest(
-        $3::UUID[], 
-        $4::TEXT[], 
-        $5::TEXT[], 
+        $3::UUID[],
+        $4::TEXT[],
+        $5::TEXT[],
         $6::JSONB[],
         array_fill((select id from _user), ARRAY[$2::INT]::INT[]),
         array_fill((select id from _user), ARRAY[$2::INT]::INT[])

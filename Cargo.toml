@@ -44,6 +44,7 @@ strum_macros = "0.21.1"
 time = "0.3.2"
 url = "2.2.2"
 uuid = {version = "0.8.2", features = ["serde", "v4"]}
+openssl-probe = "0.1.2"
 
 [build-dependencies]
 built = {version = "0.5.1", features = ["chrono", "git2"]}
