@@ -8,12 +8,15 @@ pub mod cells;
 pub mod dimension;
 pub mod dimensions;
 pub mod integration;
+pub mod integrations;
 pub mod org;
 pub mod portal;
 pub mod portalview;
 pub mod role;
 pub mod structure;
 pub mod user;
+
+use self::integrations::google_sheets::GoogleSheetsAuthorization;
 
 use super::context::GQLContext;
 use block::{Block, BlockParts, UpdateBlock};
@@ -30,6 +33,7 @@ use role::{NewRole, Role};
 use structure::{Structure, UpdateStructure};
 use user::{NewUser, UpdateUser, User};
 use integration::{Integration, NewIntegration};
+use integrations::google_sheets::GoogleSheetsRedirectURI;
 
 pub type Schema = RootNode<'static, Query, Mutation, EmptySubscription<GQLContext>>;
 pub struct Query;
@@ -155,6 +159,12 @@ impl Query {
 
   async fn integrations(ctx: &GQLContext, portal_id: Uuid) -> FieldResult<Vec<Integration>> {
     Query::integrations_impl(ctx, portal_id).await
+  }
+
+  // Specific Integrations
+
+  async fn google_sheets_redirect_uri() -> FieldResult<GoogleSheetsRedirectURI> {
+    Query::google_sheets_redirect_uri_impl().await
   }
 }
 
@@ -286,6 +296,8 @@ impl Mutation {
     Mutation::update_cell_impl(ctx, update_cell).await
   }
 
+  // Integration
+
   async fn create_integration(
     ctx: &GQLContext,
     new_integration: NewIntegration,
@@ -296,6 +308,12 @@ impl Mutation {
   // async fn delete_integration(ctx: &GQLContext, integration_id: Uuid) -> FieldResult<i32> {
   //   Mutation::delete_integration(ctx, integration_id).await
   // }
+
+  // Specific Integrations
+
+  async fn authorize_google_sheets(ctx: &GQLContext, auth: GoogleSheetsAuthorization) -> FieldResult<bool> {
+    Mutation::authorize_google_sheets_impl(ctx, auth).await
+  }
 }
 
 pub fn create_schema() -> Schema {

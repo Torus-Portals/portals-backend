@@ -19,57 +19,19 @@ mod middleware;
 mod services;
 mod state;
 mod utils;
+mod routes;
 
 use crate::graphql::{graphql_routes, schema as graphql_schema};
 use crate::services::auth0_service::Auth0Service;
 use crate::state::State;
 use actix_cors::Cors;
-use actix_web::{get, web, App, Error, HttpResponse, HttpServer};
+use actix_web::{web, App, HttpServer};
 use futures::lock::Mutex;
 use jsonwebtoken::DecodingKey;
-use once_cell::sync::OnceCell;
 use sqlx::postgres::PgPoolOptions;
 use std::sync::Arc;
-use crate::services::google_sheets_service::{self, OAuthService};
-
-#[get("/health")]
-async fn get_health() -> HttpResponse {
-  HttpResponse::Ok().body(String::from("Hello from the other side!"))
-}
-
-#[allow(dead_code)]
-mod info {
-  include!(concat!(env!("OUT_DIR"), "/built.rs"));
-}
-
-#[derive(Debug, Serialize)]
-struct Info<'a> {
-  app: &'a str,
-  version: &'a str,
-  target: &'a str,
-  profile: &'a str,
-  optimization_level: &'a str,
-  git_head_ref: Option<&'a str>,
-  git_commit_hash: Option<&'a str>,
-  build_time_utc: &'a str,
-}
-
-static INFO: OnceCell<Info> = OnceCell::new();
-
-#[get("/info")]
-async fn get_info() -> Result<HttpResponse, Error> {
-  let info = INFO.get_or_init(|| Info {
-    app: info::PKG_NAME,
-    version: info::PKG_VERSION,
-    target: info::TARGET,
-    profile: info::PROFILE,
-    optimization_level: info::OPT_LEVEL,
-    git_head_ref: info::GIT_HEAD_REF,
-    git_commit_hash: info::GIT_COMMIT_HASH,
-    build_time_utc: info::BUILT_TIME_UTC,
-  });
-  Ok(HttpResponse::Ok().json(info))
-}
+use crate::services::google_sheets_service::{OAuthService, GoogleSheetsService};
+use crate::routes::general_routes::{get_health, get_info};
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -90,6 +52,7 @@ async fn main() -> std::io::Result<()> {
   let state = State::new(pool.clone());
   let auth_service = Arc::new(Mutex::new(Auth0Service::new()));
   let oauth_service = Arc::new(Mutex::new(OAuthService::new()));
+  let google_sheets_service = Arc::new(Mutex::new(GoogleSheetsService::new()));
 
   let server = HttpServer::new(move || {
     let decoding_key = DecodingKey::from_secret(
@@ -113,6 +76,7 @@ async fn main() -> std::io::Result<()> {
       .app_data(web::Data::new(graphql_schema::create_schema()))
       .app_data(web::Data::new(auth_service.clone()))
       .app_data(web::Data::new(oauth_service.clone()))
+      .app_data(web::Data::new(google_sheets_service.clone()))
       .app_data(decoding_key)
       .wrap(cors)
       // <response status code> for <path> <remote/proxy ip address> in <seconds>s
@@ -121,9 +85,9 @@ async fn main() -> std::io::Result<()> {
       .service(graphql_routes::get_graphql_dev_routes())
       .service(get_health)
       .service(get_info)
-      .service(google_sheets_service::add_data_source)
-      .service(google_sheets_service::exchange_token)
-      .service(google_sheets_service::get_sheets_value)
+      // .service(google_sheets_service::add_data_source)
+      // .service(google_sheets_service::exchange_token)
+      // .service(google_sheets_service::get_sheets_value)
   });
 
   let socket_address = format!("0.0.0.0:{}", config.tcp_port);
