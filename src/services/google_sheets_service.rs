@@ -5,14 +5,6 @@ use actix_web::{get, web, HttpResponse};
 use anyhow;
 use chrono::Utc;
 use futures::lock::Mutex;
-use oauth2::basic::{BasicClient, BasicTokenResponse, BasicTokenType};
-use oauth2::reqwest::async_http_client;
-use oauth2::{
-  AccessToken, AsyncCodeTokenRequest, AsyncRefreshTokenRequest, AuthUrl, AuthorizationCode,
-  ClientId, ClientSecret, CsrfToken, EmptyExtraTokenFields, PkceCodeChallenge, PkceCodeVerifier,
-  RedirectUrl, RefreshToken, RequestTokenError, Scope, StandardTokenResponse, TokenResponse,
-  TokenUrl,
-};
 use reqwest;
 use serde::Deserialize;
 use serde_json::Value;
@@ -35,6 +27,23 @@ struct OAuthRequest {
 }
 
 #[derive(Deserialize)]
+struct OAuthTokenResponse {
+  access_token: String,
+  expires_in: i64,
+  refresh_token: String,
+  scope: String,
+  token_type: String,
+}
+
+#[derive(Deserialize)]
+struct OAuthRefreshTokenResponse {
+  access_token: String,
+  expires_in: i64,
+  scope: String,
+  token_type: String,
+}
+
+#[derive(Deserialize)]
 pub struct GoogleSheetsParams {
   sheet_url: String,
   sheet_name: Option<String>,
@@ -44,9 +53,8 @@ pub struct GoogleSheetsParams {
 
 #[derive(Clone, Debug)]
 pub struct OAuthService {
-  pub client: BasicClient,
-  access_token: Option<AccessToken>,
-  refresh_token: Option<RefreshToken>,
+  access_token: Option<String>,
+  refresh_token: Option<String>,
   access_token_expiration: i64,
   refresh_token_expiration: i64,
 }
@@ -68,22 +76,7 @@ pub struct SheetsObject {
 
 impl OAuthService {
   pub fn new() -> Self {
-    let oauth_config = &CONFIG.get().unwrap().oauth;
-    let client_id = ClientId::new(oauth_config.client_id.clone());
-    let client_secret = ClientSecret::new(oauth_config.client_secret.clone());
-    let auth_url =
-      AuthUrl::new(oauth_config.auth_url.clone()).expect("Error parsing OAuth authorization url.");
-    let token_url =
-      TokenUrl::new(oauth_config.token_url.clone()).expect("Error parsing OAuth token url.");
-    let auth_redirect_uri = RedirectUrl::new(oauth_config.auth_redirect_url.clone())
-      .expect("Error parsing OAuth redirect url.");
-    let client = BasicClient::new(client_id, Some(client_secret), auth_url, Some(token_url))
-      .set_redirect_url(
-        RedirectUrl::new(auth_redirect_uri.to_string()).expect("Invalid redirect URL."),
-      );
-
     OAuthService {
-      client,
       access_token: None,
       refresh_token: None,
       access_token_expiration: 0,
@@ -91,53 +84,69 @@ impl OAuthService {
     }
   }
 
-  async fn fetch_token(&mut self, code: AuthorizationCode) -> Result<AccessToken, anyhow::Error> {
-    let token = self
-      .client
-      .exchange_code(code)
-      .request_async(async_http_client)
-      .await
-      .unwrap();
+  async fn fetch_token(&mut self, code: String) -> Result<String, anyhow::Error> {
+    let oauth_config = &CONFIG.get().unwrap().oauth;
+    let client = reqwest::Client::new();
+    let form_params = [
+      ("code", code.as_str()),
+      ("client_id", oauth_config.client_id.as_str()),
+      ("client_secret", oauth_config.client_secret.as_str()),
+      ("grant_type", "authorization_code"),
+      ("redirect_uri", "http://localhost:8088/auth"),
+    ];
 
-    // TODO: more sensible default == 0? err on the side of caution
-    let access_expires_in = token
-      .expires_in()
-      .unwrap_or(Duration::new(3600, 0))
-      .as_secs() as i64;
-    self.access_token_expiration = Utc::now().timestamp() + access_expires_in;
-    self.access_token = Some(token.access_token().clone());
-    self.refresh_token = token.refresh_token().cloned();
+    let resp = client
+      .post(oauth_config.token_url.clone())
+      .header("Content-Type", "application/x-www-form-urlencoded")
+      .form(&form_params)
+      .send()
+      .await?;
 
-    Ok(self.access_token.clone().unwrap())
+    let token_resp = resp.json::<OAuthTokenResponse>().await?;
+
+    self.access_token_expiration = Utc::now().timestamp() + token_resp.expires_in;
+    self.access_token = Some(token_resp.access_token.clone());
+    self.refresh_token = Some(token_resp.refresh_token);
+
+    Ok(token_resp.access_token)
   }
 
   // Retrieves access token from client. Refreshes it with Google's server if necessary.
   // Note that this does not automatically fetch the access token if not present -- the authorization code is needed for that.
-  async fn get_token(&mut self) -> Option<AccessToken> {
-    if let Some(_) = self.access_token.as_ref() {
-      // Refresh token protocol. See: https://developers.google.com/identity/protocols/oauth2/web-server#offline
-      let now = Utc::now().timestamp();
-      if now >= self.access_token_expiration && self.refresh_token.is_some() {
-        println!("Access token expired -- refreshing");
-        let refresh_token = self.refresh_token.as_ref()?;
-        let new_token = self
-          .client
-          .exchange_refresh_token(refresh_token)
-          .request_async(async_http_client)
-          .await
-          .ok()?;
+  async fn get_token(&mut self) -> Result<String, anyhow::Error> {
+    // Refresh token protocol. See: https://developers.google.com/identity/protocols/oauth2/web-server#offline
+    let now = Utc::now().timestamp();
+    if self.access_token_expiration != 0 && now >= self.access_token_expiration {
+      println!("Access token expired -- attempting to refresh");
+      let oauth_config = &CONFIG.get().unwrap().oauth;
+      let refresh_token = self.refresh_token.as_deref().ok_or(anyhow::anyhow!(
+        "No refresh token found -- unable to exchange for new access token."
+      ))?;
+      let client = reqwest::Client::new();
 
-        let expires_in = new_token
-          .expires_in()
-          .unwrap_or(Duration::new(3600, 0))
-          .as_secs() as i64;
-        self.access_token = Some(new_token.access_token().clone());
-        self.access_token_expiration = now + expires_in;
-      }
+      let form_params = [
+        ("client_id", oauth_config.client_id.as_str()),
+        ("client_secret", oauth_config.client_secret.as_str()),
+        ("grant_type", "refresh_token"),
+        ("refresh_token", refresh_token),
+      ];
 
-      self.access_token.clone()
+      let resp = client
+        .post(oauth_config.token_url.clone())
+        .header("Content-Type", "application/x-www-form-urlencoded")
+        .form(&form_params)
+        .send()
+        .await?;
+
+      let refresh_token_resp = resp.json::<OAuthRefreshTokenResponse>().await?;
+      self.access_token = Some(refresh_token_resp.access_token.clone());
+      self.access_token_expiration = now + refresh_token_resp.expires_in;
+
+      Ok(refresh_token_resp.access_token)
     } else {
-      None
+      self.access_token.clone().ok_or(anyhow::anyhow!(
+        "No OAuth access token found. Proceeding to authorization."
+      ))
     }
   }
 }
@@ -188,7 +197,7 @@ pub async fn get_sheets_value(
 
   let resp = client
     .get(sheet_url)
-    .bearer_auth(token.secret())
+    .bearer_auth(token)
     .query(&[("ranges", range), ("majorDimension", "ROWS".to_string())])
     .send()
     .await
@@ -220,7 +229,7 @@ pub async fn get_sheets(
 
   let resp = client
     .get(sheet_url)
-    .bearer_auth(token.secret())
+    .bearer_auth(token)
     .send()
     .await
     .unwrap();
@@ -244,9 +253,8 @@ async fn exchange_token(
   params: web::Query<OAuthRequest>,
 ) -> HttpResponse {
   let mut oauth = data.lock().await;
-  let token = if let Some(auth_code) = params.code.as_ref() {
-    let code = AuthorizationCode::new(auth_code.clone());
-    oauth.fetch_token(code).await.unwrap()
+  let _token = if let Some(auth_code) = &params.code {
+    oauth.fetch_token(auth_code.to_owned()).await.unwrap()
   } else {
     oauth.get_token().await.unwrap()
   };
@@ -265,27 +273,25 @@ pub async fn add_data_source(data: web::Data<Arc<Mutex<OAuthService>>>) -> HttpR
   let mut oauth = data.lock().await;
   let oauth_config = &CONFIG.get().unwrap().oauth;
 
-  if let Some(_) = oauth.get_token().await {
-    HttpResponse::Found()
-      // TODO: handle this case more elegantly -- any way to retrieve redirect_uri directly from client?
+  match oauth.get_token().await {
+    Ok(_token) => HttpResponse::Found()
       .append_header((
         reqwest::header::LOCATION,
         oauth_config.auth_redirect_url.clone(),
       ))
-      .finish()
-  } else {
-    // let (pkce_challenge, pkce_verifier) = PkceCodeChallenge::new_random_sha256();
-    let (authorize_url, _csrf_token) = oauth
-      .client
-      .authorize_url(CsrfToken::new_random)
-      //.set_pkce_challenge(pkce_challenge)
-      .add_scope(Scope::new(oauth_config.scope.clone()))
-      // For Google to return a refresh token
-      .add_extra_param("access_type", "offline")
-      .url();
+      .finish(),
+    Err(_) => {
+      let authorize_url = format!(
+        "{}?client_id={}&redirect_uri={}&response_type=code&scope={}&access_type=offline",
+        oauth_config.auth_url,
+        oauth_config.client_id,
+        oauth_config.auth_redirect_url,
+        oauth_config.scope,
+      );
 
-    HttpResponse::Found()
-      .append_header((reqwest::header::LOCATION, authorize_url.to_string()))
-      .finish()
+      HttpResponse::Found()
+        .append_header((reqwest::header::LOCATION, authorize_url))
+        .finish()
+    }
   }
 }
