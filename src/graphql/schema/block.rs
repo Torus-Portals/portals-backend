@@ -11,6 +11,7 @@ use super::blocks::basic_table_block::BasicTableBlock;
 use super::blocks::empty_block::EmptyBlock;
 use super::blocks::owner_text_block::OwnerTextBlock;
 use super::blocks::vendor_text_block::VendorTextBlock;
+use super::blocks::integration_block::IntegrationBlock;
 use super::cell::Cell;
 use super::dimension::Dimension;
 use super::Mutation;
@@ -21,10 +22,12 @@ use crate::services::db::block_service::DBBlockParts;
 use crate::services::db::block_service::{clean_delete_block, delete_blocks, get_block, get_blocks, update_block};
 
 #[derive(Debug, GraphQLUnion, Serialize, Deserialize)]
+#[graphql(Context = GQLContext)]
 pub enum GQLBlocks {
   BasicTable(BasicTableBlock),
   OwnerText(OwnerTextBlock),
   VendorText(VendorTextBlock),
+  Integration(IntegrationBlock),
   Empty(EmptyBlock),
 }
 
@@ -41,9 +44,13 @@ pub enum BlockTypes {
   #[strum(serialize = "VendorText")]
   #[graphql(name = "VendorText")]
   VendorText,
+  
+  #[strum(serialize = "Integration")]
+  Integration,
 }
 
 #[derive(GraphQLObject, Debug, Serialize, Deserialize)]
+#[graphql(Context = GQLContext)]
 pub struct Block {
   pub id: Uuid,
 
@@ -99,6 +106,10 @@ impl From<DBBlock> for Block {
           serde_json::from_value(db_block.block_data).expect("not VendorText??");
         GQLBlocks::VendorText(t)
       }
+      "Integration" => {
+        let b: IntegrationBlock = serde_json::from_value(db_block.block_data).expect("Unable to deserialize DBBlock into IntegrationBlock.");
+        GQLBlocks::Integration(b)
+      }
       &_ => GQLBlocks::Empty(EmptyBlock {
         block_type: String::from("nothing"),
       }),
@@ -149,6 +160,7 @@ pub struct UpdateBlock {
 }
 
 #[derive(GraphQLObject, Debug, Serialize, Deserialize)]
+#[graphql(Context = GQLContext)]
 pub struct BlockParts {
   blocks: Vec<Block>,
   dimensions: Vec<Dimension>,
