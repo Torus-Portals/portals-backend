@@ -163,8 +163,8 @@ impl Query {
 
   // Specific Integrations
 
-  async fn google_sheets_redirect_uri() -> FieldResult<GoogleSheetsRedirectURI> {
-    Query::google_sheets_redirect_uri_impl().await
+  async fn google_sheets_redirect_uri(state: String) -> FieldResult<GoogleSheetsRedirectURI> {
+    Query::google_sheets_redirect_uri_impl(state).await
   }
 }
 

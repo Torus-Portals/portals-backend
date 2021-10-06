@@ -187,7 +187,9 @@ impl GoogleSheetsService {
       .send()
       .await?;
 
-    let token_resp = resp.json::<OAuthTokenResponse>().await?;
+    let resp_string = resp.text().await?;
+    dbg!(&resp_string);
+    // let token_resp = resp.json::<OAuthTokenResponse>().await?;
 
     // TODO: store the token_resp locally so that it may be used again. 
     //       need to figure out what the best way to look up the token will be.
@@ -197,7 +199,7 @@ impl GoogleSheetsService {
     // self.access_token = Some(token_resp.access_token.clone());
     // self.refresh_token = Some(token_resp.refresh_token);
 
-    Ok(token_resp.access_token)
+    Ok(resp_string)
   }
 }
 

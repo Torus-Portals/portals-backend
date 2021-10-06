@@ -15,11 +15,11 @@ pub struct GoogleSheetsAuthorization {
 }
 
 impl Query {
-  pub async fn google_sheets_redirect_uri_impl() -> FieldResult<GoogleSheetsRedirectURI> {
+  pub async fn google_sheets_redirect_uri_impl(state: String) -> FieldResult<GoogleSheetsRedirectURI> {
     let config = config::server_config();
 
     let redirect_uri = format!(
-      "{}?client_id={}&redirect_uri={}&response_type=code&scope={}&access_type=offline",
+      "{}?client_id={}&redirect_uri={}&response_type=code&scope={}&access_type=offline&state={}",
       config
         .oauth
         .auth_url,
@@ -30,6 +30,7 @@ impl Query {
         .oauth
         .auth_redirect_url,
       config.oauth.scope,
+      state
     );
 
     Ok(GoogleSheetsRedirectURI { redirect_uri })
