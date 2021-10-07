@@ -16,6 +16,10 @@ pub mod role;
 pub mod structure;
 pub mod user;
 
+use crate::services::google_sheets_service::{
+  GoogleSheetsSheetDimensions, GoogleSheetsSpreadsheet,
+};
+
 use self::integrations::google_sheets::GoogleSheetsAuthorization;
 
 use super::context::GQLContext;
@@ -26,14 +30,14 @@ use blocks::{
 };
 use cell::{Cell, NewCell, UpdateCell};
 use dimension::{Dimension, NewDimension};
+use integration::{Integration, NewIntegration};
+use integrations::google_sheets::GoogleSheetsRedirectURI;
 use org::{NewOrg, Org};
-use portal::{Portal, PortalParts, NewPortal, PortalInviteParams, UpdatePortal};
+use portal::{NewPortal, Portal, PortalInviteParams, PortalParts, UpdatePortal};
 use portalview::{NewPortalView, PortalView, PortalViewParts};
 use role::{NewRole, Role};
 use structure::{Structure, UpdateStructure};
 use user::{NewUser, UpdateUser, User};
-use integration::{Integration, NewIntegration};
-use integrations::google_sheets::GoogleSheetsRedirectURI;
 
 pub type Schema = RootNode<'static, Query, Mutation, EmptySubscription<GQLContext>>;
 pub struct Query;
@@ -165,6 +169,54 @@ impl Query {
 
   async fn google_sheets_redirect_uri(state: String) -> FieldResult<GoogleSheetsRedirectURI> {
     Query::google_sheets_redirect_uri_impl(state).await
+  }
+
+  async fn google_sheets_list_spreadsheets(
+    ctx: &GQLContext,
+    integration_id: Uuid,
+  ) -> FieldResult<Vec<GoogleSheetsSpreadsheet>> {
+    Query::google_sheets_list_spreadsheets_impl(ctx, integration_id).await
+  }
+
+  async fn google_sheets_list_spreadsheets_sheets_names(
+    ctx: &GQLContext,
+    integration_id: Uuid,
+    spreadsheet_id: String,
+  ) -> FieldResult<Vec<String>> {
+    Query::google_sheets_list_spreadsheets_sheets_names_impl(ctx, integration_id, spreadsheet_id)
+      .await
+  }
+
+  async fn google_sheets_fetch_sheet_dimensions(
+    ctx: &GQLContext,
+    integration_id: Uuid,
+    spreadsheet_id: String,
+    sheet_name: String,
+  ) -> FieldResult<GoogleSheetsSheetDimensions> {
+    Query::google_sheets_fetch_sheet_dimensions_impl(
+      ctx,
+      integration_id,
+      spreadsheet_id,
+      sheet_name,
+    )
+    .await
+  }
+
+  async fn google_sheets_fetch_sheet_value(
+    ctx: &GQLContext,
+    integration_id: Uuid,
+    spreadsheet_id: String,
+    sheet_name: String,
+    range: String,
+  ) -> FieldResult<String> {
+    Query::google_sheets_fetch_sheet_values_impl(
+      ctx,
+      integration_id,
+      spreadsheet_id,
+      sheet_name,
+      range,
+    )
+    .await
   }
 }
 

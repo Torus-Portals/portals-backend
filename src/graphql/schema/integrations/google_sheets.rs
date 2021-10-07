@@ -1,11 +1,12 @@
 use juniper::{FieldResult, GraphQLInputObject, GraphQLObject};
 use uuid::Uuid;
 
-use crate::graphql::context::GQLContext;
 use crate::config;
+use crate::graphql::context::GQLContext;
 use crate::graphql::schema::integration::{IntegrationTypes, NewIntegration};
-use crate::graphql::schema::{Query, Mutation};
+use crate::graphql::schema::{Mutation, Query};
 use crate::services::db::integration_service::create_integration;
+use crate::services::google_sheets_service::{GoogleSheetsSheetDimensions, GoogleSheetsSpreadsheet, GoogleSheetsToken};
 
 #[derive(GraphQLObject, Debug, Serialize, Deserialize)]
 pub struct GoogleSheetsRedirectURI {
@@ -22,7 +23,7 @@ impl Query {
     let config = config::server_config();
 
     let redirect_uri = format!(
-      "{}?client_id={}&redirect_uri={}&response_type=code&scope={}&access_type=offline&state={}",
+      "{}?client_id={}&redirect_uri={}&response_type=code&scope={}+{}&prompt=consent&access_type=offline&state={}",
       config
         .oauth
         .auth_url,
@@ -32,11 +33,59 @@ impl Query {
       config
         .oauth
         .auth_redirect_url,
-      config.oauth.scope,
+      config.oauth.sheets_scope,
+      config.oauth.drive_scope,
       state
     );
 
     Ok(GoogleSheetsRedirectURI { redirect_uri })
+  }
+
+  pub async fn google_sheets_list_spreadsheets_impl(
+    ctx: &GQLContext,
+    integration_id: Uuid,
+  ) -> FieldResult<Vec<GoogleSheetsSpreadsheet>> {
+    let gs = ctx.google_sheets.lock().await;
+
+    Ok(gs.list_spreadsheets(integration_id).await?)
+  }
+
+  pub async fn google_sheets_list_spreadsheets_sheets_names_impl(
+    ctx: &GQLContext,
+    integration_id: Uuid,
+    spreadsheet_id: String,
+  ) -> FieldResult<Vec<String>> {
+    let gs = ctx.google_sheets.lock().await;
+
+    Ok(
+      gs.list_spreadsheet_sheets_names(integration_id, spreadsheet_id)
+        .await?,
+    )
+  }
+
+  pub async fn google_sheets_fetch_sheet_dimensions_impl(
+    ctx: &GQLContext,
+    integration_id: Uuid,
+    spreadsheet_id: String,
+    sheet_name: String,
+  ) -> FieldResult<GoogleSheetsSheetDimensions> {
+    let gs = ctx.google_sheets.lock().await;
+
+    Ok(gs.fetch_sheet_dimensions(integration_id, spreadsheet_id, sheet_name).await?)
+  }
+  
+  // Needed? Or should only be handled by googlesheetscell (tho not likely as a embedded resolver)
+  pub async fn google_sheets_fetch_sheet_values_impl(
+    ctx: &GQLContext,
+    integration_id: Uuid,
+    spreadsheet_id: String,
+    sheet_name: String,
+    range: String,
+  ) -> FieldResult<String> {
+    let gs = ctx.google_sheets.lock().await;
+    let sheet_range = format!("{}!{}", sheet_name, range);
+
+    Ok(gs.fetch_sheet_value(integration_id, spreadsheet_id, sheet_range).await?)
   }
 }
 
@@ -62,7 +111,7 @@ impl Mutation {
       ctx.auth0_user_id.as_str(),
       new_integration.into()
     ).await?;
-    
+
     Ok(gs.store_token(integration.id, gsheets_token).await?)
   }
 }

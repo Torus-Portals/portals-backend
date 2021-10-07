@@ -35,7 +35,8 @@ pub struct OAuth {
   pub auth_url: String,
   pub token_url: String,
   pub auth_redirect_url: String,
-  pub scope: String,
+  pub drive_scope: String,
+  pub sheets_scope: String,
 }
 
 fn init() -> Config {

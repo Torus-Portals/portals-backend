@@ -2,19 +2,21 @@ use std::time::Duration;
 use std::{collections::HashMap, sync::Arc};
 
 use actix_web::{get, web, HttpResponse};
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use chrono::Utc;
 use futures::lock::Mutex;
+use juniper::GraphQLObject;
 use reqwest;
 use serde::Deserialize;
 use serde_json::Value;
 use uuid::Uuid;
 
-use crate::config::CONFIG;
+use crate::config::{self, CONFIG};
 
 const SHEETS_READ_URL: &str =
   "https://sheets.googleapis.com/v4/spreadsheets/spreadsheetId/values:batchGet";
 const SPREADSHEET_SHEETS_URL: &str = "https://sheets.googleapis.com/v4/spreadsheets/spreadsheetId";
+const DRIVE_FILES_URL: &str = "https://www.googleapis.com/drive/v3/files";
 
 fn get_spreadsheet_id(sheet_url: &str) -> &str {
   let mut split_iter = sheet_url.split("/").skip(5);
@@ -159,6 +161,18 @@ pub struct GoogleSheetsToken {
   expires_in: i64,
 }
 
+#[derive(GraphQLObject, Debug, Deserialize)]
+pub struct GoogleSheetsSpreadsheet {
+  id: String,
+  name: String,
+}
+
+#[derive(GraphQLObject, Debug, Deserialize)]
+pub struct GoogleSheetsSheetDimensions {
+  row_dimensions: Vec<String>,
+  col_dimensions: Vec<String>,
+}
+
 pub struct GoogleSheetsService {
   pub tokens: HashMap<Uuid, GoogleSheetsToken>,
 }
@@ -218,6 +232,137 @@ impl GoogleSheetsService {
     gsheets_token: GoogleSheetsToken,
   ) -> Result<bool> {
     Ok(self.tokens.insert(integration_id, gsheets_token).is_none())
+  }
+
+  pub async fn get_token(&self, integration_id: Uuid) -> Result<&GoogleSheetsToken> {
+    self.tokens.get(&integration_id).ok_or(anyhow!(format!(
+      "No access token associated with this integration: {}",
+      integration_id
+    )))
+  }
+
+  pub async fn list_spreadsheets(
+    &self,
+    integration_id: Uuid,
+  ) -> Result<Vec<GoogleSheetsSpreadsheet>> {
+    let client = reqwest::Client::new();
+
+    let token = self.get_token(integration_id).await?;
+    let resp = client
+      .get(DRIVE_FILES_URL)
+      .bearer_auth(token.access_token.clone())
+      .query(&[("q", "mimeType='application/vnd.google-apps.spreadsheet'")])
+      .send()
+      .await?;
+
+    let resp_string = resp.text().await?;
+    let resp_value: Value = serde_json::from_str(&resp_string)?;
+    let resp_files = resp_value["files"]
+      .as_array()
+      .cloned()
+      .unwrap_or_else(|| Vec::new());
+    let spreadsheet_names: Vec<String> = resp_files
+      .iter()
+      .map(|value| value["name"].as_str().unwrap_or("").to_string())
+      .collect();
+    let spreadsheet_ids: Vec<String> = resp_files
+      .iter()
+      .map(|value| value["id"].as_str().unwrap_or("").to_string())
+      .collect();
+
+    Ok(
+      spreadsheet_names
+        .into_iter()
+        .zip(spreadsheet_ids.into_iter())
+        .map(|(name, id)| GoogleSheetsSpreadsheet { name, id })
+        .collect(),
+    )
+  }
+
+  pub async fn list_spreadsheet_sheets_names(
+    &self,
+    integration_id: Uuid,
+    spreadsheet_id: String,
+  ) -> Result<Vec<String>> {
+    let client = reqwest::Client::new();
+
+    let token = self.get_token(integration_id).await?;
+    let resp = client
+      .get(SPREADSHEET_SHEETS_URL.replace("spreadsheetId", spreadsheet_id.as_str()))
+      .bearer_auth(token.access_token.clone())
+      .send()
+      .await?;
+
+    let resp_string = resp.text().await?;
+    let spreadsheet: Value = serde_json::from_str(&resp_string)?;
+    let sheet_names: Vec<String> = spreadsheet["sheets"]
+      .as_array()
+      .unwrap_or(&Vec::new())
+      .into_iter()
+      .map(|sheet| {
+        sheet["properties"]["title"]
+          .as_str()
+          .unwrap_or("")
+          .to_string()
+      })
+      .collect();
+
+    Ok(sheet_names)
+  }
+
+  pub async fn fetch_sheet_dimensions(
+    &self,
+    integration_id: Uuid,
+    spreadsheet_id: String,
+    sheet_name: String,
+  ) -> Result<GoogleSheetsSheetDimensions> {
+    let client = reqwest::Client::new();
+
+    let token = self.get_token(integration_id).await?;
+    let resp = client
+      .get(SHEETS_READ_URL.replace("spreadsheetId", spreadsheet_id.as_str()))
+      .bearer_auth(token.access_token.clone())
+      .query(&[("ranges", sheet_name)])
+      .send()
+      .await?;
+
+    let resp_string = resp.text().await?;
+    let sheet: SheetsObject = serde_json::from_str(&resp_string)?;
+
+    let row_dimensions: Vec<String> = sheet.value_ranges[0]
+      .values
+      .iter()
+      .skip(1)
+      .map(|row| row[0].clone())
+      .collect();
+    let col_dimensions: Vec<String> = sheet.value_ranges[0].values[0].clone();
+
+    Ok(GoogleSheetsSheetDimensions {
+      row_dimensions,
+      col_dimensions,
+    })
+  }
+
+  pub async fn fetch_sheet_value(
+    &self,
+    integration_id: Uuid,
+    spreadsheet_id: String,
+    sheet_range: String,
+  ) -> Result<String> {
+    let client = reqwest::Client::new();
+
+    let token = self.get_token(integration_id).await?;
+    let resp = client
+      .get(SHEETS_READ_URL.replace("spreadsheetId", spreadsheet_id.as_str()))
+      .bearer_auth(token.access_token.clone())
+      .query(&[("ranges", sheet_range)])
+      .send()
+      .await?;
+
+    let resp_string = resp.text().await?;
+    let sheet: SheetsObject = serde_json::from_str(&resp_string)?;
+
+    Ok(sheet.value_ranges[0].values[0][0].clone())
   }
 }
 
