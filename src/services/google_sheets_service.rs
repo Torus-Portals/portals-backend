@@ -1,5 +1,5 @@
-use std::sync::Arc;
 use std::time::Duration;
+use std::{collections::HashMap, sync::Arc};
 
 use actix_web::{get, web, HttpResponse};
 use anyhow::Result;
@@ -8,6 +8,7 @@ use futures::lock::Mutex;
 use reqwest;
 use serde::Deserialize;
 use serde_json::Value;
+use uuid::Uuid;
 
 use crate::config::CONFIG;
 
@@ -151,25 +152,32 @@ impl OAuthService {
   }
 }
 
+#[derive(Debug, Deserialize)]
+pub struct GoogleSheetsToken {
+  access_token: String,
+  refresh_token: String,
+  expires_in: i64,
+}
+
 pub struct GoogleSheetsService {
-  pub codes: Vec<String>,
+  pub tokens: HashMap<Uuid, GoogleSheetsToken>,
 }
 
 impl GoogleSheetsService {
   pub fn new() -> Self {
     GoogleSheetsService {
-      codes: vec![],
+      tokens: HashMap::new(),
     }
   }
 
   // pub fn exchange_code(&mut self, code: &str) -> Result<bool> {
-  //   // 
+  //   //
   //   self.codes.push(code.to_owned());
 
   //   Ok(true)
   // }
 
-  pub async fn exchange_code(&mut self, code: String) -> Result<String> {
+  pub async fn exchange_code(&self, code: String) -> Result<GoogleSheetsToken> {
     let oauth_config = &CONFIG.get().unwrap().oauth;
     let client = reqwest::Client::new();
     let form_params = [
@@ -187,19 +195,29 @@ impl GoogleSheetsService {
       .send()
       .await?;
 
-    let resp_string = resp.text().await?;
-    dbg!(&resp_string);
-    // let token_resp = resp.json::<OAuthTokenResponse>().await?;
-
-    // TODO: store the token_resp locally so that it may be used again. 
+    // let resp_string = resp.text().await?;
+    // dbg!(&resp_string);
+    // TODO: store the token_resp locally so that it may be used again.
     //       need to figure out what the best way to look up the token will be.
     //       Maybe the portal id? Maybe this will be tied to an instance of an integration?
+    let token_resp = resp.json::<OAuthTokenResponse>().await?;
+    let gsheets_token = GoogleSheetsToken {
+      access_token: token_resp.access_token,
+      refresh_token: token_resp.refresh_token,
+      expires_in: token_resp.expires_in,
+    };
 
-    // self.access_token_expiration = Utc::now().timestamp() + token_resp.expires_in;
-    // self.access_token = Some(token_resp.access_token.clone());
-    // self.refresh_token = Some(token_resp.refresh_token);
+    dbg!(&gsheets_token);
 
-    Ok(resp_string)
+    Ok(gsheets_token)
+  }
+
+  pub async fn store_token(
+    &mut self,
+    integration_id: Uuid,
+    gsheets_token: GoogleSheetsToken,
+  ) -> Result<bool> {
+    Ok(self.tokens.insert(integration_id, gsheets_token).is_none())
   }
 }
 

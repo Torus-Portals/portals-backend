@@ -319,8 +319,12 @@ impl Mutation {
 
   // Specific Integrations
 
-  async fn authorize_google_sheets(ctx: &GQLContext, auth: GoogleSheetsAuthorization) -> FieldResult<bool> {
-    Mutation::authorize_google_sheets_impl(ctx, auth).await
+  async fn authorize_google_sheets(
+    ctx: &GQLContext,
+    portal_id: Uuid,
+    auth: GoogleSheetsAuthorization,
+  ) -> FieldResult<bool> {
+    Mutation::authorize_google_sheets_impl(ctx, portal_id, auth).await
   }
 }
 
