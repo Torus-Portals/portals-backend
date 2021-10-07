@@ -12,7 +12,7 @@ use super::cells::empty_cell::EmptyCell;
 use super::cells::google_sheets_cell::GoogleSheetsCell;
 use super::cells::owner_text_cell::OwnerTextCell;
 use super::dimension::Dimension;
-use super::integration::{Integration, IntegrationData};
+use super::integration::Integration;
 use super::Mutation;
 use super::Query;
 

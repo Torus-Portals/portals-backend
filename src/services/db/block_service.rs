@@ -644,15 +644,15 @@ pub async fn create_integration_block(
     integration_id: new_integration_block.integration_id,
     row_dimension: db_dimensions[0].id,
     col_dimension: db_dimensions[1].id,
-    value: integration
-      .fetch_value(
-        db_dimensions
-          .iter()
-          .map(|db_dim| db_dim.name.clone())
-          .collect(),
-      )
-      .await
-      .unwrap(),
+    // value: integration
+    //   .fetch_value(
+    //     db_dimensions
+    //       .iter()
+    //       .map(|db_dim| db_dim.name.clone())
+    //       .collect(),
+    //   )
+    //   .await
+    //   .unwrap(),
   };
 
   let new_cell = DBNewCell {

@@ -36,10 +36,9 @@ pub struct DBNewIntegration {
   pub name: String,
 
   pub integration_type: String,
-
   // TODO: replace with json string to insert into Postgres jsonb format
   // JSON response from API call
-  pub integration_data: serde_json::Value,
+  // pub integration_data: serde_json::Value,
 }
 
 impl From<NewIntegration> for DBNewIntegration {
@@ -48,8 +47,6 @@ impl From<NewIntegration> for DBNewIntegration {
       portal_id: new_integration.portal_id,
       name: new_integration.name,
       integration_type: new_integration.integration_type.to_string(),
-      integration_data: serde_json::to_value(new_integration.integration_data)
-        .expect("Unable to serialize input integration_data into valid JSON format"),
     }
   }
 }
@@ -91,15 +88,14 @@ pub async fn create_integration<'e>(
     DBIntegration,
     r#"
     with _user as (select * from users where auth0id = $1)
-    insert into integrations (name, portal_id, integration_type, integration_data, created_by, updated_by)
-    values ($2, $3, $4, $5, (select id from _user), (select id from _user))
+    insert into integrations (name, portal_id, integration_type, created_by, updated_by)
+    values ($2, $3, $4, (select id from _user), (select id from _user))
     returning *;
     "#,
     auth0_user_id,
     new_integration.name,
     new_integration.portal_id,
     new_integration.integration_type,
-    new_integration.integration_data,
   )
   .fetch_one(pool)
   .await

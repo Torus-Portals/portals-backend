@@ -10,5 +10,5 @@ pub struct GoogleSheetsCell {
 
   pub col_dimension: Uuid,
 
-  pub value: String,
+  // pub value: String,
 }
