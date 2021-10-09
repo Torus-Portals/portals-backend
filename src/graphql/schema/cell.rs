@@ -18,7 +18,7 @@ use super::Query;
 
 use crate::graphql::context::GQLContext;
 use crate::services::db::cell_service::{
-  get_cell, get_cells_with_all_dimensions, get_cells_with_any_dimensions, update_cell, DBCell,
+  get_cell, get_cells_with_all_dimensions, get_cells_with_any_dimensions, create_cell, update_cell, DBCell,
 };
 use crate::services::db::dimension_service::get_dimension;
 use crate::services::db::integration_service::get_integration;
@@ -33,9 +33,18 @@ pub enum GQLCells {
 }
 
 #[derive(Debug, Serialize, Deserialize, GraphQLEnum, EnumString, Display)]
+
 pub enum CellTypes {
+  #[strum(serialize = "BasicText")]
+  #[graphql(name = "BasicText")]
   BasicText,
+
+  #[strum(serialize = "OwnerText")]
+  #[graphql(name = "OwnerText")]
   OwnerText,
+
+  #[strum(serialize = "GoogleSheets")]
+  #[graphql(name = "GoogleSheets")]
   GoogleSheets,
 }
 
@@ -110,6 +119,17 @@ impl From<DBCell> for Cell {
 }
 
 #[derive(GraphQLInputObject, Debug, Serialize, Deserialize)]
+pub struct NewCell {
+  pub portal_id: Uuid,
+
+  pub dimensions: Vec<Uuid>,
+
+  pub cell_type: CellTypes,
+
+  pub cell_data: String,
+}
+
+#[derive(GraphQLInputObject, Debug, Serialize, Deserialize)]
 pub struct UpdateCell {
   pub id: Uuid,
 
@@ -163,6 +183,13 @@ impl Query {
 }
 
 impl Mutation {
+  pub async fn create_cell_impl(ctx: &GQLContext, new_cell: NewCell) -> FieldResult<Cell> {
+    create_cell(&ctx.pool, &ctx.auth0_user_id, new_cell.into())
+    .await
+    .map(|db_cell| db_cell.into())
+    .map_err(FieldError::from)
+  }
+
   pub async fn update_cell_impl(ctx: &GQLContext, updated_cell: UpdateCell) -> FieldResult<Cell> {
     update_cell(&ctx.pool, &ctx.auth0_user_id, updated_cell.into())
       .await

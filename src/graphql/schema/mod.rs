@@ -1,4 +1,4 @@
-use juniper::{graphql_object, EmptySubscription, FieldResult, RootNode};
+use juniper::{EmptySubscription, FieldResult, RootNode, graphql_object};
 use uuid::Uuid;
 
 pub mod block;
@@ -19,12 +19,12 @@ pub mod user;
 use self::integrations::google_sheets::GoogleSheetsAuthorization;
 
 use super::context::GQLContext;
-use block::{Block, BlockParts, UpdateBlock};
+use block::{Block, NewBlock, BlockParts, UpdateBlock};
 use blocks::{
   basic_table_block::NewBasicTableBlock, integration_block::NewIntegrationBlock,
   owner_text_block::NewOwnerTextBlock, vendor_text_block::NewVendorTextBlock,
 };
-use cell::{Cell, UpdateCell};
+use cell::{Cell, NewCell, UpdateCell};
 use dimension::{Dimension, NewDimension};
 use org::{NewOrg, Org};
 use portal::{Portal, PortalParts, NewPortal, PortalInviteParams, UpdatePortal};
@@ -236,10 +236,9 @@ impl Mutation {
 
   // Block
 
-  // Not using for the time being.
-  // async fn create_block(ctx: &GQLContext, new_block: NewBlock) -> FieldResult<Block> {
-  //   Mutation::create_block(ctx, new_block).await
-  // }
+  async fn create_block(ctx: &GQLContext, new_block: NewBlock) -> FieldResult<Block> {
+    Mutation::create_block(ctx, new_block).await
+  }
 
   async fn update_block(ctx: &GQLContext, update_block: UpdateBlock) -> FieldResult<Block> {
     Mutation::update_block_impl(ctx, update_block).await
@@ -253,6 +252,7 @@ impl Mutation {
     Mutation::delete_blocks(ctx, block_ids).await
   }
 
+  // TODO: Deprecated these, and only use the create_block mutation
   async fn create_basic_table(
     ctx: &GQLContext,
     new_basic_table_block: NewBasicTableBlock,
@@ -283,6 +283,10 @@ impl Mutation {
 
   // Dimension
 
+  async fn create_dimension(ctx: &GQLContext, new_dimension: NewDimension) -> FieldResult<Dimension> {
+    Mutation::create_dimension_impl(ctx, new_dimension).await
+  }
+
   async fn create_dimensions(
     ctx: &GQLContext,
     new_dimensions: Vec<NewDimension>,
@@ -291,6 +295,10 @@ impl Mutation {
   }
 
   // Cell
+
+  async fn create_cell(ctx: &GQLContext, new_cell: NewCell) -> FieldResult<Cell> {
+    Mutation::create_cell_impl(ctx, new_cell).await
+  }
 
   async fn update_cell(ctx: &GQLContext, update_cell: UpdateCell) -> FieldResult<Cell> {
     Mutation::update_cell_impl(ctx, update_cell).await

@@ -1,4 +1,6 @@
-use crate::services::db::dimension_service::{DBNewDimension, create_dimensions, get_dimension, get_dimensions};
+use crate::services::db::dimension_service::{
+  create_dimension, create_dimensions, get_dimension, get_dimensions, DBNewDimension,
+};
 use crate::{graphql::context::GQLContext, services::db::dimension_service::DBDimension};
 use chrono::{DateTime, Utc};
 use juniper::{
@@ -180,6 +182,16 @@ impl Query {
 }
 
 impl Mutation {
+  pub async fn create_dimension_impl(
+    ctx: &GQLContext,
+    new_dimension: NewDimension,
+  ) -> FieldResult<Dimension> {
+    create_dimension(&ctx.pool, &ctx.auth0_user_id, new_dimension.into())
+      .await
+      .map(|db_dim| db_dim.into())
+      .map_err(FieldError::from)
+  }
+
   pub async fn create_dimensions_impl(
     ctx: &GQLContext,
     dimensions: Vec<NewDimension>,

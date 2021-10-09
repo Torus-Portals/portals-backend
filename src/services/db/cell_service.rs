@@ -5,7 +5,7 @@ use sqlx::{Executor, Postgres};
 use uuid::Uuid;
 
 use crate::graphql::schema::{
-  cell::{CellTypes, UpdateCell},
+  cell::{CellTypes, NewCell, UpdateCell},
   cells::{
     basic_text_cell::BasicTextCell, google_sheets_cell::GoogleSheetsCell,
     owner_text_cell::OwnerTextCell,
@@ -51,6 +51,22 @@ pub struct DBNewCell {
   pub cell_data: serde_json::Value,
 }
 
+impl From<NewCell> for DBNewCell {
+  fn from(new_cell: NewCell) -> Self {
+    let cell_data = cell_string_to_serde_value(&new_cell.cell_type, new_cell.cell_data)
+      .expect("unable to convert cell data string to serde_json::Value");
+
+    DBNewCell {
+      portal_id: new_cell.portal_id,
+      dimensions: new_cell.dimensions,
+      cell_type: new_cell
+        .cell_type
+        .to_string(),
+      cell_data,
+    }
+  }
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct DBUpdateCell {
   pub id: Uuid,
@@ -67,31 +83,17 @@ impl From<UpdateCell> for DBUpdateCell {
     let cell_data = update_cell
       .cell_data
       .clone()
-      .map(|cd| match &update_cell.cell_type {
-        CellTypes::BasicText => {
-          let cell: BasicTextCell =
-            serde_json::from_str(&cd).expect("Unable to parse BasicText Cell data");
-          serde_json::to_value(cell)
-            .expect("Unable to convert BasicTextCell back to serde_json::Value")
-        }
-        CellTypes::OwnerText => {
-          let cell: OwnerTextCell =
-            serde_json::from_str(&cd).expect("Unable to parse OwnerText Cell data");
-          serde_json::to_value(cell)
-            .expect("Unable to convert OwnerTextCell back to serde_json::Value")
-        }
-        CellTypes::GoogleSheets => {
-          let cell: GoogleSheetsCell =
-            serde_json::from_str(&cd).expect("Unable to parse GoogleSheets Cell data");
-          serde_json::to_value(cell)
-            .expect("Unable to convert GoogleSheetsCell back to serde_json::Value")
-        }
+      .map(|cd| {
+        cell_string_to_serde_value(&update_cell.cell_type, cd)
+          .expect("unable to convert cell data string to serde_json::Value")
       });
 
     DBUpdateCell {
       id: update_cell.id,
       dimensions: update_cell.dimensions,
-      cell_type: update_cell.cell_type.to_string(),
+      cell_type: update_cell
+        .cell_type
+        .to_string(),
       cell_data,
     }
   }
@@ -151,7 +153,9 @@ pub async fn update_cell<'e>(
     "#,
     auth0_user_id,
     update_cell.id,
-    update_cell.dimensions.as_deref(),
+    update_cell
+      .dimensions
+      .as_deref(),
     update_cell.cell_type,
     update_cell.cell_data
   )
@@ -188,4 +192,23 @@ pub async fn get_cells_with_all_dimensions<'e>(
   .fetch_all(pool)
   .await
   .map_err(anyhow::Error::from)
+}
+
+pub fn cell_string_to_serde_value(cell_type: &CellTypes, cd: String) -> Result<serde_json::Value> {
+  let value = match cell_type {
+    CellTypes::BasicText => {
+      let cell: BasicTextCell = serde_json::from_str(&cd)?;
+      serde_json::to_value(cell)
+    }
+    CellTypes::OwnerText => {
+      let cell: OwnerTextCell = serde_json::from_str(&cd)?;
+      serde_json::to_value(cell)
+    }
+    CellTypes::GoogleSheets => {
+      let cell: GoogleSheetsCell = serde_json::from_str(&cd)?;
+      serde_json::to_value(cell)
+    }
+  };
+
+  value.map_err(anyhow::Error::from)
 }

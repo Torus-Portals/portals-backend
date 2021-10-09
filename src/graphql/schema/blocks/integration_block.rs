@@ -37,16 +37,18 @@ pub struct NewIntegrationBlock {
 
 impl From<NewIntegrationBlock> for NewBlock {
   fn from(new_integration_block: NewIntegrationBlock) -> Self {
+    let block_data = IntegrationBlock {
+      integration_id: Some(new_integration_block.integration_id),
+      row_dim: None,
+      col_dim: None,
+    };
+
     NewBlock {
       block_type: BlockTypes::Integration,
       portal_id: new_integration_block.portal_id,
       portal_view_id: new_integration_block.portal_view_id,
       egress: "Integration".to_string(),
-      block_data: serde_json::to_value(IntegrationBlock {
-        integration_id: Some(new_integration_block.integration_id),
-        row_dim: None,
-        col_dim: None,
-      })
+      block_data: serde_json::to_string(&block_data)
       .expect("Unable to serialize IntegrationBlock into valid JSON format."),
     }
   }

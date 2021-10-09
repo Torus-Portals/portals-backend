@@ -9,9 +9,10 @@ use uuid::Uuid;
 
 use super::blocks::basic_table_block::BasicTableBlock;
 use super::blocks::empty_block::EmptyBlock;
-use super::blocks::owner_text_block::OwnerTextBlock;
-use super::blocks::vendor_text_block::VendorTextBlock;
 use super::blocks::integration_block::IntegrationBlock;
+use super::blocks::owner_text_block::OwnerTextBlock;
+use super::blocks::vendor_single_cell_block::VendorSingleCellBlock;
+use super::blocks::vendor_text_block::VendorTextBlock;
 use super::cell::Cell;
 use super::dimension::Dimension;
 use super::Mutation;
@@ -19,20 +20,30 @@ use super::Query;
 use crate::graphql::context::GQLContext;
 use crate::services::db::block_service::DBBlock;
 use crate::services::db::block_service::DBBlockParts;
-use crate::services::db::block_service::{clean_delete_block, delete_blocks, get_block, get_blocks, update_block};
+use crate::services::db::block_service::{
+  clean_delete_block, delete_blocks, get_block, get_blocks, create_block, update_block,
+};
 
 #[derive(Debug, GraphQLUnion, Serialize, Deserialize)]
 #[graphql(Context = GQLContext)]
 pub enum GQLBlocks {
-  BasicTable(BasicTableBlock),
-  OwnerText(OwnerTextBlock),
-  VendorText(VendorTextBlock),
-  Integration(IntegrationBlock),
   Empty(EmptyBlock),
+  Integration(IntegrationBlock),
+
+  // Owner Blocks
+  OwnerText(OwnerTextBlock),
+  BasicTable(BasicTableBlock),
+
+  // Vendor Blocks
+  VendorText(VendorTextBlock),
+  VendorSingleCell(VendorSingleCellBlock),
 }
 
 #[derive(Debug, Serialize, Deserialize, GraphQLEnum, EnumString, Display)]
 pub enum BlockTypes {
+  #[strum(serialize = "Integration")]
+  Integration,
+
   #[strum(serialize = "BasicTable")]
   #[graphql(name = "BasicTable")]
   BasicTable,
@@ -44,9 +55,10 @@ pub enum BlockTypes {
   #[strum(serialize = "VendorText")]
   #[graphql(name = "VendorText")]
   VendorText,
-  
-  #[strum(serialize = "Integration")]
-  Integration,
+
+  #[strum(serialize = "VendorSingleCell")]
+  #[graphql(name = "VendorSingleCell")]
+  VendorSingleCell,
 }
 
 #[derive(GraphQLObject, Debug, Serialize, Deserialize)]
@@ -107,7 +119,8 @@ impl From<DBBlock> for Block {
         GQLBlocks::VendorText(t)
       }
       "Integration" => {
-        let b: IntegrationBlock = serde_json::from_value(db_block.block_data).expect("Unable to deserialize DBBlock into IntegrationBlock.");
+        let b: IntegrationBlock = serde_json::from_value(db_block.block_data)
+          .expect("Unable to deserialize DBBlock into IntegrationBlock.");
         GQLBlocks::Integration(b)
       }
       &_ => GQLBlocks::Empty(EmptyBlock {
@@ -137,6 +150,7 @@ impl From<DBBlock> for Block {
   }
 }
 
+#[derive(GraphQLInputObject, Debug, Serialize, Deserialize)]
 pub struct NewBlock {
   pub block_type: BlockTypes,
 
@@ -146,7 +160,7 @@ pub struct NewBlock {
 
   pub egress: String,
 
-  pub block_data: serde_json::Value, // For now the json should be stringified
+  pub block_data: String,
 }
 
 #[derive(GraphQLInputObject, Debug, Serialize, Deserialize)]
@@ -211,19 +225,17 @@ impl Query {
 }
 
 impl Mutation {
-  // Not using at the moment, due to no good way currently to type a json field.
-  // Will create separate mutations for each block type
-  //   pub async fn create_block(ctx: &GQLContext, new_block: NewBlock) -> FieldResult<Block> {
-  //     ctx
-  //       .db
-  //       .create_block(&ctx.auth0_user_id, new_block.into())
-  //       .await
-  //       .map(|b| b.into())
-  //       .map_err(FieldError::from)
-  //   }
+  pub async fn create_block(ctx: &GQLContext, new_block: NewBlock) -> FieldResult<Block> {
+    create_block(&ctx.pool, &ctx.auth0_user_id, new_block.into())
+      .await
+      .map(|db_block| db_block.into())
+      .map_err(FieldError::from)
+  }
 
-  pub async fn update_block_impl(ctx: &GQLContext, updated_block: UpdateBlock) -> FieldResult<Block> {
-    dbg!(&updated_block);
+  pub async fn update_block_impl(
+    ctx: &GQLContext,
+    updated_block: UpdateBlock,
+  ) -> FieldResult<Block> {
     update_block(&ctx.pool, &ctx.auth0_user_id, updated_block.into())
       .await
       .map(|db_block| db_block.into())

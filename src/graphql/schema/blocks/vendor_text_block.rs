@@ -31,7 +31,7 @@ impl From<NewVendorTextBlock> for NewBlock {
       portal_id: new_vendor_text_block.portal_id,
       portal_view_id: new_vendor_text_block.portal_view_id,
       egress: String::from("vendor"),
-      block_data: serde_json::to_value(&block_data)
+      block_data: serde_json::to_string(&block_data)
         .ok()
         .unwrap(), // replace this!!
     }

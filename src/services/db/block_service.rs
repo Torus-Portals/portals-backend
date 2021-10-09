@@ -7,6 +7,7 @@ use crate::{
       basic_table_block::BasicTableBlock,
       integration_block::{IntegrationBlock, NewIntegrationBlock},
       owner_text_block::OwnerTextBlock,
+      vendor_single_cell_block::VendorSingleCellBlock,
       vendor_text_block::VendorTextBlock,
     },
     cells::google_sheets_cell::GoogleSheetsCell,
@@ -25,7 +26,6 @@ use crate::{
 
 use anyhow::Result;
 use chrono::{DateTime, Utc};
-use serde_json;
 use serde_json::json;
 use sqlx::{Executor, PgPool, Postgres};
 use uuid::Uuid;
@@ -75,21 +75,24 @@ impl DBBlock {
 
     let current_dims = match block_type {
       BlockTypes::BasicTable => {
-        let mut block_data: BasicTableBlock = serde_json::from_value(bd)?;
+        let block_data: BasicTableBlock = serde_json::from_value(bd)?;
 
         let mut dims: Vec<Uuid> = vec![];
 
         let mut pm_dims: Vec<Uuid> = block_data
           .rows
           .iter()
-          .map(|r| {
-            r.portal_member_dimension
-              .clone()
-          })
+          .filter_map(|r| r.portal_member_dimension)
+          .collect();
+
+        let mut col_dims: Vec<Uuid> = block_data
+          .columns
+          .iter()
+          .map(|c| c.dimension.clone())
           .collect();
 
         dims.append(&mut pm_dims);
-        dims.append(&mut block_data.columns);
+        dims.append(&mut col_dims);
 
         dims
       }
@@ -124,6 +127,14 @@ impl DBBlock {
 
         dims
       }
+      BlockTypes::VendorSingleCell => {
+        let block_data: VendorSingleCellBlock = serde_json::from_value(bd)?;
+
+        match block_data.dimension {
+          Some(dim) => vec![dim],
+          None => vec![],
+        }
+      }
     };
 
     let current_dims_set: HashSet<Uuid> = current_dims
@@ -143,7 +154,7 @@ impl DBBlock {
 
     let was_updated = match block_type {
       BlockTypes::BasicTable => {
-        let mut block_data: BasicTableBlock = serde_json::from_value(bd)?;
+        let block_data: BasicTableBlock = serde_json::from_value(bd)?;
 
         let dims_set: HashSet<Uuid> = dimensions
           .clone()
@@ -153,12 +164,13 @@ impl DBBlock {
           .rows
           .clone()
           .into_iter()
-          .map(|r| r.portal_member_dimension)
+          .filter_map(|r| r.portal_member_dimension)
           .collect();
         let columns_set: HashSet<Uuid> = block_data
           .columns
           .clone()
           .into_iter()
+          .map(|c| c.dimension)
           .collect();
 
         let has_in_rows: Vec<&Uuid> = rows_set
@@ -172,12 +184,16 @@ impl DBBlock {
           block_data
             .rows
             .iter()
-            .map(|r| &r.portal_member_dimension)
-            .collect::<Vec<&Uuid>>()
+            .filter_map(|r| r.portal_member_dimension)
+            // .map(|pmd| pmd)
+            .collect::<Vec<Uuid>>()
             .retain(|r| !&dimensions.contains(r));
           block_data
             .columns
-            .retain(|r| !&dimensions.contains(&r));
+            .iter()
+            .map(|c| &c.dimension)
+            .collect::<Vec<&Uuid>>()
+            .retain(|c| !&dimensions.contains(&c));
 
           self.block_data = serde_json::to_value(block_data)?;
 
@@ -252,6 +268,22 @@ impl DBBlock {
           false
         }
       }
+      BlockTypes::VendorSingleCell => {
+        let mut block_data: VendorSingleCellBlock = serde_json::from_value(bd)?;
+
+        if let Some(dim) = block_data.dimension {
+          if dimensions.contains(&dim) {
+            block_data.dimension = None;
+            self.block_data = serde_json::to_value(block_data)?;
+
+            true
+          } else {
+            false
+          }
+        } else {
+          false
+        }
+      }
     };
 
     Ok(was_updated)
@@ -284,6 +316,9 @@ pub struct DBNewBlock {
 
 impl From<NewBlock> for DBNewBlock {
   fn from(new_block: NewBlock) -> Self {
+    let block_data = block_string_to_serde_value(&new_block.block_type, new_block.block_data)
+      .expect("unable to convert block data into serde_json::Value");
+
     DBNewBlock {
       block_type: new_block
         .block_type
@@ -291,7 +326,7 @@ impl From<NewBlock> for DBNewBlock {
       portal_id: new_block.portal_id,
       portal_view_id: new_block.portal_view_id,
       egress: new_block.egress,
-      block_data: new_block.block_data,
+      block_data,
     }
   }
 }
@@ -310,34 +345,10 @@ impl From<UpdateBlock> for DBUpdateBlock {
     let block_data = update_block
       .block_data
       .clone()
-      .map(|bc| match &update_block.block_type {
-        BlockTypes::BasicTable => {
-          let block: BasicTableBlock =
-            serde_json::from_str(&bc).expect("Unable to parse BasicTableBlock data");
-          serde_json::to_value(block)
-            .expect("Unable to convert BasicTableBlock back to serde_json::Value")
-        }
-        BlockTypes::OwnerText => {
-          let block: OwnerTextBlock =
-            serde_json::from_str(&bc).expect("Unable to parse OwnerTextBlock data");
-          serde_json::to_value(block)
-            .expect("Unable to convert OwnerTextBlock back to serde_json::Value")
-        }
-        BlockTypes::VendorText => {
-          let block: VendorTextBlock =
-            serde_json::from_str(&bc).expect("Unable to parse VendorTextBlock data");
-          serde_json::to_value(block)
-            .expect("Unable to convert VendorTextBlock back to serde_json::Value")
-        }
-        BlockTypes::Integration => {
-          let block: IntegrationBlock =
-            serde_json::from_str(&bc).expect("Unable to parse IntegrationBlock data");
-          serde_json::to_value(block)
-            .expect("Unable to convert IntegrationBlock back to serde_json::Value")
-        }
+      .map(|bd| {
+        block_string_to_serde_value(&update_block.block_type, bd)
+          .expect("unable to convert block data to serde_json::Value")
       });
-
-    dbg!(&block_data);
 
     DBUpdateBlock {
       id: update_block.id,
@@ -681,4 +692,31 @@ pub async fn create_integration_block(
     dimensions: db_dimensions,
     cells: vec![db_cell],
   })
+}
+
+pub fn block_string_to_serde_value(
+  block_type: &BlockTypes,
+  bd: String,
+) -> Result<serde_json::Value> {
+  let value = match block_type {
+    BlockTypes::Integration => todo!(),
+    BlockTypes::BasicTable => {
+      let block: BasicTableBlock = serde_json::from_str(&bd)?;
+      serde_json::to_value(block)
+    }
+    BlockTypes::OwnerText => {
+      let block: OwnerTextBlock = serde_json::from_str(&bd)?;
+      serde_json::to_value(block)
+    }
+    BlockTypes::VendorText => {
+      let block: VendorTextBlock = serde_json::from_str(&bd)?;
+      serde_json::to_value(block)
+    }
+    BlockTypes::VendorSingleCell => {
+      let block: VendorSingleCellBlock = serde_json::from_str(&bd)?;
+      serde_json::to_value(block)
+    },
+  };
+
+  value.map_err(anyhow::Error::from)
 }
