@@ -69,7 +69,7 @@ $ sudo lsof -i :8088
 // or
 $ sudo lsof -i tcp:8088
 // the kill
-$ kill <pid>
+$ kill -9 <pid>
 ```
 
 ### GraphQL Dev Playground

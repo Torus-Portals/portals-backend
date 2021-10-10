@@ -21,7 +21,7 @@ use crate::graphql::context::GQLContext;
 use crate::services::db::block_service::DBBlock;
 use crate::services::db::block_service::DBBlockParts;
 use crate::services::db::block_service::{
-  clean_delete_block, delete_blocks, get_block, get_blocks, create_block, update_block,
+  clean_delete_block, create_block, delete_blocks, get_block, get_blocks, update_block,
 };
 
 #[derive(Debug, GraphQLUnion, Serialize, Deserialize)]
@@ -122,6 +122,11 @@ impl From<DBBlock> for Block {
         let b: IntegrationBlock = serde_json::from_value(db_block.block_data)
           .expect("Unable to deserialize DBBlock into IntegrationBlock.");
         GQLBlocks::Integration(b)
+      }
+      "VendorSingleCell" => {
+        let b: VendorSingleCellBlock = serde_json::from_value(db_block.block_data)
+          .expect("Unable to deserialize DBBlock into VendorSingleCell");
+        GQLBlocks::VendorSingleCell(b)
       }
       &_ => GQLBlocks::Empty(EmptyBlock {
         block_type: String::from("nothing"),
