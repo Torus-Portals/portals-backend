@@ -91,3 +91,20 @@ SQLx needs to run in "offline mode" when building in Docker. Before pushing to a
 ```bash
 $ cargo sqlx prepare -- --bin portals-backend
 ```
+
+The Portals Backend application can be run from within docker container. Below are some helpful zsh functions to build and run a container.
+
+```bash
+portals_backend_container_build() {
+  sudo docker build -t portals-backend:latest-local .
+}
+
+portals_backend_container_run() {
+  sudo docker run \
+  -it \
+  -v $(pwd)/config.ron:/config.ron \
+  -e CONFIG_PATH="/config.ron" \
+  --network="host" \
+  portals-backend:latest-local
+}
+```
