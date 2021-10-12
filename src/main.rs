@@ -2,13 +2,13 @@
 extern crate serde_derive;
 extern crate base64;
 extern crate derive_more;
-extern crate serde_json;
-extern crate serde_qs as qs;
 extern crate futures;
 extern crate jsonwebtoken as jwt;
 extern crate percent_encoding;
 extern crate rusoto_core;
 extern crate rusoto_ses;
+extern crate serde_json;
+extern crate serde_qs as qs;
 extern crate url;
 
 mod config;
@@ -16,22 +16,22 @@ mod config;
 mod extractors;
 mod graphql;
 mod middleware;
+mod routes;
 mod services;
 mod state;
 mod utils;
-mod routes;
 
 use crate::graphql::{graphql_routes, schema as graphql_schema};
+use crate::routes::general_routes::{get_health, get_info};
 use crate::services::auth0_service::Auth0Service;
+use crate::services::google_sheets_service::{GoogleSheetsService, OAuthService};
 use crate::state::State;
 use actix_cors::Cors;
 use actix_web::{web, App, HttpServer};
 use futures::lock::Mutex;
 use jsonwebtoken::DecodingKey;
 use sqlx::postgres::PgPoolOptions;
-use std::sync::Arc;
-use crate::services::google_sheets_service::{OAuthService, GoogleSheetsService};
-use crate::routes::general_routes::{get_health, get_info};
+use std::{sync::Arc, time::Duration};
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -45,9 +45,10 @@ async fn main() -> std::io::Result<()> {
 
   let pool = PgPoolOptions::new()
     .max_connections(config.database_connection_pool_size)
+    .connect_timeout(Duration::new(config.database_connection_timeout_sec, 0))
     .connect(&config.database_url)
     .await
-    .unwrap();
+    .expect("Error connecting to database");
 
   let state = State::new(pool.clone());
   let auth_service = Arc::new(Mutex::new(Auth0Service::new()));
@@ -85,9 +86,9 @@ async fn main() -> std::io::Result<()> {
       .service(graphql_routes::get_graphql_dev_routes())
       .service(get_health)
       .service(get_info)
-      // .service(google_sheets_service::add_data_source)
-      // .service(google_sheets_service::exchange_token)
-      // .service(google_sheets_service::get_sheets_value)
+    // .service(google_sheets_service::add_data_source)
+    // .service(google_sheets_service::exchange_token)
+    // .service(google_sheets_service::get_sheets_value)
   });
 
   let socket_address = format!("0.0.0.0:{}", config.tcp_port);
