@@ -642,8 +642,9 @@ pub async fn create_integration_block(
     .into();
   let google_sheet_cell = GoogleSheetsCell {
     integration_id: new_integration_block.integration_id,
-    row_dimension: db_dimensions[0].id,
-    col_dimension: db_dimensions[1].id,
+    value: "".to_string(),
+    // row_dimension: db_dimensions[0].id,
+    // col_dimension: db_dimensions[1].id,
     // value: integration
     //   .fetch_value(
     //     db_dimensions

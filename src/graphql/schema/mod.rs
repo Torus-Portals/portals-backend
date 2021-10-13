@@ -202,13 +202,14 @@ impl Query {
     .await
   }
 
+  // TODO: this really shouldn't be a query, need to decouple
   async fn google_sheets_fetch_sheet_value(
     ctx: &GQLContext,
     integration_id: Uuid,
     spreadsheet_id: String,
     sheet_name: String,
     range: String,
-  ) -> FieldResult<String> {
+  ) -> FieldResult<Dimension> {
     Query::google_sheets_fetch_sheet_values_impl(
       ctx,
       integration_id,
