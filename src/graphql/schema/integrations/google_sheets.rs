@@ -32,7 +32,7 @@ impl Query {
     let config = config::server_config();
 
     let redirect_uri = format!(
-      "{}?client_id={}&redirect_uri={}&response_type=code&scope={}+{}&prompt=consent&access_type=offline&state={}",
+      "{}?client_id={}&redirect_uri={}&response_type=code&scope={}+{}+openid+email&prompt=consent&access_type=offline&state={}",
       config
         .oauth
         .auth_url,
@@ -137,11 +137,12 @@ impl Mutation {
 
     // This call needs to store the tokens that are retrieved.
     let gsheets_token = gs.exchange_code(auth.code).await?;
+    let user_email = gs.get_user_email(&gsheets_token).await?;
     // Integration should be created only after access_token successfully exchanged
     let new_integration = NewIntegration {
       portal_id,
       // Sensible name -- email + hash?
-      name: "IntegrationTest".to_string(),
+      name: user_email,
       integration_type: IntegrationTypes::GoogleSheets,
     };
     let integration = create_integration(

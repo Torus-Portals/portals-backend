@@ -17,6 +17,7 @@ const SHEETS_READ_URL: &str =
   "https://sheets.googleapis.com/v4/spreadsheets/spreadsheetId/values:batchGet";
 const SPREADSHEET_SHEETS_URL: &str = "https://sheets.googleapis.com/v4/spreadsheets/spreadsheetId";
 const DRIVE_FILES_URL: &str = "https://www.googleapis.com/drive/v3/files";
+const OPENID_URL: &str = "https://openidconnect.googleapis.com/v1/userinfo";
 
 fn get_spreadsheet_id(sheet_url: &str) -> &str {
   let mut split_iter = sheet_url.split("/").skip(5);
@@ -239,6 +240,21 @@ impl GoogleSheetsService {
       "No access token associated with this integration: {}",
       integration_id
     )))
+  }
+
+  pub async fn get_user_email(&self, gsheets_token: &GoogleSheetsToken) -> Result<String> {
+    let client = reqwest::Client::new();
+
+    let resp = client
+      .get(OPENID_URL)
+      .bearer_auth(gsheets_token.access_token.clone())
+      .send()
+      .await?;
+
+    let resp_string = resp.text().await?;
+    let resp_value: Value = serde_json::from_str(&resp_string)?;
+
+    Ok(resp_value["email"].as_str().unwrap_or("").to_string())
   }
 
   pub async fn list_spreadsheets(
