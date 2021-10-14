@@ -232,6 +232,18 @@
       ]
     }
   },
+  "107e1787fae2064cc094fb1b54b3c04f58328109c5259c2e649006f760ad411f": {
+    "query": "delete from blocks where portal_id = $1",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      },
+      "nullable": []
+    }
+  },
   "18dedb5d807057e9681b914670048c9222d73629345c82356f775bf577b46d20": {
     "query": "\n      with _user as (select * from users where auth0id = $1)\n      insert into dimensions (\n        portal_id,\n        name,\n        dimension_type,\n        dimension_data,\n        created_by,\n        updated_by\n      ) select * from unnest(\n        $3::UUID[],\n        $4::TEXT[],\n        $5::TEXT[],\n        $6::JSONB[],\n        array_fill((select id from _user), ARRAY[$2::INT]::INT[]),\n        array_fill((select id from _user), ARRAY[$2::INT]::INT[])\n      )\n      returning *;\n      ",
     "describe": {
@@ -1161,6 +1173,18 @@
       ]
     }
   },
+  "59c021473c0356e955b5288e73c4642dc62f985fd26ca276c52abbbee9bb5acb": {
+    "query": "\n    delete from portalviews where portal_id = $1;\n    ",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      },
+      "nullable": []
+    }
+  },
   "5e01a9af649660e842e5f40c14eb07790d0226f0cce8c7fa37c5f0061cb46129": {
     "query": "\n      select * from portalviews where portal_id = $1\n      ",
     "describe": {
@@ -1233,6 +1257,18 @@
         false,
         false
       ]
+    }
+  },
+  "600131bd2c1c891251cab32f05a62869d6e944993cc39509fb53b1ea022cdbce": {
+    "query": "\n    delete from structures where id = $1\n    ",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      },
+      "nullable": []
     }
   },
   "64f71497d0fc68c756a60bc8d6aed7cad8e00e0f5a3cbde57e1d734b680006a0": {
@@ -1599,6 +1635,18 @@
         false,
         false
       ]
+    }
+  },
+  "7aa81f6106207e95cd477ce3bf4ef9223c8fffe765c89e7b61f7783f95bfd992": {
+    "query": "delete from dimensions where portal_id = $1",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      },
+      "nullable": []
     }
   },
   "7d43545e96ee287663451d27b4efd24a26ff7cc3c46c618ae7a18a746dec78d8": {
@@ -2025,6 +2073,18 @@
       "nullable": [
         null
       ]
+    }
+  },
+  "aeb587f345aecb43e92dc2a0dddf2562640ae7033f9f22198bc6a3af9e7b715d": {
+    "query": "delete from cells where portal_id = $1",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      },
+      "nullable": []
     }
   },
   "b506765a056330367395c0e42f149dd22b858053c3da2f18d26ae1106083f654": {
@@ -2631,6 +2691,18 @@
         false,
         false
       ]
+    }
+  },
+  "dfbf82c661bc14c9420c1adff146f8ae1ee2e4e803b07203c30c30a48a0df211": {
+    "query": "delete from portals where id = $1",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      },
+      "nullable": []
     }
   },
   "e00afe2b0edc15e7e20ecd0b5ca985f39d63dde29e6dcb99951292c738cc34da": {
