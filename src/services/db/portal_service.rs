@@ -1,14 +1,22 @@
 use anyhow::Result;
 use chrono::{DateTime, Utc};
-use sqlx::{Executor, PgPool, Postgres};
+use sqlx::{PgExecutor, PgPool};
 use uuid::Uuid;
 
-use crate::graphql::schema::portal::NewPortal;
-use crate::services::db::portalview_service::{get_portalviews, delete_portal_portalviews};
-use crate::services::db::structure_service::{delete_structure};
-use crate::services::db::block_service::{delete_portal_blocks};
-use crate::services::db::dimension_service::{delete_portal_dimensions};
-use crate::services::db::cell_service::{delete_portal_cells};
+use crate::{
+  graphql::schema::{
+    dimensions::portal_member_dimension::PortalMemberDimension,
+    portal::{NewPortal, UpdatePortal},
+  },
+  services::db::{
+    user_service::get_user_by_auth0_id,
+    portalview_service::{create_portalview, get_portalviews, delete_portal_portalviews, DBNewPortalView, DBPortalView},
+    structure_service::{DBStructure, delete_structure},
+    block_service::{delete_portal_blocks},
+    dimension_service::{create_dimensions, delete_portal_dimensions, DBDimension, DBNewDimension},
+    cell_service::{delete_portal_cells},
+  },
+};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct DBPortal {
@@ -57,8 +65,40 @@ impl From<NewPortal> for DBNewPortal {
   }
 }
 
-pub async fn get_portal<'e>(
-  pool: impl Executor<'e, Database = Postgres>,
+#[derive(Serialize, Deserialize)]
+pub struct DBUpdatePortal {
+  pub id: Uuid,
+
+  pub name: Option<String>,
+
+  pub owner_ids: Option<Vec<Uuid>>,
+
+  pub vendor_ids: Option<Vec<Uuid>>,
+}
+
+impl From<UpdatePortal> for DBUpdatePortal {
+  fn from(update_portal: UpdatePortal) -> Self {
+    DBUpdatePortal {
+      id: update_portal.id,
+      name: update_portal.name,
+      owner_ids: update_portal.owner_ids,
+      vendor_ids: update_portal.vendor_ids,
+    }
+  }
+}
+
+pub struct DBPortalParts {
+  pub portal: DBPortal,
+
+  pub portal_views: Vec<DBPortalView>,
+
+  pub structures: Vec<DBStructure>,
+
+  pub dimensions: Vec<DBDimension>,
+}
+
+pub async fn get_portal(
+  pool: impl PgExecutor<'_>,
   portal_id: Uuid,
 ) -> Result<DBPortal> {
   sqlx::query_as!(DBPortal, "select * from portals where id = $1", portal_id)
@@ -67,8 +107,8 @@ pub async fn get_portal<'e>(
     .map_err(anyhow::Error::from)
 }
 
-pub async fn get_portals<'e>(
-  pool: impl Executor<'e, Database = Postgres>,
+pub async fn get_portals(
+  pool: impl PgExecutor<'_>,
   portal_ids: Vec<Uuid>,
 ) -> Result<Vec<DBPortal>> {
   sqlx::query_as!(
@@ -81,8 +121,8 @@ pub async fn get_portals<'e>(
   .map_err(anyhow::Error::from)
 }
 
-pub async fn get_auth0_user_portals<'e>(
-  pool: impl Executor<'e, Database = Postgres>,
+pub async fn get_auth0_user_portals(
+  pool: impl PgExecutor<'_>,
   auth0_user_id: &str,
 ) -> Result<Vec<DBPortal>> {
   sqlx::query_as!(
@@ -100,12 +140,19 @@ pub async fn get_auth0_user_portals<'e>(
   .map_err(anyhow::Error::from)
 }
 
-pub async fn create_portal<'e>(
-  pool: impl Executor<'e, Database = Postgres>,
+pub async fn create_portal(
+  pool: PgPool,
   auth0_user_id: &str,
   new_portal: DBNewPortal,
-) -> Result<DBPortal> {
-  sqlx::query_as!(
+) -> Result<DBPortalParts> {
+  let mut tx = pool.begin().await?;
+
+  let owner_portal_view_pool = pool.clone();
+  let vendor_portal_view_pool = pool.clone();
+
+  let user = get_user_by_auth0_id(&mut tx, auth0_user_id).await?;
+
+  let portal = sqlx::query_as!(
     DBPortal,
     r#"
       with _user as (select * from users where auth0id = $1)
@@ -130,6 +177,83 @@ pub async fn create_portal<'e>(
     new_portal.org_id,
     &new_portal.owner_ids,
     &new_portal.vendor_ids
+  )
+  .fetch_one(&mut tx)
+  .await
+  .map_err(anyhow::Error::from)?;
+
+  // Create a default owner and vendor portalview
+  let owner_portal_view = create_portalview(
+    owner_portal_view_pool,
+    auth0_user_id,
+    DBNewPortalView {
+      portal_id: portal.id,
+      name: String::from("Default Owner View"),
+      egress: String::from("owner"),
+      access: String::from("private"),
+    },
+  )
+  .await?;
+
+  let vendor_portal_view = create_portalview(
+    vendor_portal_view_pool,
+    auth0_user_id,
+    DBNewPortalView {
+      portal_id: portal.id,
+      name: String::from("Default Vendor View"),
+      egress: String::from("vendor"),
+      access: String::from("private"),
+    },
+  )
+  .await?;
+
+  let new_dimension = DBNewDimension {
+    portal_id: portal.id,
+    name: String::from("PortalCreatorUserDimension"),
+    dimension_type: String::from("PortalMember"),
+    dimension_data: serde_json::to_value(PortalMemberDimension { user_id: user.id })?,
+  };
+
+  // TODO: replace this with create_dimension when Tedmund's code lands
+  let user_dimensions = create_dimensions(&mut tx, auth0_user_id, vec![new_dimension]).await?;
+
+  tx.commit().await?;
+
+  Ok(DBPortalParts {
+    portal,
+    portal_views: vec![owner_portal_view.0, vendor_portal_view.0],
+    structures: vec![owner_portal_view.1, vendor_portal_view.1],
+    dimensions: user_dimensions,
+  })
+}
+
+pub async fn update_portal(
+  pool: impl PgExecutor<'_>,
+  // pool: impl PgExecutor<'_>,
+  auth0_user_id: &str,
+  update_portal: DBUpdatePortal,
+) -> Result<DBPortal> {
+  sqlx::query_as!(
+    DBPortal,
+    r#"
+    with _user as (select * from users where auth0id = $1)
+    update portals
+      set
+        name = coalesce($3, name),
+        owner_ids = coalesce($4, owner_ids),
+        vendor_ids = coalesce($5, vendor_ids)
+      where id = $2
+      returning *;
+    "#,
+    auth0_user_id,
+    update_portal.id,
+    update_portal.name,
+    update_portal
+      .owner_ids
+      .as_deref(),
+    update_portal
+      .vendor_ids
+      .as_deref()
   )
   .fetch_one(pool)
   .await

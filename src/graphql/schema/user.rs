@@ -1,10 +1,8 @@
-use crate::services::db::user_service::create_user;
-use crate::services::db::user_service::get_user;
-use crate::services::db::user_service::get_user_by_auth0_id;
-use crate::services::db::user_service::user_exists;
-use crate::services::db::user_service::update_user;
-use crate::services::db::user_service::DBNewUser;
-use crate::services::db::user_service::DBUser;
+use crate::services::db::user_service::user_exists_by_email;
+use crate::services::db::user_service::{
+  create_user, create_user_with_new_org, get_user, get_user_by_auth0_id, get_user_by_email, get_users, update_user,
+  auth0_user_exists, DBNewUser, DBUser,
+};
 use chrono::{DateTime, Utc};
 use juniper::{graphql_object, FieldError, FieldResult, GraphQLInputObject};
 use uuid::Uuid;
@@ -17,7 +15,7 @@ use crate::graphql::schema::Org;
 
 // User
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct User {
   pub id: Uuid,
 
@@ -157,7 +155,7 @@ pub struct NewUser {
 }
 
 impl NewUser {
-  fn into_db_new_user(&self, auth0id: String) -> DBNewUser {
+  pub fn into_db_new_user(&self, auth0id: String) -> DBNewUser {
     // I'm sure there is a better way to do this besides all these clones...
     DBNewUser {
       auth0id,
@@ -183,6 +181,8 @@ impl NewUser {
 pub struct UpdateUser {
   pub id: Uuid,
 
+  pub auth0id: Option<String>,
+
   pub name: Option<String>,
 
   pub nickname: Option<String>,
@@ -205,7 +205,7 @@ impl Query {
   }
 
   pub async fn current_user_impl(ctx: &GQLContext) -> FieldResult<User> {
-    let user_exists = user_exists(&ctx.pool, &ctx.auth0_user_id).await?;
+    let user_exists = auth0_user_exists(&ctx.pool, &ctx.auth0_user_id).await?;
 
     if user_exists {
       get_user_by_auth0_id(&ctx.pool, &ctx.auth0_user_id)
@@ -213,6 +213,7 @@ impl Query {
         .map(|db_user| -> User { db_user.into() })
         .map_err(FieldError::from)
     } else {
+      println!("user does not exist");
       let mut auth_api = ctx
         .auth0_api
         .lock()
@@ -222,27 +223,75 @@ impl Query {
         .get_auth0_user(&ctx.auth0_user_id)
         .await?;
 
-      let new_user = NewUser {
-        name: auth0user.name,
-        nickname: auth0user.nickname,
-        email: auth0user.email,
-        status: String::from("active"),
-        org_ids: None,
-        role_ids: None,
-      };
+      // TODO: Need to come up with a check for auth0user.email_verified. 
+      //       Might need to still query the Auth0 service until it's done.
 
-      let db_user = create_user(
-        &ctx.pool,
-        new_user.into_db_new_user(
-          ctx
-            .auth0_user_id
-            .to_owned(),
-        ),
-      )
-      .await?;
+      dbg!(&auth0user);
 
-      Ok(db_user.into())
+      let email_user_exists = user_exists_by_email(&ctx.pool, &auth0user.email).await?;
+      if email_user_exists {
+        // update user
+        println!("email user exists!");
+        let user = get_user_by_email(&ctx.pool, &auth0user.email).await?;
+
+        let user_update = UpdateUser {
+            id: user.id,
+            auth0id: Some(auth0user.user_id),
+            name: Some(auth0user.name),
+            nickname: Some(auth0user.nickname),
+            email: None,
+            status: Some(String::from("active")),
+            org_ids: None,
+            role_ids: None,
+        };
+
+        let updated_user = update_user(&ctx.pool, &ctx.auth0_user_id, user_update.into()).await?;
+
+        Ok(updated_user.into())
+      } else {
+        println!("email user does not exist!");
+        // create new user (and org for now)
+        let new_user = NewUser {
+          name: auth0user.name,
+          nickname: auth0user.nickname,
+          email: auth0user.email,
+          status: String::from("active"),
+          org_ids: None,
+          role_ids: None,
+        };
+  
+        // While we figure out what to do with Orgs, each user will have a personal org created when they are first created.
+        // This will help in making sure that portals are coupled to Orgs, and not users.
+        let user_and_org = create_user_with_new_org(
+          ctx.pool.clone(),
+          &ctx.auth0_user_id,
+          new_user.into_db_new_user(
+            ctx
+              .auth0_user_id
+              .to_owned(),
+          ),
+        )
+        .await?;
+  
+        Ok(
+          user_and_org
+            .0
+            .into(),
+        )
+      }
     }
+  }
+
+  pub async fn users_impl(ctx: &GQLContext, user_ids: Vec<Uuid>) -> FieldResult<Vec<User>> {
+    get_users(&ctx.pool, user_ids)
+      .await
+      .map(|db_users| {
+        db_users
+          .into_iter()
+          .map(|db_user| db_user.into())
+          .collect()
+      })
+      .map_err(FieldError::from)
   }
 }
 

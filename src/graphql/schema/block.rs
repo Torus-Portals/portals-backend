@@ -1,5 +1,7 @@
 use chrono::{DateTime, Utc};
-use juniper::{FieldError, FieldResult, GraphQLEnum, GraphQLObject, GraphQLUnion};
+use juniper::{
+  FieldError, FieldResult, GraphQLEnum, GraphQLInputObject, GraphQLObject, GraphQLUnion,
+};
 use serde_json;
 use std::str::FromStr;
 use strum_macros::{Display, EnumString};
@@ -7,25 +9,60 @@ use uuid::Uuid;
 
 use super::blocks::basic_table_block::BasicTableBlock;
 use super::blocks::empty_block::EmptyBlock;
+use super::blocks::integration_block::IntegrationBlock;
+use super::blocks::owner_text_block::OwnerTextBlock;
+use super::blocks::vendor_single_cell_block::VendorSingleCellBlock;
+use super::blocks::vendor_text_block::VendorTextBlock;
+use super::cell::Cell;
+use super::dimension::Dimension;
 use super::Mutation;
 use super::Query;
 use crate::graphql::context::GQLContext;
-use crate::services::db::block_service::{get_block, get_blocks, delete_block, delete_blocks};
 use crate::services::db::block_service::DBBlock;
+use crate::services::db::block_service::DBBlockParts;
+use crate::services::db::block_service::{
+  clean_delete_block, create_block, delete_blocks, get_block, get_blocks, update_block,
+};
 
 #[derive(Debug, GraphQLUnion, Serialize, Deserialize)]
+#[graphql(Context = GQLContext)]
 pub enum GQLBlocks {
-  BasicTable(BasicTableBlock),
   Empty(EmptyBlock),
+  Integration(IntegrationBlock),
+
+  // Owner Blocks
+  OwnerText(OwnerTextBlock),
+  BasicTable(BasicTableBlock),
+
+  // Vendor Blocks
+  VendorText(VendorTextBlock),
+  VendorSingleCell(VendorSingleCellBlock),
 }
 
 #[derive(Debug, Serialize, Deserialize, GraphQLEnum, EnumString, Display)]
 pub enum BlockTypes {
+  #[strum(serialize = "Integration")]
+  Integration,
+
   #[strum(serialize = "BasicTable")]
+  #[graphql(name = "BasicTable")]
   BasicTable,
+
+  #[strum(serialize = "OwnerText")]
+  #[graphql(name = "OwnerText")]
+  OwnerText,
+
+  #[strum(serialize = "VendorText")]
+  #[graphql(name = "VendorText")]
+  VendorText,
+
+  #[strum(serialize = "VendorSingleCell")]
+  #[graphql(name = "VendorSingleCell")]
+  VendorSingleCell,
 }
 
 #[derive(GraphQLObject, Debug, Serialize, Deserialize)]
+#[graphql(Context = GQLContext)]
 pub struct Block {
   pub id: Uuid,
 
@@ -71,6 +108,26 @@ impl From<DBBlock> for Block {
         let b: BasicTableBlock = serde_json::from_value(db_block.block_data).expect("come on");
         GQLBlocks::BasicTable(b)
       }
+      "OwnerText" => {
+        let t: OwnerTextBlock =
+          serde_json::from_value(db_block.block_data).expect("not OwnerText??");
+        GQLBlocks::OwnerText(t)
+      }
+      "VendorText" => {
+        let t: VendorTextBlock =
+          serde_json::from_value(db_block.block_data).expect("not VendorText??");
+        GQLBlocks::VendorText(t)
+      }
+      "Integration" => {
+        let b: IntegrationBlock = serde_json::from_value(db_block.block_data)
+          .expect("Unable to deserialize DBBlock into IntegrationBlock.");
+        GQLBlocks::Integration(b)
+      }
+      "VendorSingleCell" => {
+        let b: VendorSingleCellBlock = serde_json::from_value(db_block.block_data)
+          .expect("Unable to deserialize DBBlock into VendorSingleCell");
+        GQLBlocks::VendorSingleCell(b)
+      }
       &_ => GQLBlocks::Empty(EmptyBlock {
         block_type: String::from("nothing"),
       }),
@@ -98,6 +155,7 @@ impl From<DBBlock> for Block {
   }
 }
 
+#[derive(GraphQLInputObject, Debug, Serialize, Deserialize)]
 pub struct NewBlock {
   pub block_type: BlockTypes,
 
@@ -107,7 +165,47 @@ pub struct NewBlock {
 
   pub egress: String,
 
-  pub block_data: serde_json::Value, // For now the json should be stringified
+  pub block_data: String,
+}
+
+#[derive(GraphQLInputObject, Debug, Serialize, Deserialize)]
+pub struct UpdateBlock {
+  pub id: Uuid,
+
+  pub block_type: BlockTypes,
+
+  #[graphql(description = "For now block_data needs to be stringified")]
+  pub block_data: Option<String>,
+}
+
+#[derive(GraphQLObject, Debug, Serialize, Deserialize)]
+#[graphql(Context = GQLContext)]
+pub struct BlockParts {
+  blocks: Vec<Block>,
+  dimensions: Vec<Dimension>,
+  cells: Vec<Cell>,
+}
+
+impl From<DBBlockParts> for BlockParts {
+  fn from(db_block_parts: DBBlockParts) -> Self {
+    BlockParts {
+      blocks: db_block_parts
+        .blocks
+        .into_iter()
+        .map(|b| b.into())
+        .collect(),
+      dimensions: db_block_parts
+        .dimensions
+        .into_iter()
+        .map(|d| d.into())
+        .collect(),
+      cells: db_block_parts
+        .cells
+        .into_iter()
+        .map(|c| c.into())
+        .collect(),
+    }
+  }
 }
 
 impl Query {
@@ -132,25 +230,33 @@ impl Query {
 }
 
 impl Mutation {
-  // Not using at the moment, due to no good way currently to type a json field.
-  // Will create separate mutations for each block type
-  //   pub async fn create_block(ctx: &GQLContext, new_block: NewBlock) -> FieldResult<Block> {
-  //     ctx
-  //       .db
-  //       .create_block(&ctx.auth0_user_id, new_block.into())
-  //       .await
-  //       .map(|b| b.into())
-  //       .map_err(FieldError::from)
-  //   }
+  pub async fn create_block(ctx: &GQLContext, new_block: NewBlock) -> FieldResult<Block> {
+    create_block(&ctx.pool, &ctx.auth0_user_id, new_block.into())
+      .await
+      .map(|db_block| db_block.into())
+      .map_err(FieldError::from)
+  }
+
+  pub async fn update_block_impl(
+    ctx: &GQLContext,
+    updated_block: UpdateBlock,
+  ) -> FieldResult<Block> {
+    update_block(&ctx.pool, &ctx.auth0_user_id, updated_block.into())
+      .await
+      .map(|db_block| db_block.into())
+      .map_err(FieldError::from)
+  }
 
   pub async fn delete_block(ctx: &GQLContext, block_id: Uuid) -> FieldResult<i32> {
-      delete_block(&ctx.pool, block_id)
+    let local_pool = ctx.pool.clone();
+
+    clean_delete_block(local_pool, &ctx.auth0_user_id, block_id)
       .await
       .map_err(FieldError::from)
   }
 
   pub async fn delete_blocks(ctx: &GQLContext, block_ids: Vec<Uuid>) -> FieldResult<i32> {
-      delete_blocks(&ctx.pool, block_ids)
+    delete_blocks(&ctx.pool, block_ids)
       .await
       .map_err(FieldError::from)
   }

@@ -8,5 +8,6 @@ pub mod structure_service;
 pub mod block_service;
 pub mod dimension_service;
 pub mod cell_service;
+pub mod integration_service;
 
 pub use db::*;

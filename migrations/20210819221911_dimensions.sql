@@ -4,7 +4,7 @@ CREATE TABLE dimensions (
   portal_id UUID NOT NULL,
   name TEXT NOT NULL, 
   dimension_type TEXT NOT NULL,
-  meta jsonb NOT NULL DEFAULT '{}'::jsonb,
+  dimension_data jsonb NOT NULL DEFAULT '{}'::jsonb,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   created_by UUID NOT NULL,
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),

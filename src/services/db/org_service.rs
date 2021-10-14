@@ -9,6 +9,8 @@ pub struct DBOrg {
 
   pub name: String,
 
+  pub personal: bool,
+
   #[serde(rename = "createdAt")]
   pub created_at: DateTime<Utc>,
 
@@ -27,6 +29,7 @@ impl Default for DBOrg {
     DBOrg {
       id: Uuid::new_v4(),
       name: "not_a_real_org".to_string(),
+      personal: false,
       created_at: DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(61, 0), Utc),
       created_by: Uuid::new_v4(),
       updated_at: DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(61, 0), Utc),
@@ -38,6 +41,7 @@ impl Default for DBOrg {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct DBNewOrg {
   pub name: String,
+  pub personal: bool,
 }
 
 // Needs to be scoped to the user's orgs...
@@ -72,11 +76,12 @@ pub async fn create_org<'e>(
     DBOrg,
     r#"
     with _user as (select * from users where auth0id = $1)
-    insert into orgs (name, created_by, updated_by) values ($2, (select id from _user), (select id from _user))
-    returning name, id, created_at, created_by, updated_at, updated_by
+    insert into orgs (name, personal, created_by, updated_by) values ($2, $3, (select id from _user), (select id from _user))
+    returning id, name, personal, created_at, created_by, updated_at, updated_by
     "#,
     auth0id,
-    new_org.name
+    new_org.name,
+    new_org.personal
   )
   .fetch_one(pool)
   .await

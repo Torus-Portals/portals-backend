@@ -1,24 +1,18 @@
-# BUILD
-FROM rust:1.52 as builder
-
-WORKDIR /usr/src/torus-backend
-
+FROM clux/muslrust:1.55.0 as builder
+WORKDIR /build
 COPY . .
 
-RUN cargo build --release
+# run unit tests
+RUN cargo test
+RUN cargo test -- --ignored
 
+# build prod binary
+RUN cargo build --release --target x86_64-unknown-linux-musl
+RUN strip target/x86_64-unknown-linux-musl/release/portals-backend
 
-# RUN
-FROM debian:buster-slim
-
-RUN apt-get update && apt-get -y install openssl postgresql-client-11 ca-certificates
-
-WORKDIR /usr/local/bin/torus-backend
-
-COPY --from=builder /usr/src/torus-backend/target/release/torus-backend ./
-
+# init
+FROM scratch
+COPY --from=builder /build/target/x86_64-unknown-linux-musl/release/portals-backend /
 EXPOSE 8088
-
-EXPOSE 5432
-
-CMD ["./torus-backend"]
+EXPOSE 443
+ENTRYPOINT ["/portals-backend"]

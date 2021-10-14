@@ -1,12 +1,12 @@
 use anyhow::Result;
 use chrono::{DateTime, Utc};
 
-use sqlx::{Executor, Postgres};
+use sqlx::{Executor, PgPool, Postgres};
 use uuid::Uuid;
 
 use crate::{
   graphql::schema::{portalview::NewPortalView, structure::GridStructure},
-  services::db::structure_service::{create_structure, DBNewStructure},
+  services::db::structure_service::{create_structure, DBStructure, DBNewStructure},
 };
 
 #[derive(Debug, Serialize)]
@@ -74,16 +74,17 @@ pub async fn get_portalviews<'e>(
   .map_err(anyhow::Error::from)
 }
 
-pub async fn create_portalview<'e>(
-  pool: impl Executor<'e, Database = Postgres> + Clone,
+pub async fn create_portalview(
+  pool: PgPool,
   auth0_user_id: &str,
   new_portalview: DBNewPortalView,
-) -> Result<DBPortalView> {
+) -> Result<(DBPortalView, DBStructure)> {
+  let mut tx = pool.begin().await?;
+
   // generate the structure in here since every portalview should have a structure
   let structure_data = GridStructure::new();
-  let a = pool.clone();
   let structure = create_structure(
-    a,
+    &mut tx,
     auth0_user_id,
     DBNewStructure {
       structure_type: String::from("Grid"),
@@ -94,7 +95,7 @@ pub async fn create_portalview<'e>(
   )
   .await?;
 
-  sqlx::query_as!(
+  let portal_view = sqlx::query_as!(
     DBPortalView,
     r#"
       with _user as (select * from users where auth0id = $1)
@@ -124,9 +125,13 @@ pub async fn create_portalview<'e>(
     new_portalview.access,
     structure.id
   )
-  .fetch_one(pool)
+  .fetch_one(&mut tx)
   .await
-  .map_err(anyhow::Error::from)
+  .map_err(anyhow::Error::from)?;
+
+  tx.commit().await?;
+
+  Ok((portal_view, structure))
 }
 
 pub async fn delete_portal_portalviews<'e>(

@@ -7,6 +7,7 @@ use sqlx::{PgPool};
 use crate::graphql::loaders::org_loader::{get_org_loader, OrgLoader};
 use crate::graphql::loaders::structure_loader::{get_structure_loader, StructureLoader};
 use crate::services::auth0_service::Auth0Service;
+use crate::services::google_sheets_service::GoogleSheetsService;
 
 pub struct GQLContext {
   pub pool: PgPool,
@@ -19,6 +20,8 @@ pub struct GQLContext {
   pub structure_loader: StructureLoader,
 
   pub auth0_api: Arc<Arc<Mutex<Auth0Service>>>,
+
+  pub google_sheets: Arc<Arc<Mutex<GoogleSheetsService>>>,
 }
 
 impl<'c> juniper::Context for GQLContext {}
@@ -28,6 +31,7 @@ impl GQLContext {
     pool: PgPool,
     auth0_user_id: String,
     auth0_api: Arc<Arc<Mutex<Auth0Service>>>,
+    google_sheets: Arc<Arc<Mutex<GoogleSheetsService>>>
   ) -> Self {
     GQLContext {
       pool: pool.clone(),
@@ -35,6 +39,7 @@ impl GQLContext {
       org_loader: get_org_loader(pool.clone()),
       structure_loader: get_structure_loader(pool.clone()),
       auth0_api,
+      google_sheets
     }
   }
 }

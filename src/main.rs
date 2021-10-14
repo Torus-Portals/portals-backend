@@ -1,125 +1,99 @@
 #[macro_use]
 extern crate serde_derive;
-extern crate serde_json;
-extern crate serde_qs as qs;
+extern crate base64;
 extern crate derive_more;
-
-// #[macro_use]
-// extern crate json_payload_derive;
-
 extern crate futures;
-
 extern crate jsonwebtoken as jwt;
-
 extern crate percent_encoding;
-extern crate url;
-
 extern crate rusoto_core;
 extern crate rusoto_ses;
+extern crate serde_json;
+extern crate serde_qs as qs;
+extern crate url;
 
-extern crate base64;
+mod config;
 
+mod extractors;
 mod graphql;
 mod middleware;
-mod extractors;
+mod routes;
 mod services;
 mod state;
 mod utils;
 
-use std::sync::Arc;
-
+use crate::graphql::{graphql_routes, schema as graphql_schema};
+use crate::routes::general_routes::{get_health, get_info};
+use crate::services::auth0_service::Auth0Service;
+use crate::services::google_sheets_service::{GoogleSheetsService, OAuthService};
+use crate::state::State;
 use actix_cors::Cors;
-use actix_web::{get, web, App, Error, HttpResponse, HttpServer};
-// use base64::encode;
-use dotenv::dotenv;
+use actix_web::{web, App, HttpServer};
 use futures::lock::Mutex;
 use jsonwebtoken::DecodingKey;
-use listenfd::ListenFd;
 use sqlx::postgres::PgPoolOptions;
-
-use crate::graphql::{graphql_routes, schema as graphql_schema};
-use crate::state::State;
-
-use crate::services::auth0_service::Auth0Service;
-
-#[get("/health")]
-pub async fn get_health() -> Result<HttpResponse, Error> {
-  Ok(HttpResponse::Ok().body(String::from("Hello from the other side!")))
-}
+use std::{sync::Arc, time::Duration};
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-  println!("starting server");
-  if cfg!(feature = "local_dev") {
-    println!("In local development!");
-    dotenv().ok();
-  }
+  color_backtrace::install();
+  openssl_probe::init_ssl_cert_env_vars();
+  let config = config::server_config();
 
-  println!("loading logging vars");
-  std::env::set_var("RUST_LOG", "my_errors=debug,actix_web=info");
+  let mut log_builder = env_logger::Builder::new();
+  log_builder.parse_filters(&config.logging_directive);
+  log_builder.init();
 
-  std::env::set_var("RUST_BACKTRACE", "1");
-
-  env_logger::init();
-
-  let db_url = std::env::var("DATABASE_URL").expect("Unable to get DATABASE_URL env var.");
-  println!("db_url: {}", db_url);
-
-  let host = std::env::var("PORTALS_MAIN_HOST").expect("Unable to get PORTALS_MAIN_HOST env var.");
-  println!("host: {}", host);
-
-  println!("Creating db pool");
   let pool = PgPoolOptions::new()
-    .max_connections(5) // TODO: env var this
-    .connect(&db_url)
+    .max_connections(config.database_connection_pool_size)
+    .connect_timeout(Duration::new(config.database_connection_timeout_sec, 0))
+    .connect(&config.database_url)
     .await
-    .unwrap();
+    .expect("Error connecting to database");
 
   let state = State::new(pool.clone());
   let auth_service = Arc::new(Mutex::new(Auth0Service::new()));
+  let oauth_service = Arc::new(Mutex::new(OAuthService::new()));
+  let google_sheets_service = Arc::new(Mutex::new(GoogleSheetsService::new()));
 
-  let mut listenfd = ListenFd::from_env();
-  let mut server = HttpServer::new(move || {
-    let client_secret =
-      std::env::var("AUTH0_API_SIGNING_SECRET").expect("Unable to get AUTH0_API_SIGNING_SECRET.");
+  let server = HttpServer::new(move || {
+    let decoding_key = DecodingKey::from_secret(
+      config
+        .auth0
+        .api_signing_secret
+        .as_bytes(),
+    )
+    .into_static();
 
-    // let b64_client_secret = encode(&client_secret);
-
-    let decoding_key = DecodingKey::from_secret(client_secret.as_bytes()).into_static();
+    let mut cors = Cors::default()
+      .allowed_methods(vec!["GET", "POST", "PATCH", "OPTIONS"])
+      .allow_any_header()
+      .supports_credentials();
+    for origin in &config.allowed_origins {
+      cors = cors.allowed_origin(origin);
+    }
 
     App::new()
       .app_data(web::Data::new(state.clone()))
       .app_data(web::Data::new(graphql_schema::create_schema()))
       .app_data(web::Data::new(auth_service.clone()))
+      .app_data(web::Data::new(oauth_service.clone()))
+      .app_data(web::Data::new(google_sheets_service.clone()))
       .app_data(decoding_key)
-      .wrap(
-        Cors::default()
-          .allowed_origin("http://localhost:8088") // TODO: env var this
-          .allowed_origin("https://local.portals-dev.rocks") // TODO: env var this
-          .allowed_methods(vec!["GET", "POST", "PATCH", "OPTIONS"])
-          .allow_any_header()
-          .supports_credentials(),
-      )
+      .wrap(cors)
+      // <response status code> for <path> <remote/proxy ip address> in <seconds>s
+      .wrap(actix_web::middleware::Logger::new("%s for %U %a in %Ts"))
       .service(graphql_routes::get_graphql_routes())
       .service(graphql_routes::get_graphql_dev_routes())
       .service(get_health)
+      .service(get_info)
+    // .service(google_sheets_service::add_data_source)
+    // .service(google_sheets_service::exchange_token)
+    // .service(google_sheets_service::get_sheets_value)
   });
 
-  server = if let Some(listener) = listenfd
-    .take_tcp_listener(0)
-    .unwrap()
-  {
-    println!("re-listening...");
-    server
-      .listen(listener)
-      .unwrap()
-  } else {
-    println!("Binding for the very first time!");
-    server
-      .bind(host)
-      .unwrap()
-  };
-
-  println!("Server created");
-  server.run().await
+  let socket_address = format!("0.0.0.0:{}", config.tcp_port);
+  server
+    .bind(socket_address)?
+    .run()
+    .await
 }

@@ -1,7 +1,7 @@
 CREATE TABLE portals (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
-  org UUID NOT NULL,
+  org_id UUID NOT NULL,
   owner_ids UUID[] NOT NULL DEFAULT '{}'::UUID[],
   vendor_ids UUID[] NOT NULL DEFAULT '{}'::UUID[],
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
