@@ -14,6 +14,7 @@ use super::Mutation;
 use super::Query;
 
 use super::dimensions::google_sheets_column_dimension::GoogleSheetsColumnDimension;
+use super::dimensions::google_sheets_dimension::GoogleSheetsDimension;
 use super::dimensions::google_sheets_row_dimension::GoogleSheetsRowDimension;
 use super::dimensions::{
   basic_table_column_dimension::BasicTableColumnDimension,
@@ -47,6 +48,10 @@ pub enum DimensionTypes {
   #[graphql(name = "GoogleSheetsColumn")]
   GoogleSheetsColumn,
 
+  #[strum(serialize = "GoogleSheets")]
+  #[graphql(name = "GoogleSheets")]
+  GoogleSheets,
+
   #[strum(serialize = "Empty")]
   #[graphql(name = "Empty")]
   Empty,
@@ -60,6 +65,7 @@ pub enum GQLDimensions {
   OwnerText(OwnerTextDimension),
   GoogleSheetsRow(GoogleSheetsRowDimension),
   GoogleSheetsColumn(GoogleSheetsColumnDimension),
+  GoogleSheets(GoogleSheetsDimension),
   Empty(EmptyDimension),
 }
 
@@ -123,6 +129,11 @@ impl From<DBDimension> for Dimension {
         let d: GoogleSheetsColumnDimension = serde_json::from_value(db_dimension.dimension_data)
           .expect("Can't deserialize GoogleSheetsColumnDimension");
         GQLDimensions::GoogleSheetsColumn(d)
+      }
+      "GoogleSheets" => {
+        let d: GoogleSheetsDimension = serde_json::from_value(db_dimension.dimension_data)
+          .expect("Can't deserialize GoogleSheetsDimension");
+        GQLDimensions::GoogleSheets(d)
       }
       "Empty" => {
         let d: EmptyDimension = serde_json::from_value(db_dimension.dimension_data)

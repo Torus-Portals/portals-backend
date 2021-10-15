@@ -4,6 +4,7 @@ use crate::graphql::schema::{
     basic_table_column_dimension::BasicTableColumnDimension,
     basic_table_row_dimension::BasicTableRowDimension, empty_dimension::EmptyDimension,
     google_sheets_column_dimension::GoogleSheetsColumnDimension,
+    google_sheets_dimension::GoogleSheetsDimension,
     google_sheets_row_dimension::GoogleSheetsRowDimension,
     owner_text_dimension::OwnerTextDimension, portal_member_dimension::PortalMemberDimension,
   },
@@ -91,6 +92,13 @@ impl From<NewDimension> for DBNewDimension {
           .expect("Unable to parse GoogleSheetsColumn data");
         serde_json::to_value(dim)
           .expect("Unable to convert GoogleSheetsColumn back to serde_json::Value")
+      }
+      // Placeholder Dimension for now to fit into VendorText
+      DimensionTypes::GoogleSheets => {
+        let dim: GoogleSheetsDimension = serde_json::from_str(&new_dim.dimension_data)
+          .expect("Unable to parse GoogleSheetsDimension data");
+        serde_json::to_value(dim)
+          .expect("Unable to convert GoogleSheetsDimension back to serde_json::Value")
       }
       DimensionTypes::Empty => {
         let dim: EmptyDimension = serde_json::from_str(&new_dim.dimension_data)

@@ -1,4 +1,4 @@
-use juniper::{EmptySubscription, FieldResult, RootNode, graphql_object};
+use juniper::{graphql_object, EmptySubscription, FieldResult, RootNode};
 use uuid::Uuid;
 
 pub mod block;
@@ -16,24 +16,26 @@ pub mod role;
 pub mod structure;
 pub mod user;
 
-use self::integrations::google_sheets::GoogleSheetsAuthorization;
+use self::integrations::google_sheets::{
+  GoogleSheetsAuthorization, GoogleSheetsSheetDimensions, GoogleSheetsSpreadsheet,
+};
 
 use super::context::GQLContext;
-use block::{Block, NewBlock, BlockParts, UpdateBlock};
+use block::{Block, BlockParts, NewBlock, UpdateBlock};
 use blocks::{
   basic_table_block::NewBasicTableBlock, integration_block::NewIntegrationBlock,
   owner_text_block::NewOwnerTextBlock, vendor_text_block::NewVendorTextBlock,
 };
 use cell::{Cell, NewCell, UpdateCell};
 use dimension::{Dimension, NewDimension};
+use integration::{Integration, NewIntegration};
+use integrations::google_sheets::GoogleSheetsRedirectURI;
 use org::{NewOrg, Org};
-use portal::{Portal, PortalParts, NewPortal, PortalInviteParams, UpdatePortal};
+use portal::{NewPortal, Portal, PortalInviteParams, PortalParts, UpdatePortal};
 use portalview::{NewPortalView, PortalView, PortalViewParts};
 use role::{NewRole, Role};
 use structure::{Structure, UpdateStructure};
 use user::{NewUser, UpdateUser, User};
-use integration::{Integration, NewIntegration};
-use integrations::google_sheets::GoogleSheetsRedirectURI;
 
 pub type Schema = RootNode<'static, Query, Mutation, EmptySubscription<GQLContext>>;
 pub struct Query;
@@ -166,6 +168,55 @@ impl Query {
   async fn google_sheets_redirect_uri(state: String) -> FieldResult<GoogleSheetsRedirectURI> {
     Query::google_sheets_redirect_uri_impl(state).await
   }
+
+  async fn google_sheets_list_spreadsheets(
+    ctx: &GQLContext,
+    integration_id: Uuid,
+  ) -> FieldResult<Vec<GoogleSheetsSpreadsheet>> {
+    Query::google_sheets_list_spreadsheets_impl(ctx, integration_id).await
+  }
+
+  async fn google_sheets_list_spreadsheets_sheets_names(
+    ctx: &GQLContext,
+    integration_id: Uuid,
+    spreadsheet_id: String,
+  ) -> FieldResult<Vec<String>> {
+    Query::google_sheets_list_spreadsheets_sheets_names_impl(ctx, integration_id, spreadsheet_id)
+      .await
+  }
+
+  async fn google_sheets_fetch_sheet_dimensions(
+    ctx: &GQLContext,
+    integration_id: Uuid,
+    spreadsheet_id: String,
+    sheet_name: String,
+  ) -> FieldResult<GoogleSheetsSheetDimensions> {
+    Query::google_sheets_fetch_sheet_dimensions_impl(
+      ctx,
+      integration_id,
+      spreadsheet_id,
+      sheet_name,
+    )
+    .await
+  }
+
+  // TODO: this really shouldn't be a query, need to decouple
+  async fn google_sheets_fetch_sheet_value(
+    ctx: &GQLContext,
+    integration_id: Uuid,
+    spreadsheet_id: String,
+    sheet_name: String,
+    range: String,
+  ) -> FieldResult<Dimension> {
+    Query::google_sheets_fetch_sheet_values_impl(
+      ctx,
+      integration_id,
+      spreadsheet_id,
+      sheet_name,
+      range,
+    )
+    .await
+  }
 }
 
 pub struct Mutation;
@@ -283,7 +334,10 @@ impl Mutation {
 
   // Dimension
 
-  async fn create_dimension(ctx: &GQLContext, new_dimension: NewDimension) -> FieldResult<Dimension> {
+  async fn create_dimension(
+    ctx: &GQLContext,
+    new_dimension: NewDimension,
+  ) -> FieldResult<Dimension> {
     Mutation::create_dimension_impl(ctx, new_dimension).await
   }
 
@@ -319,8 +373,12 @@ impl Mutation {
 
   // Specific Integrations
 
-  async fn authorize_google_sheets(ctx: &GQLContext, auth: GoogleSheetsAuthorization) -> FieldResult<bool> {
-    Mutation::authorize_google_sheets_impl(ctx, auth).await
+  async fn authorize_google_sheets(
+    ctx: &GQLContext,
+    portal_id: Uuid,
+    auth: GoogleSheetsAuthorization,
+  ) -> FieldResult<bool> {
+    Mutation::authorize_google_sheets_impl(ctx, portal_id, auth).await
   }
 }
 
