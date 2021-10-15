@@ -7,7 +7,6 @@ use strum_macros::{Display, EnumString};
 use uuid::Uuid;
 
 use crate::graphql::context::GQLContext;
-use crate::services::db::dimension_service::{create_dimensions, DBDimension, DBNewDimension};
 use crate::services::db::integration_service::{
   create_integration, get_integration, get_integrations, DBIntegration, DBNewIntegration,
 };
@@ -48,41 +47,6 @@ pub struct Integration {
 
   pub updated_by: Uuid,
 }
-
-// impl Integration {
-// TODO: Allow for fetching of >1 cells (possibly return Vec<Vec<String>> instead)
-// pub async fn fetch_value(&self, dims: Vec<String>) -> FieldResult<String> {
-// match &self.integration_data {
-//   IntegrationData::GoogleSheets(data) => {
-//     let mut dims = dims.into_iter();
-//     let row_dim = dims.next().expect("Row dimension to query not found");
-//     let col_dim = dims.next().expect("Column dimension to query not found");
-
-//     let row_idx = data
-//       .row_dimensions
-//       .iter()
-//       .position(|s| s == &row_dim)
-//       .expect(&format!("Unable to find row dimension: {}", row_dim));
-
-//     let col_idx = data
-//       .col_dimensions
-//       .iter()
-//       .position(|s| s == &col_dim)
-//       .expect(&format!("Unable to find column dimension: {}", col_dim));
-
-//     let sheets_obj = fetch_sheets_value(
-//       data.sheet_url.clone(),
-//       data.sheet_name.clone(),
-//       Some(format!("R{}C{}", row_idx + 2, col_idx + 1)),
-//     )
-//     .await;
-
-//     Ok(sheets_obj.value_ranges[0].values[0][0].clone())
-//   }
-// }
-//     Ok(String::from("stubbed out"))
-//   }
-// }
 
 impl From<DBIntegration> for Integration {
   fn from(db_integration: DBIntegration) -> Self {

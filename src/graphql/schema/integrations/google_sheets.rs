@@ -11,13 +11,22 @@ use crate::graphql::schema::{Mutation, Query};
 use crate::services::db::cell_service::{create_cell, DBNewCell};
 use crate::services::db::dimension_service::{create_dimension, DBDimension, DBNewDimension};
 use crate::services::db::integration_service::{create_integration, get_integration};
-use crate::services::google_sheets_service::{
-  GoogleSheetsSheetDimensions, GoogleSheetsSpreadsheet,
-};
 
 #[derive(GraphQLObject, Debug, Serialize, Deserialize)]
 pub struct GoogleSheetsRedirectURI {
   pub redirect_uri: String,
+}
+
+#[derive(GraphQLObject, Debug, Deserialize)]
+pub struct GoogleSheetsSpreadsheet {
+  pub id: String,
+  pub name: String,
+}
+
+#[derive(GraphQLObject, Debug, Deserialize)]
+pub struct GoogleSheetsSheetDimensions {
+  pub row_dimensions: Vec<String>,
+  pub col_dimensions: Vec<String>,
 }
 
 #[derive(GraphQLInputObject, Debug, Serialize, Deserialize)]
@@ -31,8 +40,9 @@ impl Query {
   ) -> FieldResult<GoogleSheetsRedirectURI> {
     let config = config::server_config();
 
+    let scopes = config.oauth.scopes.join("+");
     let redirect_uri = format!(
-      "{}?client_id={}&redirect_uri={}&response_type=code&scope={}+{}+openid+email&prompt=consent&access_type=offline&state={}",
+      "{}?client_id={}&redirect_uri={}&response_type=code&scope={}&prompt=consent&access_type=offline&state={}",
       config
         .oauth
         .auth_url,
@@ -42,8 +52,7 @@ impl Query {
       config
         .oauth
         .auth_redirect_url,
-      config.oauth.sheets_scope,
-      config.oauth.drive_scope,
+      scopes,
       state
     );
 

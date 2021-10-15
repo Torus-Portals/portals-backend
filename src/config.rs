@@ -35,8 +35,16 @@ pub struct OAuth {
   pub auth_url: String,
   pub token_url: String,
   pub auth_redirect_url: String,
-  pub drive_scope: String,
-  pub sheets_scope: String,
+  pub scopes: Vec<String>,
+  pub endpoints: GoogleEndpoints,
+}
+
+#[derive(Deserialize)]
+pub struct GoogleEndpoints {
+  pub sheets_read_url: String,
+  pub spreadsheets_sheets_url: String,
+  pub drive_files_url: String,
+  pub openid_url: String,
 }
 
 fn init() -> Config {

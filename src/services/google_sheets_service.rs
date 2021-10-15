@@ -7,22 +7,14 @@ use chrono::Utc;
 use futures::lock::Mutex;
 use juniper::GraphQLObject;
 use reqwest;
-use serde::Deserialize;
+use serde::{Deserialize, Deserializer};
 use serde_json::Value;
 use uuid::Uuid;
 
 use crate::config::{self, CONFIG};
-
-const SHEETS_READ_URL: &str =
-  "https://sheets.googleapis.com/v4/spreadsheets/spreadsheetId/values:batchGet";
-const SPREADSHEET_SHEETS_URL: &str = "https://sheets.googleapis.com/v4/spreadsheets/spreadsheetId";
-const DRIVE_FILES_URL: &str = "https://www.googleapis.com/drive/v3/files";
-const OPENID_URL: &str = "https://openidconnect.googleapis.com/v1/userinfo";
-
-fn get_spreadsheet_id(sheet_url: &str) -> &str {
-  let mut split_iter = sheet_url.split("/").skip(5);
-  split_iter.next().unwrap()
-}
+use crate::graphql::schema::integrations::google_sheets::{
+  GoogleSheetsSheetDimensions, GoogleSheetsSpreadsheet,
+};
 
 #[derive(Deserialize)]
 struct OAuthRequest {
@@ -45,14 +37,6 @@ struct OAuthRefreshTokenResponse {
   expires_in: i64,
   scope: String,
   token_type: String,
-}
-
-#[derive(Deserialize)]
-pub struct GoogleSheetsParams {
-  sheet_url: String,
-  sheet_name: Option<String>,
-  // Allow for pulling of entire sheet
-  range: Option<String>,
 }
 
 #[derive(Clone, Debug)]
@@ -162,16 +146,50 @@ pub struct GoogleSheetsToken {
   expires_in: i64,
 }
 
-#[derive(GraphQLObject, Debug, Deserialize)]
-pub struct GoogleSheetsSpreadsheet {
-  id: String,
-  name: String,
+#[derive(Debug, Deserialize)]
+pub struct GoogleUser {
+  email: String,
 }
 
-#[derive(GraphQLObject, Debug, Deserialize)]
-pub struct GoogleSheetsSheetDimensions {
-  row_dimensions: Vec<String>,
-  col_dimensions: Vec<String>,
+#[derive(Debug, Deserialize)]
+pub struct GoogleDriveSpreadsheets {
+  files: Vec<GoogleSheetsSpreadsheet>,
+}
+
+#[derive(Debug)]
+pub struct GoogleSpreadsheetSheets {
+  sheets: Vec<String>,
+}
+
+impl<'de> Deserialize<'de> for GoogleSpreadsheetSheets {
+  fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+  where
+    D: Deserializer<'de>,
+  {
+    #[derive(Deserialize)]
+    struct OuterSheets {
+      sheets: Vec<SheetProperties>,
+    }
+
+    #[derive(Deserialize)]
+    struct SheetProperties {
+      properties: InnerProperties,
+    }
+
+    #[derive(Deserialize)]
+    struct InnerProperties {
+      title: String,
+    }
+
+    let helper = OuterSheets::deserialize(deserializer)?;
+    Ok(GoogleSpreadsheetSheets {
+      sheets: helper
+        .sheets
+        .into_iter()
+        .map(|p| p.properties.title)
+        .collect(),
+    })
+  }
 }
 
 pub struct GoogleSheetsService {
@@ -184,13 +202,6 @@ impl GoogleSheetsService {
       tokens: HashMap::new(),
     }
   }
-
-  // pub fn exchange_code(&mut self, code: &str) -> Result<bool> {
-  //   //
-  //   self.codes.push(code.to_owned());
-
-  //   Ok(true)
-  // }
 
   pub async fn exchange_code(&self, code: String) -> Result<GoogleSheetsToken> {
     let oauth_config = &CONFIG.get().unwrap().oauth;
@@ -210,8 +221,6 @@ impl GoogleSheetsService {
       .send()
       .await?;
 
-    // let resp_string = resp.text().await?;
-    // dbg!(&resp_string);
     // TODO: store the token_resp locally so that it may be used again.
     //       need to figure out what the best way to look up the token will be.
     //       Maybe the portal id? Maybe this will be tied to an instance of an integration?
@@ -243,56 +252,38 @@ impl GoogleSheetsService {
   }
 
   pub async fn get_user_email(&self, gsheets_token: &GoogleSheetsToken) -> Result<String> {
+    let config = config::server_config();
     let client = reqwest::Client::new();
 
     let resp = client
-      .get(OPENID_URL)
+      .get(config.oauth.endpoints.openid_url.as_str())
       .bearer_auth(gsheets_token.access_token.clone())
       .send()
       .await?;
 
-    let resp_string = resp.text().await?;
-    let resp_value: Value = serde_json::from_str(&resp_string)?;
+    let google_user: GoogleUser = resp.json().await?;
 
-    Ok(resp_value["email"].as_str().unwrap_or("").to_string())
+    Ok(google_user.email.clone())
   }
 
   pub async fn list_spreadsheets(
     &self,
     integration_id: Uuid,
   ) -> Result<Vec<GoogleSheetsSpreadsheet>> {
+    let config = config::server_config();
     let client = reqwest::Client::new();
 
     let token = self.get_token(integration_id).await?;
     let resp = client
-      .get(DRIVE_FILES_URL)
+      .get(config.oauth.endpoints.drive_files_url.as_str())
       .bearer_auth(token.access_token.clone())
       .query(&[("q", "mimeType='application/vnd.google-apps.spreadsheet'")])
       .send()
       .await?;
 
-    let resp_string = resp.text().await?;
-    let resp_value: Value = serde_json::from_str(&resp_string)?;
-    let resp_files = resp_value["files"]
-      .as_array()
-      .cloned()
-      .unwrap_or_else(|| Vec::new());
-    let spreadsheet_names: Vec<String> = resp_files
-      .iter()
-      .map(|value| value["name"].as_str().unwrap_or("").to_string())
-      .collect();
-    let spreadsheet_ids: Vec<String> = resp_files
-      .iter()
-      .map(|value| value["id"].as_str().unwrap_or("").to_string())
-      .collect();
+    let gdrive_files: GoogleDriveSpreadsheets = resp.json().await?;
 
-    Ok(
-      spreadsheet_names
-        .into_iter()
-        .zip(spreadsheet_ids.into_iter())
-        .map(|(name, id)| GoogleSheetsSpreadsheet { name, id })
-        .collect(),
-    )
+    Ok(gdrive_files.files)
   }
 
   pub async fn list_spreadsheet_sheets_names(
@@ -300,30 +291,25 @@ impl GoogleSheetsService {
     integration_id: Uuid,
     spreadsheet_id: String,
   ) -> Result<Vec<String>> {
+    let config = config::server_config();
     let client = reqwest::Client::new();
 
     let token = self.get_token(integration_id).await?;
     let resp = client
-      .get(SPREADSHEET_SHEETS_URL.replace("spreadsheetId", spreadsheet_id.as_str()))
+      .get(
+        config
+          .oauth
+          .endpoints
+          .spreadsheets_sheets_url
+          .replace("spreadsheetId", spreadsheet_id.as_str()),
+      )
       .bearer_auth(token.access_token.clone())
       .send()
       .await?;
 
-    let resp_string = resp.text().await?;
-    let spreadsheet: Value = serde_json::from_str(&resp_string)?;
-    let sheet_names: Vec<String> = spreadsheet["sheets"]
-      .as_array()
-      .unwrap_or(&Vec::new())
-      .into_iter()
-      .map(|sheet| {
-        sheet["properties"]["title"]
-          .as_str()
-          .unwrap_or("")
-          .to_string()
-      })
-      .collect();
+    let sheets: GoogleSpreadsheetSheets = resp.json().await?;
 
-    Ok(sheet_names)
+    Ok(sheets.sheets)
   }
 
   pub async fn fetch_sheet_dimensions(
@@ -332,18 +318,25 @@ impl GoogleSheetsService {
     spreadsheet_id: String,
     sheet_name: String,
   ) -> Result<GoogleSheetsSheetDimensions> {
+    let config = config::server_config();
     let client = reqwest::Client::new();
 
     let token = self.get_token(integration_id).await?;
     let resp = client
-      .get(SHEETS_READ_URL.replace("spreadsheetId", spreadsheet_id.as_str()))
+      .get(
+        config
+          .oauth
+          .endpoints
+          .sheets_read_url
+          .replace("spreadsheetId", spreadsheet_id.as_str()),
+      )
       .bearer_auth(token.access_token.clone())
       .query(&[("ranges", sheet_name)])
       .send()
       .await?;
 
-    let resp_string = resp.text().await?;
-    let sheet: SheetsObject = serde_json::from_str(&resp_string)?;
+    let sheet: SheetsObject = resp.json().await?;
+    dbg!(&sheet);
 
     let row_dimensions: Vec<String> = sheet.value_ranges[0]
       .values
@@ -365,164 +358,26 @@ impl GoogleSheetsService {
     spreadsheet_id: String,
     sheet_range: String,
   ) -> Result<String> {
+    let config = config::server_config();
     let client = reqwest::Client::new();
 
     let token = self.get_token(integration_id).await?;
     let resp = client
-      .get(SHEETS_READ_URL.replace("spreadsheetId", spreadsheet_id.as_str()))
+      .get(
+        config
+          .oauth
+          .endpoints
+          .sheets_read_url
+          .replace("spreadsheetId", spreadsheet_id.as_str()),
+      )
       .bearer_auth(token.access_token.clone())
       .query(&[("ranges", sheet_range)])
       .send()
       .await?;
 
-    let resp_string = resp.text().await?;
-    let sheet: SheetsObject = serde_json::from_str(&resp_string)?;
+    let sheet: SheetsObject = resp.json().await?;
+    dbg!(&sheet);
 
     Ok(sheet.value_ranges[0].values[0][0].clone())
   }
 }
-
-// // Wrapper around GET request to endpoint -- for external services
-// pub async fn fetch_sheets_value(
-//   sheet_url: String,
-//   sheet_name: String,
-//   range: Option<String>,
-// ) -> SheetsObject {
-//   let client = reqwest::Client::new();
-//   let mut req = client
-//     .get("http://localhost:8088/get_sheets_value")
-//     .query(&[("sheet_url", sheet_url), ("sheet_name", sheet_name)]);
-
-//   // If no range argument provided, fetches all cells in entire sheet.
-//   if let Some(range_str) = range.as_ref() {
-//     req = req.query(&[("range", range_str.as_str())]);
-//   }
-
-//   let sheet = req.send().await.unwrap();
-
-//   serde_json::from_str(&sheet.text().await.unwrap()).unwrap()
-// }
-
-// #[get("/get_sheets_value")]
-// pub async fn get_sheets_value(
-//   data: web::Data<Arc<Mutex<OAuthService>>>,
-//   params: web::Query<GoogleSheetsParams>,
-// ) -> HttpResponse {
-//   let sheet_url = SHEETS_READ_URL.replace(
-//     "spreadsheetId",
-//     get_spreadsheet_id(params.sheet_url.as_str()),
-//   );
-//   let client = reqwest::Client::new();
-//   let token = data
-//     .lock()
-//     .await
-//     .get_token()
-//     .await
-//     .expect("No access token found, please authenticate before querying.");
-//   let sheet_name = params.sheet_name.clone().unwrap_or("Sheet1".to_string());
-//   let range = if let Some(range) = params.range.as_ref() {
-//     format!("{}!{}", sheet_name, range)
-//   } else {
-//     sheet_name
-//   };
-
-//   let resp = client
-//     .get(sheet_url)
-//     .bearer_auth(token)
-//     .query(&[("ranges", range), ("majorDimension", "ROWS".to_string())])
-//     .send()
-//     .await
-//     .unwrap();
-
-//   let text_resp = resp.text().await.unwrap();
-//   // let sheets_obj: SheetsObject = serde_json::from_str(&text_resp).unwrap();
-//   // let google_sheet: GoogleRowSheet = sheets_obj.into();
-
-//   HttpResponse::Ok().body(text_resp)
-// }
-
-// #[get("/get_sheets")]
-// pub async fn get_sheets(
-//   data: web::Data<Arc<Mutex<OAuthService>>>,
-//   params: web::Query<GoogleSheetsParams>,
-// ) -> HttpResponse {
-//   let sheet_url = SPREADSHEET_SHEETS_URL.replace(
-//     "spreadsheetId",
-//     get_spreadsheet_id(params.sheet_url.as_str()),
-//   );
-//   let client = reqwest::Client::new();
-//   let token = data
-//     .lock()
-//     .await
-//     .get_token()
-//     .await
-//     .expect("No access token found, please authenticate before querying.");
-
-//   let resp = client
-//     .get(sheet_url)
-//     .bearer_auth(token)
-//     .send()
-//     .await
-//     .unwrap();
-
-//   let spreadsheet_value: Value =
-//     serde_json::from_str(&resp.text().await.unwrap()).expect("Unable to parse JSON response.");
-//   let sheet_names: Vec<Value> = spreadsheet_value["sheets"]
-//     .as_array()
-//     .unwrap_or(&Vec::new())
-//     .into_iter()
-//     .map(|sheet| sheet["properties"]["title"].clone())
-//     .collect();
-
-//   HttpResponse::Ok().body(serde_json::to_vec(&sheet_names).unwrap())
-// }
-
-// Endpoint for internal exchange of token with Google's server after obtaining authorization code
-// #[get("/auth")]
-// async fn exchange_token(
-//   data: web::Data<Arc<Mutex<OAuthService>>>,
-//   params: web::Query<OAuthRequest>,
-// ) -> HttpResponse {
-//   let mut oauth = data.lock().await;
-//   let _token = if let Some(auth_code) = &params.code {
-//     oauth.fetch_token(auth_code.to_owned()).await.unwrap()
-//   } else {
-//     oauth.get_token().await.unwrap()
-//   };
-//   // let state = CsrfToken::new(params.state.cloned());
-
-//   // HttpResponse::Ok().body(serde_json::to_string(&token).unwrap())
-//   // TODO: Redirect to appropriate page resource (depending on front-end)
-//   HttpResponse::Found()
-//     .append_header((reqwest::header::LOCATION, "https://www.portals-dev.rocks"))
-//     .finish()
-// }
-
-// // Handler for adding new data sources
-// #[get("/add")]
-// pub async fn add_data_source(data: web::Data<Arc<Mutex<OAuthService>>>) -> HttpResponse {
-//   let mut oauth = data.lock().await;
-//   let oauth_config = &CONFIG.get().unwrap().oauth;
-
-//   match oauth.get_token().await {
-//     Ok(_token) => HttpResponse::Found()
-//       .append_header((
-//         reqwest::header::LOCATION,
-//         oauth_config.auth_redirect_url.clone(),
-//       ))
-//       .finish(),
-//     Err(_) => {
-//       let authorize_url = format!(
-//         "{}?client_id={}&redirect_uri={}&response_type=code&scope={}&access_type=offline",
-//         oauth_config.auth_url,
-//         oauth_config.client_id,
-//         oauth_config.auth_redirect_url,
-//         oauth_config.scope,
-//       );
-
-//       HttpResponse::Found()
-//         .append_header((reqwest::header::LOCATION, authorize_url))
-//         .finish()
-//     }
-//   }
-// }

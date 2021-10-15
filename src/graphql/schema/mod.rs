@@ -1,4 +1,4 @@
-use juniper::{EmptySubscription, FieldResult, RootNode, graphql_object};
+use juniper::{graphql_object, EmptySubscription, FieldResult, RootNode};
 use uuid::Uuid;
 
 pub mod block;
@@ -16,14 +16,12 @@ pub mod role;
 pub mod structure;
 pub mod user;
 
-use crate::services::google_sheets_service::{
-  GoogleSheetsSheetDimensions, GoogleSheetsSpreadsheet,
+use self::integrations::google_sheets::{
+  GoogleSheetsAuthorization, GoogleSheetsSheetDimensions, GoogleSheetsSpreadsheet,
 };
 
-use self::integrations::google_sheets::GoogleSheetsAuthorization;
-
 use super::context::GQLContext;
-use block::{Block, NewBlock, BlockParts, UpdateBlock};
+use block::{Block, BlockParts, NewBlock, UpdateBlock};
 use blocks::{
   basic_table_block::NewBasicTableBlock, integration_block::NewIntegrationBlock,
   owner_text_block::NewOwnerTextBlock, vendor_text_block::NewVendorTextBlock,
@@ -336,7 +334,10 @@ impl Mutation {
 
   // Dimension
 
-  async fn create_dimension(ctx: &GQLContext, new_dimension: NewDimension) -> FieldResult<Dimension> {
+  async fn create_dimension(
+    ctx: &GQLContext,
+    new_dimension: NewDimension,
+  ) -> FieldResult<Dimension> {
     Mutation::create_dimension_impl(ctx, new_dimension).await
   }
 
