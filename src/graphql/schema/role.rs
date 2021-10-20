@@ -3,7 +3,7 @@ use juniper::{
   FieldError, FieldResult, GraphQLEnum, GraphQLInputObject, GraphQLObject, GraphQLUnion,
 };
 use std::str::FromStr;
-use strum_macros::{EnumString, ToString};
+use strum_macros::{EnumString, Display};
 use uuid::Uuid;
 
 use crate::graphql::context::GQLContext;
@@ -12,7 +12,7 @@ use crate::services::db::role_service::{DBNewRole, DBRole, get_role, create_role
 use super::Query;
 use super::Mutation;
 
-#[derive(Debug, Serialize, Deserialize, GraphQLEnum, EnumString, ToString)]
+#[derive(Debug, Serialize, Deserialize, GraphQLEnum, EnumString, Display)]
 pub enum RoleTypes {
   System,
   Org,

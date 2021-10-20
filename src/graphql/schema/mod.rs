@@ -1,6 +1,10 @@
 use juniper::{EmptySubscription, FieldResult, RootNode, graphql_object};
 use uuid::Uuid;
 
+pub mod org;
+pub mod project;
+pub mod dashboard;
+pub mod page;
 pub mod block;
 pub mod blocks;
 pub mod cell;
@@ -9,7 +13,6 @@ pub mod dimension;
 pub mod dimensions;
 pub mod integration;
 pub mod integrations;
-pub mod org;
 pub mod portal;
 pub mod portalview;
 pub mod role;
@@ -27,6 +30,8 @@ use blocks::{
 use cell::{Cell, NewCell, UpdateCell};
 use dimension::{Dimension, NewDimension};
 use org::{NewOrg, Org};
+use project::{Project};
+use dashboard::{Dashboard};
 use portal::{Portal, PortalParts, NewPortal, PortalInviteParams, UpdatePortal};
 use portalview::{NewPortalView, PortalView, PortalViewParts};
 use role::{NewRole, Role};
@@ -75,6 +80,18 @@ impl Query {
 
   async fn role(ctx: &GQLContext, role_id: Uuid) -> FieldResult<Role> {
     Query::role_impl(ctx, role_id).await
+  }
+
+  // Project
+
+  async fn projects(ctx: &GQLContext) -> FieldResult<Vec<Project>> {
+    Query::projects_impl(ctx).await
+  }
+
+  // Dashboard
+
+  async fn dashboards(ctx: &GQLContext, project_id: Uuid) -> FieldResult<Vec<Dashboard>> {
+    Query::dashboards_impl(ctx, project_id).await
   }
 
   // Portal

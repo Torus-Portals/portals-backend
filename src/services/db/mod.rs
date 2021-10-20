@@ -1,5 +1,8 @@
 pub mod db;
 pub mod org_service;
+pub mod project_service;
+pub mod dashboard_service;
+pub mod page_service;
 pub mod user_service;
 pub mod role_service;
 pub mod portal_service;
