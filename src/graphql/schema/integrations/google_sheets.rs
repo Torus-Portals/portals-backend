@@ -81,6 +81,23 @@ impl Query {
     )
   }
 
+  pub async fn google_sheets_import_data_impl(
+    ctx: &GQLContext,
+    integration_id: Uuid,
+    spreadsheet_id: String,
+    sheet_name: String,
+  ) -> FieldResult<bool> {
+    let gs = ctx.google_sheets.lock().await;
+
+    let config_data = gs
+      .get_sheets_meltano_config(integration_id, spreadsheet_id, sheet_name)
+      .await?;
+    let meltano = ctx.meltano.lock().await;
+    meltano.extract_load(config_data).await?;
+
+    Ok(true)
+  }
+
   pub async fn google_sheets_fetch_sheet_dimensions_impl(
     ctx: &GQLContext,
     integration_id: Uuid,

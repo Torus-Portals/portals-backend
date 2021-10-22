@@ -15,6 +15,7 @@ actix-web = "4.0.0-beta.9"
 actix-web-codegen = "0.5.0-beta.4"
 actix-web-httpauth = "0.6.0-beta.2"
 anyhow = "1.0.44"
+async-process = "1.2.0"
 async-trait = "0.1.51"
 base64 = "0.13.0"
 chrono = {version = "0.4.19", features = ["serde"]}

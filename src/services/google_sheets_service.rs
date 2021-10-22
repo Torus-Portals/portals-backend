@@ -16,6 +16,8 @@ use crate::graphql::schema::integrations::google_sheets::{
   GoogleSheetsSheetDimensions, GoogleSheetsSpreadsheet,
 };
 
+use super::meltano_service::{ExtractorConfigData, GoogleSheetsConfigData};
+
 #[derive(Deserialize)]
 struct OAuthRequest {
   code: Option<String>,
@@ -310,6 +312,22 @@ impl GoogleSheetsService {
     let sheets: GoogleSpreadsheetSheets = resp.json().await?;
 
     Ok(sheets.sheets)
+  }
+
+  pub async fn get_sheets_meltano_config(
+    &self,
+    integration_id: Uuid,
+    spreadsheet_id: String,
+    sheet_name: String,
+  ) -> Result<ExtractorConfigData> {
+    let token = self.get_token(integration_id).await?;
+    let refresh_token = token.refresh_token.clone();
+
+    Ok(ExtractorConfigData::GoogleSheets(GoogleSheetsConfigData {
+      refresh_token,
+      spreadsheet_id,
+      sheet_name,
+    }))
   }
 
   pub async fn fetch_sheet_dimensions(

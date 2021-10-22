@@ -1,4 +1,6 @@
-use juniper::{graphql_object, EmptySubscription, FieldResult, RootNode};
+use std::path::PathBuf;
+
+use juniper::{graphql_object, EmptySubscription, FieldError, FieldResult, RootNode};
 use uuid::Uuid;
 
 pub mod block;
@@ -15,6 +17,10 @@ pub mod portalview;
 pub mod role;
 pub mod structure;
 pub mod user;
+
+use crate::services::meltano_service::{
+  ExtractorConfigData, SpreadsheetsConfigData, SpreadsheetsTableData, SpreadsheetsType,
+};
 
 use self::integrations::google_sheets::{
   GoogleSheetsAuthorization, GoogleSheetsSheetDimensions, GoogleSheetsSpreadsheet,
@@ -185,6 +191,15 @@ impl Query {
       .await
   }
 
+  async fn google_sheets_import_data(
+    ctx: &GQLContext,
+    integration_id: Uuid,
+    spreadsheet_id: String,
+    sheet_name: String,
+  ) -> FieldResult<bool> {
+    Query::google_sheets_import_data_impl(ctx, integration_id, spreadsheet_id, sheet_name).await
+  }
+
   async fn google_sheets_fetch_sheet_dimensions(
     ctx: &GQLContext,
     integration_id: Uuid,
@@ -216,6 +231,37 @@ impl Query {
       range,
     )
     .await
+  }
+
+  // Spreadsheets
+
+  async fn spreadsheets_import_data(
+    ctx: &GQLContext,
+    file_type: String,
+    file_path: String,
+    key_properties: Option<String>,
+    worksheet_name: Option<String>,
+  ) -> FieldResult<bool> {
+    let meltano = ctx.meltano.lock().await;
+    let file_type = if matches!(file_type.as_str(), "csv") {
+      SpreadsheetsType::CSV
+    } else {
+      SpreadsheetsType::Excel
+    };
+
+    let config_data = ExtractorConfigData::Spreadsheets(SpreadsheetsConfigData {
+      file_type,
+      table_data: SpreadsheetsTableData {
+        file_path: PathBuf::from(file_path),
+        key_properties,
+        worksheet_name,
+      },
+    });
+
+    meltano
+      .extract_load(config_data)
+      .await
+      .map_err(FieldError::from)
   }
 }
 
