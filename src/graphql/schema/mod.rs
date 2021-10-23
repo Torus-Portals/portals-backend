@@ -1,5 +1,6 @@
 use juniper::{EmptySubscription, FieldResult, RootNode, graphql_object};
 use uuid::Uuid;
+use chrono::{DateTime, Utc};
 
 pub mod org;
 pub mod project;
@@ -30,8 +31,9 @@ use blocks::{
 use cell::{Cell, NewCell, UpdateCell};
 use dimension::{Dimension, NewDimension};
 use org::{NewOrg, Org};
-use project::{Project};
-use dashboard::{Dashboard};
+use project::{NewProject, Project};
+use dashboard::{NewDashboard, Dashboard};
+use page::{NewPage, Page, UpdatePage};
 use portal::{Portal, PortalParts, NewPortal, PortalInviteParams, UpdatePortal};
 use portalview::{NewPortalView, PortalView, PortalViewParts};
 use role::{NewRole, Role};
@@ -84,6 +86,10 @@ impl Query {
 
   // Project
 
+  async fn project(ctx: &GQLContext, project_id: Uuid) -> FieldResult<Project> {
+    Query::project_impl(ctx, project_id).await
+  }
+
   async fn projects(ctx: &GQLContext) -> FieldResult<Vec<Project>> {
     Query::projects_impl(ctx).await
   }
@@ -92,6 +98,16 @@ impl Query {
 
   async fn dashboards(ctx: &GQLContext, project_id: Uuid) -> FieldResult<Vec<Dashboard>> {
     Query::dashboards_impl(ctx, project_id).await
+  }
+  
+  // Page
+
+  async fn page(ctx: &GQLContext, page_id: Uuid) -> FieldResult<Page> {
+    Query::page_impl(ctx, page_id).await
+  }
+
+  async fn pages(ctx: &GQLContext, dashboard_id: Uuid) -> FieldResult<Vec<Page>> {
+    Query::pages_impl(ctx, dashboard_id).await
   }
 
   // Portal
@@ -209,6 +225,32 @@ impl Mutation {
 
   async fn create_role(ctx: &GQLContext, new_role: NewRole) -> FieldResult<Role> {
     Mutation::create_role_impl(ctx, new_role).await
+  }
+
+  // Project
+
+  async fn create_project(ctx: &GQLContext, new_project: NewProject) -> FieldResult<Project> {
+    Mutation::create_project_impl(ctx, new_project).await
+  }
+
+  // Dashboard
+
+  async fn create_dashboard(ctx: &GQLContext, new_dashboard: NewDashboard) -> FieldResult<Dashboard> {
+    Mutation::create_dashboard_impl(ctx, new_dashboard).await
+  }
+
+  // Page
+
+  async fn create_page(ctx: &GQLContext, new_page: NewPage) -> FieldResult<Page> {
+    Mutation::create_page_impl(ctx, new_page).await
+  }
+
+  async fn update_page(ctx: &GQLContext, updated_page: UpdatePage) -> FieldResult<Page> {
+    Mutation::update_page_impl(ctx, updated_page).await
+  }
+
+  async fn delete_page(ctx: &GQLContext, page_id: Uuid) -> FieldResult<DateTime<Utc>> {
+    Mutation::delete_page_impl(ctx, page_id).await
   }
 
   // Portal

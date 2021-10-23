@@ -22,7 +22,7 @@ impl BatchFn<Uuid, Structure> for StructureBatcher {
         .into_iter()
         .fold(HashMap::<Uuid, Structure>::new(), |mut acc, structure| {
           let o: Structure = structure.into();
-          let k = o.id.clone();
+          let k =  o.id.clone();
           acc.insert(k, o);
 
           acc

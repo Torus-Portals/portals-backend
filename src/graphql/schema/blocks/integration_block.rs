@@ -4,7 +4,7 @@ use uuid::Uuid;
 
 use crate::graphql::context::GQLContext;
 use crate::graphql::schema::block::{Block, BlockParts, BlockTypes, GQLBlocks, NewBlock};
-use crate::graphql::schema::integration::{Integration, IntegrationData};
+use crate::graphql::schema::integration::{Integration};
 use crate::graphql::schema::{Mutation, Query};
 use crate::services::db::block_service::{create_integration_block, get_block};
 use crate::services::db::integration_service::get_integration;

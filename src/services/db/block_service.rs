@@ -571,11 +571,7 @@ pub async fn create_owner_text_block(
     portal_view_id,
     egress: String::from("owner"),
     block_data: serde_json::to_value(OwnerTextBlock {
-      content_dimension_id: Some(
-        db_dimension
-          .id
-          .clone(),
-      ),
+      content_dimension_id: Some(db_dimension.id),
     })?,
   };
 
@@ -663,7 +659,7 @@ pub async fn create_integration_block(
     portal_id: new_integration_block.portal_id,
     dimensions: db_dimensions
       .iter()
-      .map(|db_dim| db_dim.id.clone())
+      .map(|db_dim| db_dim.id)
       .collect(),
     cell_type: String::from("GoogleSheets"),
     cell_data: serde_json::to_value(google_sheet_cell)

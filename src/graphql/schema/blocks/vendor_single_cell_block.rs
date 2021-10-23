@@ -2,7 +2,7 @@ use juniper::{GraphQLInputObject, GraphQLObject};
 use serde_json;
 use uuid::Uuid;
 
-use crate::graphql::schema::block::{Block, BlockTypes, NewBlock};
+use crate::graphql::schema::block::{BlockTypes, NewBlock};
 
 #[derive(GraphQLObject, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]

@@ -12,7 +12,7 @@ use crate::graphql::schema::{
 use anyhow::Result;
 use chrono::{DateTime, Utc};
 
-use sqlx::{Executor, Postgres};
+use sqlx::{Executor, PgExecutor, Postgres};
 use uuid::Uuid;
 
 #[derive(Debug, Serialize)]
@@ -103,7 +103,9 @@ impl From<NewDimension> for DBNewDimension {
     DBNewDimension {
       portal_id: new_dim.portal_id,
       name: new_dim.name,
-      dimension_type: new_dim.dimension_type.to_string(),
+      dimension_type: new_dim
+        .dimension_type
+        .to_string(),
       dimension_data,
     }
   }
@@ -168,7 +170,7 @@ pub async fn create_dimensions<'e>(
 ) -> Result<Vec<DBDimension>> {
   let portal_ids = new_dimensions
     .iter()
-    .map(|nd| nd.portal_id.clone())
+    .map(|nd| nd.portal_id)
     .collect::<Vec<Uuid>>();
 
   let names = new_dimensions
@@ -178,12 +180,18 @@ pub async fn create_dimensions<'e>(
 
   let dimension_types = new_dimensions
     .iter()
-    .map(|nd| nd.dimension_type.clone())
+    .map(|nd| {
+      nd.dimension_type
+        .clone()
+    })
     .collect::<Vec<String>>();
 
   let dimension_datas = new_dimensions
     .iter()
-    .map(|nd| nd.dimension_data.clone())
+    .map(|nd| {
+      nd.dimension_data
+        .clone()
+    })
     .collect::<Vec<serde_json::Value>>();
 
   sqlx::query_as!(
@@ -219,10 +227,10 @@ pub async fn create_dimensions<'e>(
   .map_err(anyhow::Error::from)
 }
 
-pub async fn delete_portal_dimensions<'e>(pool: impl Executor<'e, Database = Postgres>, portal_id: Uuid) -> Result<i32> {
+pub async fn delete_portal_dimensions(pool: impl PgExecutor<'_>, portal_id: Uuid) -> Result<i32> {
   sqlx::query!("delete from dimensions where portal_id = $1", portal_id)
-  .execute(pool)
-  .await
-  .map(|qr| qr.rows_affected() as i32)
-  .map_err(anyhow::Error::from)
+    .execute(pool)
+    .await
+    .map(|qr| qr.rows_affected() as i32)
+    .map_err(anyhow::Error::from)
 }
