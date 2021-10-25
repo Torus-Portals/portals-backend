@@ -72,69 +72,71 @@ impl MeltanoService {
     &self,
     config_data: SpreadsheetsConfigData,
   ) -> Result<bool, anyhow::Error> {
-    match config_data.file_type {
-      SpreadsheetsType::CSV => Ok(true),
-      SpreadsheetsType::Excel => {
-        let table_data = config_data.table_data;
-        let file_path = table_data.file_path;
-        let root_dir = file_path
-          .parent()
-          .and_then(|p| p.to_str())
-          .ok_or_else(|| anyhow!("Current path is invalid!"))?;
-        let file_name = file_path
-          .file_name()
-          .and_then(|n| n.to_str())
-          .ok_or_else(|| anyhow!("Excel file is invalid!"))?;
-        // TODO fix key_properties: Exception writing records KeyError -- schema problem?
-        let key_properties = if let Some(key) = table_data.key_properties {
-          vec![key]
-        } else {
-          vec![]
+    let table_data = config_data.table_data;
+    let file_path = table_data.file_path;
+    let root_dir = file_path
+      .parent()
+      .and_then(|p| p.to_str())
+      .ok_or_else(|| anyhow!("Current path is invalid!"))?;
+    let file_name = file_path
+      .file_name()
+      .and_then(|n| n.to_str())
+      .ok_or_else(|| anyhow!("CSV file is invalid!"))?;
+
+    let key_properties = if let Some(key) = table_data.key_properties {
+      vec![key]
+    } else {
+      vec![]
+    };
+
+    let table_string = match config_data.file_type {
+          SpreadsheetsType::CSV => json!([{
+            "path": format!("file://{}", root_dir).as_str(),
+            "name": format!("csv_{}", file_name.split(".").next().unwrap_or_else(|| "").to_lowercase().replace(" ", "")).as_str(),
+            // Need to have regex '^' to filter out possible lock file
+            "pattern": format!("^{}", file_name).as_str(),
+            "start_date": "2020-01-01T00:00:00Z",
+            "key_properties": key_properties,
+            "format": "csv",
+          }]).to_string(),
+          SpreadsheetsType::Excel => {
+            let worksheet_name = table_data.worksheet_name.ok_or(anyhow!("No worksheet name provided!"))?;
+            json!([{
+            "path": format!("file://{}", root_dir).as_str(),
+            "name": format!("{}_{}", file_name.split(".").next().unwrap_or_else(|| ""), worksheet_name.as_str()).to_lowercase().as_str(),
+            // Need to have regex '^' to filter out possible lock file
+            "pattern": format!("^{}", file_name).as_str(),
+            "start_date": "2020-01-01T00:00:00Z",
+            "key_properties": key_properties,
+            "format": "excel",
+            "worksheet_name": worksheet_name.as_str()
+          }]).to_string()
+        }
         };
 
-        let worksheet_name = table_data.worksheet_name.ok_or(anyhow!(
-          "No worksheet name provided for current Excel file!"
-        ))?;
+    std::env::set_current_dir(PORTALS_PROJECT)?;
+    let output = Command::new("meltano")
+      .envs(vec![
+        ("PATH", MELTANO_BIN),
+        ("MELTANO_CLI_LOG_LEVEL", "debug"),
+        ("TAP_SPREADSHEETS_ANYWHERE_TABLES", table_string.as_str()),
+      ])
+      .args(&[
+        "elt",
+        "tap-spreadsheets-anywhere",
+        "target-postgres",
+        &format!(
+          "--job_id={}-spreadsheets-anywhere-to-postgres",
+          Uuid::new_v4()
+        ),
+      ])
+      .output()
+      .await?;
 
-        let table_string = json!([{
-          "path": format!("file://{}", root_dir).as_str(),
-          "name": format!("{}_{}", file_name.split(".").next().unwrap_or_else(|| ""), worksheet_name).to_lowercase().as_str(),
-          // Need to have regex '^' to filter out possible lock file
-          "pattern": format!("^{}", file_name).as_str(),
-          "start_date": "2020-01-01T00:00:00Z",
-          "key_properties": key_properties,
-          "format": "excel",
-          "worksheet_name": worksheet_name,
-        }])
-        .to_string();
-        println!("{}", &table_string);
+    println!("{}", &std::str::from_utf8(&output.stdout)?);
+    println!("{}", &std::str::from_utf8(&output.stderr)?);
 
-        // Need to be in a directory with meltano.yml
-        std::env::set_current_dir(PORTALS_PROJECT)?;
-        let output = Command::new("meltano")
-          .envs(vec![
-            ("PATH", MELTANO_BIN),
-            ("MELTANO_CLI_LOG_LEVEL", "debug"),
-            ("TAP_SPREADSHEETS_ANYWHERE_TABLES", table_string.as_str()),
-          ])
-          .args(&[
-            "elt",
-            "tap-spreadsheets-anywhere",
-            "target-postgres",
-            &format!(
-              "--job_id={}-spreadsheets-anywhere-to-postgres",
-              Uuid::new_v4()
-            ),
-          ])
-          .output()
-          .await?;
-
-        println!("{}", &std::str::from_utf8(&output.stdout)?);
-        println!("{}", &std::str::from_utf8(&output.stderr)?);
-
-        Ok(true)
-      }
-    }
+    Ok(true)
   }
 
   pub async fn google_sheets_to_db(
