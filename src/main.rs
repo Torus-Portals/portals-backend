@@ -25,6 +25,7 @@ use crate::graphql::{graphql_routes, schema as graphql_schema};
 use crate::routes::general_routes::{get_health, get_info};
 use crate::services::auth0_service::Auth0Service;
 use crate::services::google_sheets_service::{GoogleSheetsService, OAuthService};
+use crate::services::s3_service::{self, S3Service};
 use crate::state::State;
 use actix_cors::Cors;
 use actix_web::{web, App, HttpServer};
@@ -54,6 +55,7 @@ async fn main() -> std::io::Result<()> {
   let auth_service = Arc::new(Mutex::new(Auth0Service::new()));
   let oauth_service = Arc::new(Mutex::new(OAuthService::new()));
   let google_sheets_service = Arc::new(Mutex::new(GoogleSheetsService::new()));
+  let s3_service = Arc::new(Mutex::new(S3Service::new()));
 
   let server = HttpServer::new(move || {
     let decoding_key = DecodingKey::from_secret(
@@ -78,12 +80,14 @@ async fn main() -> std::io::Result<()> {
       .app_data(web::Data::new(auth_service.clone()))
       .app_data(web::Data::new(oauth_service.clone()))
       .app_data(web::Data::new(google_sheets_service.clone()))
+      .app_data(web::Data::new(s3_service.clone()))
       .app_data(decoding_key)
       .wrap(cors)
       // <response status code> for <path> <remote/proxy ip address> in <seconds>s
       .wrap(actix_web::middleware::Logger::new("%s for %U %a in %Ts"))
       .service(graphql_routes::get_graphql_routes())
       .service(graphql_routes::get_graphql_dev_routes())
+      .service(s3_service::get_s3_routes())
       .service(get_health)
       .service(get_info)
     // .service(google_sheets_service::add_data_source)
