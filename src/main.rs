@@ -87,7 +87,6 @@ async fn main() -> std::io::Result<()> {
       .wrap(actix_web::middleware::Logger::new("%s for %U %a in %Ts"))
       .service(graphql_routes::get_graphql_routes())
       .service(graphql_routes::get_graphql_dev_routes())
-      .service(s3_service::get_s3_routes())
       .service(get_health)
       .service(get_info)
     // .service(google_sheets_service::add_data_source)
