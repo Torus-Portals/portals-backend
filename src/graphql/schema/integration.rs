@@ -1,12 +1,12 @@
 use juniper::{
-  graphql_object, FieldError, FieldResult, GraphQLEnum, GraphQLInputObject, GraphQLObject,
+  FieldError, FieldResult, GraphQLEnum, GraphQLInputObject, GraphQLObject,
   GraphQLUnion,
 };
 use strum_macros::{Display, EnumString};
 use uuid::Uuid;
 
 use crate::graphql::context::GQLContext;
-use crate::services::db::dimension_service::{create_dimensions, DBDimension, DBNewDimension};
+// use crate::services::db::dimension_service::{create_dimensions, DBDimension, DBNewDimension};
 use crate::services::db::integration_service::{
   create_integration, get_integration, get_integrations, DBIntegration, DBNewIntegration,
 };

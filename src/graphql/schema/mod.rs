@@ -1,46 +1,38 @@
-use juniper::{EmptySubscription, FieldResult, RootNode, graphql_object};
-use uuid::Uuid;
 use chrono::{DateTime, Utc};
+use juniper::{graphql_object, EmptySubscription, FieldResult, RootNode};
+use uuid::Uuid;
 
-pub mod org;
-pub mod project;
-pub mod dashboard;
-pub mod page;
 pub mod block;
 pub mod blocks;
-pub mod cell;
-pub mod cells;
-pub mod dimension;
-pub mod dimensions;
+pub mod connection;
+pub mod dashboard;
 pub mod integration;
 pub mod integrations;
-pub mod portal;
-pub mod portalview;
+pub mod org;
+pub mod page;
+pub mod project;
 pub mod role;
-pub mod structure;
+pub mod source;
+pub mod sourcequeries;
+pub mod sourcequery;
+pub mod sources;
 pub mod user;
 
 use self::integrations::google_sheets::GoogleSheetsAuthorization;
 
 use super::context::GQLContext;
-use block::{Block, NewBlock, BlockParts, UpdateBlock};
-use blocks::{
-  basic_table_block::NewBasicTableBlock, integration_block::NewIntegrationBlock,
-  owner_text_block::NewOwnerTextBlock, vendor_text_block::NewVendorTextBlock,
-};
-use cell::{Cell, NewCell, UpdateCell};
-use dimension::{Dimension, NewDimension};
-use org::{NewOrg, Org};
-use project::{NewProject, Project};
-use dashboard::{NewDashboard, Dashboard};
-use page::{NewPage, Page, UpdatePage};
-use portal::{Portal, PortalParts, NewPortal, PortalInviteParams, UpdatePortal};
-use portalview::{NewPortalView, PortalView, PortalViewParts};
-use role::{NewRole, Role};
-use structure::{Structure, UpdateStructure};
-use user::{NewUser, UpdateUser, User};
+use block::{Block, NewBlock, UpdateBlock};
+use connection::{Connection, NewConnection, UpdateConnection};
+use source::{NewSource, Source};
+use dashboard::{Dashboard, NewDashboard, UpdateDashboard};
 use integration::{Integration, NewIntegration};
 use integrations::google_sheets::GoogleSheetsRedirectURI;
+use org::{NewOrg, Org};
+use page::{NewPage, Page, UpdatePage};
+use project::{NewProject, Project};
+use role::{NewRole, Role};
+use source::{PossibleSource, PossibleSourceInput};
+use user::{NewUser, UpdateUser, User};
 
 pub type Schema = RootNode<'static, Query, Mutation, EmptySubscription<GQLContext>>;
 pub struct Query;
@@ -96,10 +88,14 @@ impl Query {
 
   // Dashboard
 
+  async fn dashboard(ctx: &GQLContext, dashboard_id: Uuid) -> FieldResult<Dashboard> {
+    Query::dashboard_impl(ctx, dashboard_id).await
+  }
+
   async fn dashboards(ctx: &GQLContext, project_id: Uuid) -> FieldResult<Vec<Dashboard>> {
     Query::dashboards_impl(ctx, project_id).await
   }
-  
+
   // Page
 
   async fn page(ctx: &GQLContext, page_id: Uuid) -> FieldResult<Page> {
@@ -110,78 +106,37 @@ impl Query {
     Query::pages_impl(ctx, dashboard_id).await
   }
 
-  // Portal
-
-  async fn portal(ctx: &GQLContext, portal_id: Uuid) -> FieldResult<Portal> {
-    Query::portal_impl(ctx, portal_id).await
-  }
-
-  async fn portals(ctx: &GQLContext) -> FieldResult<Vec<Portal>> {
-    Query::user_portals_impl(ctx).await
-  }
-
-  async fn portals_by_ids(ctx: &GQLContext, portal_ids: Vec<Uuid>) -> FieldResult<Vec<Portal>> {
-    Query::portals_by_ids_impl(ctx, portal_ids).await
-  }
-
-  // Portal View
-
-  async fn portalviews(ctx: &GQLContext, portal_id: Uuid) -> FieldResult<Vec<PortalView>> {
-    Query::portalviews_impl(ctx, portal_id).await
-  }
-
-  // Structure
-
-  async fn structure(ctx: &GQLContext, structure_id: Uuid) -> FieldResult<Structure> {
-    Query::structure_impl(ctx, structure_id).await
-  }
-
-  async fn structures(ctx: &GQLContext, structure_ids: Vec<Uuid>) -> FieldResult<Vec<Structure>> {
-    Query::structures_impl(ctx, structure_ids).await
-  }
-
   // Block
 
   async fn block(ctx: &GQLContext, block_id: Uuid) -> FieldResult<Block> {
     Query::block_impl(ctx, block_id).await
   }
 
-  async fn blocks(ctx: &GQLContext, portal_id: Uuid) -> FieldResult<Vec<Block>> {
-    Query::blocks_impl(ctx, portal_id).await
+  async fn blocks(ctx: &GQLContext, block_ids: Vec<Uuid>) -> FieldResult<Vec<Block>> {
+    Query::blocks_impl(ctx, block_ids).await
   }
 
-  async fn integration_block_options(ctx: &GQLContext, block_id: Uuid) -> FieldResult<Integration> {
-    Query::integration_block_options_impl(ctx, block_id).await
+  async fn page_blocks(ctx: &GQLContext, page_id: Uuid) -> FieldResult<Vec<Block>> {
+    Query::page_blocks_impl(ctx, page_id).await
   }
 
-  // Dimension
+  // async fn integration_block_options(ctx: &GQLContext, block_id: Uuid) -> FieldResult<Integration> {
+  //   Query::integration_block_options_impl(ctx, block_id).await
+  // }
 
-  async fn dimension(ctx: &GQLContext, dimension_id: Uuid) -> FieldResult<Dimension> {
-    Query::dimension_impl(ctx, dimension_id).await
+  // Connection
+
+  async fn connections(ctx: &GQLContext, block_id: Uuid) -> FieldResult<Vec<Connection>> {
+    Query::connections_impl(ctx, block_id).await
   }
 
-  async fn dimensions(ctx: &GQLContext, portal_id: Uuid) -> FieldResult<Vec<Dimension>> {
-    Query::dimensions_impl(ctx, portal_id).await
-  }
+  // Source
 
-  // Cell
-
-  async fn cell(ctx: &GQLContext, cell_id: Uuid) -> FieldResult<Cell> {
-    Query::cell_impl(ctx, cell_id).await
-  }
-
-  async fn cells_any_dimensions(
+  async fn possible_sources(
     ctx: &GQLContext,
-    dimension_ids: Vec<Uuid>,
-  ) -> FieldResult<Vec<Cell>> {
-    Query::cells_any_dimensions_impl(ctx, dimension_ids).await
-  }
-
-  async fn cells_all_dimensions(
-    ctx: &GQLContext,
-    dimension_ids: Vec<Uuid>,
-  ) -> FieldResult<Vec<Cell>> {
-    Query::cells_all_dimensions_impl(ctx, dimension_ids).await
+    input: PossibleSourceInput,
+  ) -> FieldResult<Vec<PossibleSource>> {
+    Query::possible_sources_impl(ctx, input).await
   }
 
   // Integration
@@ -235,8 +190,18 @@ impl Mutation {
 
   // Dashboard
 
-  async fn create_dashboard(ctx: &GQLContext, new_dashboard: NewDashboard) -> FieldResult<Dashboard> {
+  async fn create_dashboard(
+    ctx: &GQLContext,
+    new_dashboard: NewDashboard,
+  ) -> FieldResult<Dashboard> {
     Mutation::create_dashboard_impl(ctx, new_dashboard).await
+  }
+
+  async fn update_dashboard(
+    ctx: &GQLContext,
+    update_dashboard: UpdateDashboard,
+  ) -> FieldResult<Dashboard> {
+    Mutation::update_dashboard_impl(ctx, update_dashboard).await
   }
 
   // Page
@@ -253,46 +218,6 @@ impl Mutation {
     Mutation::delete_page_impl(ctx, page_id).await
   }
 
-  // Portal
-
-  async fn create_portal(ctx: &GQLContext, new_portal: NewPortal) -> FieldResult<PortalParts> {
-    Mutation::create_portal_impl(ctx, new_portal).await
-  }
-
-  async fn delete_portal(ctx: &GQLContext, portal_id: Uuid) -> FieldResult<i32> {
-    Mutation::delete_portal_impl(ctx, portal_id).await
-  }
-
-  async fn update_portal(ctx: &GQLContext, portal_update: UpdatePortal) -> FieldResult<Portal> {
-    Mutation::update_portal_impl(ctx, portal_update).await
-  }
-
-  async fn invite_user_to_portal(
-    ctx: &GQLContext,
-    portal_invite_params: PortalInviteParams,
-  ) -> FieldResult<PortalParts> {
-    Mutation::invite_user_to_portal_impl(ctx, portal_invite_params).await
-  }
-
-  // PortalView
-
-  // the space in 'portal_view' is needed so that it shows up as "createPortalView" in GQL Schema
-  async fn create_portal_view(
-    ctx: &GQLContext,
-    new_portalview: NewPortalView,
-  ) -> FieldResult<PortalViewParts> {
-    Mutation::create_portalview_impl(ctx, new_portalview).await
-  }
-
-  // Structure
-
-  async fn update_structure(
-    ctx: &GQLContext,
-    update_structure: UpdateStructure,
-  ) -> FieldResult<Structure> {
-    Mutation::update_structure_impl(ctx, update_structure).await
-  }
-
   // Block
 
   async fn create_block(ctx: &GQLContext, new_block: NewBlock) -> FieldResult<Block> {
@@ -303,7 +228,7 @@ impl Mutation {
     Mutation::update_block_impl(ctx, update_block).await
   }
 
-  async fn delete_block(ctx: &GQLContext, block_id: Uuid) -> FieldResult<i32> {
+  async fn delete_block(ctx: &GQLContext, block_id: Uuid) -> FieldResult<DateTime<Utc>> {
     Mutation::delete_block(ctx, block_id).await
   }
 
@@ -311,56 +236,26 @@ impl Mutation {
     Mutation::delete_blocks(ctx, block_ids).await
   }
 
-  // TODO: Deprecated these, and only use the create_block mutation
-  async fn create_basic_table(
+  // Connection
+
+  async fn create_connection(
     ctx: &GQLContext,
-    new_basic_table_block: NewBasicTableBlock,
-  ) -> FieldResult<Block> {
-    Mutation::create_basic_table_impl(ctx, new_basic_table_block).await
+    new_connection: NewConnection,
+  ) -> FieldResult<Connection> {
+    Mutation::create_connection_impl(ctx, new_connection).await
   }
 
-  async fn create_owner_text_block(
+  async fn update_connection(
     ctx: &GQLContext,
-    new_owner_text_block: NewOwnerTextBlock,
-  ) -> FieldResult<BlockParts> {
-    Mutation::create_owner_text_block_impl(ctx, new_owner_text_block).await
+    update_connection: UpdateConnection,
+  ) -> FieldResult<Connection> {
+    Mutation::update_connection_impl(ctx, update_connection).await
   }
 
-  async fn create_vendor_text_block(
-    ctx: &GQLContext,
-    new_vendor_text_block: NewVendorTextBlock,
-  ) -> FieldResult<Block> {
-    Mutation::create_vendor_text_block_impl(ctx, new_vendor_text_block).await
-  }
+  // Source
 
-  async fn create_integration_block(
-    ctx: &GQLContext,
-    new_integration_block: NewIntegrationBlock,
-  ) -> FieldResult<BlockParts> {
-    Mutation::create_integration_block_impl(ctx, new_integration_block).await
-  }
-
-  // Dimension
-
-  async fn create_dimension(ctx: &GQLContext, new_dimension: NewDimension) -> FieldResult<Dimension> {
-    Mutation::create_dimension_impl(ctx, new_dimension).await
-  }
-
-  async fn create_dimensions(
-    ctx: &GQLContext,
-    new_dimensions: Vec<NewDimension>,
-  ) -> FieldResult<Vec<Dimension>> {
-    Mutation::create_dimensions_impl(ctx, new_dimensions).await
-  }
-
-  // Cell
-
-  async fn create_cell(ctx: &GQLContext, new_cell: NewCell) -> FieldResult<Cell> {
-    Mutation::create_cell_impl(ctx, new_cell).await
-  }
-
-  async fn update_cell(ctx: &GQLContext, update_cell: UpdateCell) -> FieldResult<Cell> {
-    Mutation::update_cell_impl(ctx, update_cell).await
+  async fn create_source(ctx: &GQLContext, new_source: NewSource) -> FieldResult<Source> {
+    Mutation::create_source_impl(ctx, new_source).await
   }
 
   // Integration
@@ -378,7 +273,10 @@ impl Mutation {
 
   // Specific Integrations
 
-  async fn authorize_google_sheets(ctx: &GQLContext, auth: GoogleSheetsAuthorization) -> FieldResult<bool> {
+  async fn authorize_google_sheets(
+    ctx: &GQLContext,
+    auth: GoogleSheetsAuthorization,
+  ) -> FieldResult<bool> {
     Mutation::authorize_google_sheets_impl(ctx, auth).await
   }
 }

@@ -11,10 +11,10 @@ pub struct DBPage {
   pub id: Uuid,
 
   pub name: String,
+  
+  pub project_id: Uuid,
 
   pub dashboard_id: Uuid,
-
-  pub project_id: Uuid,
 
   pub grid: serde_json::Value,
 
@@ -86,7 +86,7 @@ pub async fn get_page(pool: impl PgExecutor<'_>, page_id: Uuid) -> Result<DBPage
   .map_err(anyhow::Error::from)
 }
 
-pub async fn get_pages(pool: impl PgExecutor<'_>, page_ids: &[Uuid]) -> Result<Vec<DBPage>> {
+pub async fn _get_pages(pool: impl PgExecutor<'_>, page_ids: &[Uuid]) -> Result<Vec<DBPage>> {
   sqlx::query_as!(
     DBPage,
     "select * from pages where id = any($1) and deleted_at = null",

@@ -1,14 +1,15 @@
-CREATE TABLE portalviews (
+CREATE TABLE connections (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  portal_id UUID NOT NULL,
-  structure_id UUID NOT NULL,
-  name TEXT NOT NULL,
-  egress TEXT NOT NULL,
-  access TEXT NOT NULL,
+  block_id UUID NOT NULL, 
+  source_id UUID,
+  query_id UUID,
+  destination_id UUID,
+  destination_type TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   created_by UUID NOT NULL,
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_by UUID NOT NULL
 );
 
-SELECT sqlx_manage_updated_at('portalviews');
+SELECT sqlx_manage_updated_at('connections');
+

@@ -17,6 +17,8 @@ pub struct Page {
 
   pub name: String,
 
+  pub project_id: Uuid,
+
   pub dashboard_id: Uuid,
 
   pub grid: Grid,
@@ -39,6 +41,7 @@ impl From<DBPage> for Page {
       id: page.id,
       name: page.name,
       grid,
+      project_id: page.project_id,
       dashboard_id: page.dashboard_id,
       created_at: page.created_at,
       created_by: page.created_by,
@@ -92,7 +95,7 @@ pub struct GridRow {
 
   pub height: i32,
 
-  pub columns: Vec<GridBlock>,
+  pub blocks: Vec<GridBlock>,
 }
 
 #[derive(GraphQLObject, Debug, Clone, Serialize, Deserialize)]
@@ -121,7 +124,7 @@ pub struct GridRowInput {
 
   pub height: i32,
 
-  pub columns: Vec<GridBlockInput>,
+  pub blocks: Vec<GridBlockInput>,
 }
 
 #[derive(GraphQLInputObject, Debug, Clone, Serialize, Deserialize)]
