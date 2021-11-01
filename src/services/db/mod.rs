@@ -7,6 +7,7 @@ pub mod dashboard_service;
 pub mod page_service;
 pub mod block_service;
 pub mod connection_service;
+pub mod connection_content_service;
 pub mod source_service;
 
 // These are probably going away, or being drasically altered.

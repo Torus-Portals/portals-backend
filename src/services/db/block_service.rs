@@ -7,7 +7,7 @@ use crate::graphql::schema::{
 
 use anyhow::Result;
 use chrono::{DateTime, Utc};
-use sqlx::{Executor, PgExecutor, Postgres};
+use sqlx::{PgExecutor};
 use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -112,8 +112,8 @@ impl From<UpdateBlock> for DBUpdateBlock {
   }
 }
 
-pub async fn get_block<'e>(
-  pool: impl Executor<'e, Database = Postgres>,
+pub async fn get_block(
+  pool: impl PgExecutor<'_>,
   block_id: Uuid,
 ) -> Result<DBBlock> {
   sqlx::query_as!(DBBlock, "select * from blocks where id = $1", block_id)
@@ -122,7 +122,7 @@ pub async fn get_block<'e>(
     .map_err(anyhow::Error::from)
 }
 
-pub async fn get_blocks<'e>(
+pub async fn get_blocks(
   pool: impl PgExecutor<'_>,
   block_ids: Vec<Uuid>,
 ) -> Result<Vec<DBBlock>> {
@@ -136,8 +136,8 @@ pub async fn get_blocks<'e>(
   .map_err(anyhow::Error::from)
 }
 
-pub async fn get_page_blocks<'e>(
-  pool: impl Executor<'e, Database = Postgres>,
+pub async fn get_page_blocks(
+  pool: impl PgExecutor<'_>,
   page_id: Uuid,
 ) -> Result<Vec<DBBlock>> {
   sqlx::query_as!(
@@ -164,8 +164,8 @@ pub async fn get_project_blocks(
   .map_err(anyhow::Error::from)
 }
 
-pub async fn create_block<'e>(
-  pool: impl Executor<'e, Database = Postgres>,
+pub async fn create_block(
+  pool: impl PgExecutor<'_>,
   auth0_user_id: &str,
   new_block: DBNewBlock,
 ) -> Result<DBBlock> {
@@ -190,8 +190,8 @@ pub async fn create_block<'e>(
   .map_err(anyhow::Error::from)
 }
 
-pub async fn update_block<'e>(
-  pool: impl Executor<'e, Database = Postgres>,
+pub async fn update_block(
+  pool: impl PgExecutor<'_>,
   auth0_user_id: &str,
   updated_block: DBUpdateBlock,
 ) -> Result<DBBlock> {
@@ -217,8 +217,8 @@ pub async fn update_block<'e>(
   .map_err(anyhow::Error::from)
 }
 
-pub async fn delete_block<'e>(
-  pool: impl Executor<'e, Database = Postgres>,
+pub async fn delete_block(
+  pool: impl PgExecutor<'_>,
   auth0_id: &str,
   block_id: Uuid,
 ) -> Result<DateTime<Utc>> {
@@ -246,8 +246,8 @@ pub async fn delete_block<'e>(
   .map_err(anyhow::Error::from)
 }
 
-pub async fn delete_blocks<'e>(
-  pool: impl Executor<'e, Database = Postgres>,
+pub async fn delete_blocks(
+  pool: impl PgExecutor<'_>,
   block_ids: Vec<Uuid>,
 ) -> Result<i32> {
   sqlx::query!("delete from blocks where id = any($1)", &block_ids)

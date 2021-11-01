@@ -5,6 +5,7 @@ use uuid::Uuid;
 
 use crate::graphql::schema::connection::NewConnection;
 
+#[derive(Debug, Clone)]
 pub struct DBConnection {
   pub id: Uuid,
 

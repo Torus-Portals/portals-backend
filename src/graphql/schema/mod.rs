@@ -5,6 +5,7 @@ use uuid::Uuid;
 pub mod block;
 pub mod blocks;
 pub mod connection;
+pub mod connection_content;
 pub mod dashboard;
 pub mod integration;
 pub mod integrations;
@@ -23,6 +24,7 @@ use self::integrations::google_sheets::GoogleSheetsAuthorization;
 use super::context::GQLContext;
 use block::{Block, NewBlock, UpdateBlock};
 use connection::{Connection, NewConnection, UpdateConnection};
+use connection_content::{ConnectionContent};
 use source::{NewSource, Source};
 use dashboard::{Dashboard, NewDashboard, UpdateDashboard};
 use integration::{Integration, NewIntegration};
@@ -128,6 +130,10 @@ impl Query {
 
   async fn connections(ctx: &GQLContext, block_id: Uuid) -> FieldResult<Vec<Connection>> {
     Query::connections_impl(ctx, block_id).await
+  }
+
+  async fn connection_content(ctx: &GQLContext, block_id: Uuid) -> FieldResult<Vec<ConnectionContent>> {
+    Query::connection_content_impl(ctx, block_id).await
   }
 
   // Source

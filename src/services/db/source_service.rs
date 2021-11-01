@@ -74,6 +74,20 @@ pub async fn get_possible_sources(
   Ok(possible_sources)
 }
 
+pub async fn get_sources(pool: impl PgExecutor<'_>, source_ids: Vec<Uuid>) -> Result<Vec<DBSource>> {
+  let sources = sqlx::query_as!(
+    DBSource,
+    r#"
+    select * from sources where id = any($1)
+    "#,
+    &source_ids
+  )
+  .fetch_all(pool)
+  .await?;
+
+  Ok(sources)
+}
+
 pub async fn create_source(
   pool: impl PgExecutor<'_>,
   auth0_user_id: &str,
