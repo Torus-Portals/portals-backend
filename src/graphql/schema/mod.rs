@@ -7,6 +7,7 @@ pub mod blocks;
 pub mod connection;
 pub mod connection_content;
 pub mod dashboard;
+pub mod email;
 pub mod integration;
 pub mod integrations;
 pub mod org;
@@ -18,6 +19,8 @@ pub mod sourcequeries;
 pub mod sourcequery;
 pub mod sources;
 pub mod user;
+
+use crate::graphql::schema::email::InviteNewUserToPortalParams;
 
 use self::integrations::google_sheets::GoogleSheetsAuthorization;
 
@@ -284,6 +287,11 @@ impl Mutation {
     auth: GoogleSheetsAuthorization,
   ) -> FieldResult<bool> {
     Mutation::authorize_google_sheets_impl(ctx, auth).await
+  }
+  
+  // Emails
+  async fn send_invite_new_user_to_portal_email(ctx: &GQLContext, params: Vec<InviteNewUserToPortalParams>) -> FieldResult<bool> {
+    Mutation::send_invite_new_user_to_portal_email_impl(ctx, params).await
   }
 }
 
