@@ -1,12 +1,11 @@
 use anyhow::Result;
-use chrono::{DateTime, Utc};
-use sqlx::{PgExecutor, PgPool};
+use sqlx::{PgPool};
 use uuid::Uuid;
 
 use crate::{graphql::schema::{connection_content::{ConnectionContent, ContentTypes}, sources::block_source::BlockSource}, services::db::source_service::DBSource};
 
 use super::{
-  block_service::{get_block, get_blocks},
+  block_service::{get_blocks},
   connection_service::get_connections,
   source_service::get_sources,
 };

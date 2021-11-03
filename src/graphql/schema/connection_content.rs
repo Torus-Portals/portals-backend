@@ -1,10 +1,6 @@
-use chrono::{DateTime, Utc};
-use juniper::{
-  FieldError, FieldResult, GraphQLEnum, GraphQLInputObject, GraphQLObject, GraphQLUnion,
-};
+use juniper::{FieldResult, GraphQLEnum, GraphQLObject};
 use strum_macros::{Display, EnumString};
 use std::str::FromStr;
-use uuid::Uuid;
 
 use crate::services::db::connection_content_service::get_connection_content;
 

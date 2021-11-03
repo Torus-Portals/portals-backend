@@ -6,8 +6,7 @@ use uuid::Uuid;
 
 use crate::graphql::context::GQLContext;
 use crate::services::db::connection_service::{
-  create_connection, get_connections, DBConnection, DBNewConnection,
-};
+  create_connection, get_connections, DBConnection};
 
 use super::Mutation;
 use super::Query;
