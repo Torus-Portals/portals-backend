@@ -24,7 +24,6 @@ mod utils;
 use crate::graphql::{graphql_routes, schema as graphql_schema};
 use crate::routes::general_routes::{get_health, get_info};
 use crate::services::auth0_service::Auth0Service;
-use crate::services::email_service::EmailService;
 use crate::services::google_sheets_service::{GoogleSheetsService, OAuthService};
 use crate::state::State;
 use actix_cors::Cors;
@@ -53,7 +52,6 @@ async fn main() -> std::io::Result<()> {
 
   let state = State::new(pool.clone());
   let auth_service = Arc::new(Mutex::new(Auth0Service::new()));
-  let email_service = Arc::new(Mutex::new(EmailService::new()));
   let oauth_service = Arc::new(Mutex::new(OAuthService::new()));
   let google_sheets_service = Arc::new(Mutex::new(GoogleSheetsService::new()));
 
@@ -78,7 +76,6 @@ async fn main() -> std::io::Result<()> {
       .app_data(web::Data::new(state.clone()))
       .app_data(web::Data::new(graphql_schema::create_schema()))
       .app_data(web::Data::new(auth_service.clone()))
-      .app_data(web::Data::new(email_service.clone()))
       .app_data(web::Data::new(oauth_service.clone()))
       .app_data(web::Data::new(google_sheets_service.clone()))
       .app_data(decoding_key)
