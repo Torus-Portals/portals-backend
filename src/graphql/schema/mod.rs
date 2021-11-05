@@ -17,6 +17,7 @@ pub mod source;
 pub mod sourcequeries;
 pub mod sourcequery;
 pub mod sources;
+pub mod s3;
 pub mod user;
 
 use self::integrations::google_sheets::GoogleSheetsAuthorization;
@@ -159,6 +160,16 @@ impl Query {
 
   async fn google_sheets_redirect_uri(state: String) -> FieldResult<GoogleSheetsRedirectURI> {
     Query::google_sheets_redirect_uri_impl(state).await
+  }
+  
+  // S3
+
+  async fn s3_upload_presigned_url(ctx: &GQLContext, bucket: String, key: String) -> FieldResult<String> {
+    Query::s3_upload_presigned_url_impl(ctx, bucket, key).await
+  }
+
+  async fn s3_download_presigned_url(ctx: &GQLContext, bucket: String, key: String) -> FieldResult<String> {
+    Query::s3_download_presigned_url_impl(ctx, bucket, key).await
   }
 }
 
