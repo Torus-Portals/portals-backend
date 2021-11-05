@@ -210,6 +210,13 @@ impl Query {
       .map(|db_user| -> User { db_user.into() })
       .map_err(FieldError::from)
   }
+  
+  pub async fn user_by_email_impl(ctx: &GQLContext, user_email: String) -> FieldResult<User> {
+    get_user_by_email(&ctx.pool, &user_email)
+      .await
+      .map(|db_user| -> User { db_user.into() })
+      .map_err(FieldError::from)
+  }
 
   pub async fn current_user_impl(ctx: &GQLContext) -> FieldResult<User> {
     let user_exists = auth0_user_exists(&ctx.pool, &ctx.auth0_user_id).await?;

@@ -64,6 +64,10 @@ impl Query {
   async fn user(ctx: &GQLContext, user_id: Uuid) -> FieldResult<User> {
     Query::user_impl(ctx, user_id).await
   }
+  
+  async fn user_by_email(ctx: &GQLContext, user_email: String) -> FieldResult<User> {
+    Query::user_by_email_impl(ctx, user_email).await
+  }
 
   async fn current_user(ctx: &GQLContext) -> FieldResult<User> {
     Query::current_user_impl(ctx).await
@@ -88,6 +92,10 @@ impl Query {
   async fn projects(ctx: &GQLContext) -> FieldResult<Vec<Project>> {
     Query::projects_impl(ctx).await
   }
+  
+  async fn share_project(ctx: &GQLContext, project_id: Uuid, user_ids: Vec<Uuid>) -> FieldResult<i32> {
+    Query::share_project_impl(ctx, project_id, user_ids).await
+  }
 
   // Dashboard
 
@@ -97,6 +105,10 @@ impl Query {
 
   async fn dashboards(ctx: &GQLContext, project_id: Uuid) -> FieldResult<Vec<Dashboard>> {
     Query::dashboards_impl(ctx, project_id).await
+  }
+  
+  async fn share_dashboard(ctx: &GQLContext, dashboard_id: Uuid, user_ids: Vec<Uuid>) -> FieldResult<i32> {
+    Query::share_dashboard_impl(ctx, dashboard_id, user_ids).await
   }
 
   // Page
