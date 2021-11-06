@@ -11,6 +11,8 @@ use crate::{
   },
 };
 
+use super::project_service::get_project;
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DBDashboard {
@@ -143,6 +145,29 @@ pub async fn add_user_to_dashboard(
   .map_err(anyhow::Error::from)
 }
 
+pub async fn add_user_to_dashboards(
+  pool: impl PgExecutor<'_>,
+  auth0_id: &str,
+  user_id: Uuid,
+  dashboard_ids: &[Uuid],
+) -> Result<i32> {
+  sqlx::query!(
+    r#"
+  with _user as (select * from users where auth0id = $1)
+  insert into user_access (user_id, object_type, object_id, created_by, updated_by)
+  select $2, 'Dashboard', *, (select id from _user), (select id from _user)
+  from unnest($3::uuid[])
+  "#,
+    auth0_id,
+    user_id,
+    dashboard_ids,
+  )
+  .execute(pool)
+  .await
+  .map(|qr| qr.rows_affected() as i32)
+  .map_err(anyhow::Error::from)
+}
+
 pub async fn create_dashboard(
   pool: PgPool,
   auth0_id: &str,
@@ -221,9 +246,13 @@ pub async fn share_dashboard(
   let mut tx = pool.begin().await?;
   let mut res = 0;
 
+  // Adds user to containing Project as well -- but not other dashboards
   // TODO: Can't run async closure with &mut
+  let dashboard = get_dashboard(&mut tx, dashboard_id).await?;
+  let project = get_project(&mut tx, dashboard.project_id).await?;
   for user_id in user_ids {
     res += add_user_to_dashboard(&mut tx, auth0_id, user_id, dashboard_id).await?;
+    res += add_user_to_project(&mut tx, auth0_id, user_id, project.id).await?;
   }
 
   tx.commit().await?;

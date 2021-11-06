@@ -7,6 +7,8 @@ use crate::{
   graphql::schema::project::NewProject, services::db::user_service::get_user_by_auth0_id,
 };
 
+use super::dashboard_service::{add_user_to_dashboards, get_project_dashboards};
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DBProject {
@@ -205,8 +207,15 @@ pub async fn share_project(
   let mut res = 0;
 
   // TODO: Can't run async closure with &mut
+  // For now, adding a user to a project directly adds the user to all dashboards as well
+  let dashboards = get_project_dashboards(&mut tx, &[project_id]).await?;
+  let dashboard_ids = dashboards
+    .into_iter()
+    .map(|db_dashboard| db_dashboard.id)
+    .collect::<Vec<Uuid>>();
   for user_id in user_ids {
     res += add_user_to_project(&mut tx, auth0_id, user_id, project_id).await?;
+    res += add_user_to_dashboards(&mut tx, auth0_id, user_id, &dashboard_ids).await?;
   }
 
   tx.commit().await?;
