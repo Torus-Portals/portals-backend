@@ -97,7 +97,7 @@ impl Query {
   }
 
   pub async fn dashboards_impl(ctx: &GQLContext, project_id: Uuid) -> FieldResult<Vec<Dashboard>> {
-    get_project_dashboards(&ctx.pool, project_id)
+    get_project_dashboards(&ctx.pool, [project_id].as_ref())
       .await
       .map(|db_dashboards| {
         db_dashboards

@@ -14,6 +14,7 @@ use crate::services::db::user_service::{get_user_by_auth0_id, update_user};
 use uuid::Uuid;
 
 #[derive(GraphQLObject, Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct Org {
   pub id: Uuid,
 
@@ -21,16 +22,12 @@ pub struct Org {
 
   pub personal: bool,
 
-  #[serde(rename = "createdAt")]
   pub created_at: DateTime<Utc>,
 
-  #[serde(rename = "createdBy")]
   pub created_by: Uuid,
 
-  #[serde(rename = "updatedAt")]
   pub updated_at: DateTime<Utc>,
 
-  #[serde(rename = "updatedBy")]
   pub updated_by: Uuid,
 }
 

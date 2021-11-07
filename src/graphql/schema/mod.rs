@@ -31,7 +31,7 @@ use integration::{Integration, NewIntegration};
 use integrations::google_sheets::GoogleSheetsRedirectURI;
 use org::{NewOrg, Org};
 use page::{NewPage, Page, UpdatePage};
-use project::{NewProject, Project};
+use project::{NewProject, Project, ProjectParts};
 use role::{NewRole, Role};
 use source::{PossibleSource, PossibleSourceInput};
 use user::{NewUser, UpdateUser, User};
@@ -192,6 +192,10 @@ impl Mutation {
 
   async fn create_project(ctx: &GQLContext, new_project: NewProject) -> FieldResult<Project> {
     Mutation::create_project_impl(ctx, new_project).await
+  }
+
+  async fn add_user_to_project(ctx: &GQLContext, user_email: String, project_id: Uuid) -> FieldResult<Project> {
+    Mutation::add_user_to_project_impl(ctx, user_email, project_id).await
   }
 
   // Dashboard

@@ -72,7 +72,7 @@ pub async fn get_dashboard(pool: impl PgExecutor<'_>, dashboard_id: Uuid) -> Res
   .map_err(anyhow::Error::from)
 }
 
-pub async fn _get_dashboards(
+pub async fn get_dashboards(
   pool: impl PgExecutor<'_>,
   dashboard_ids: &[Uuid],
 ) -> Result<Vec<DBDashboard>> {
@@ -88,12 +88,12 @@ pub async fn _get_dashboards(
 
 pub async fn get_project_dashboards(
   pool: impl PgExecutor<'_>,
-  project_id: Uuid,
+  project_ids: &[Uuid],
 ) -> Result<Vec<DBDashboard>> {
   sqlx::query_as!(
     DBDashboard,
-    "select * from dashboards where project_id = $1",
-    project_id
+    "select * from dashboards where project_id = any($1)",
+    project_ids
   )
   .fetch_all(pool)
   .await

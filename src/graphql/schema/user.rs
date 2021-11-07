@@ -34,6 +34,8 @@ pub struct User {
 
   pub role_ids: Vec<Uuid>,
 
+  pub project_ids: Vec<Uuid>,
+
   #[serde(rename = "createdAt")]
   pub created_at: DateTime<Utc>,
 
@@ -101,6 +103,10 @@ impl User {
       .clone()
   }
 
+  fn project_ids(&self) -> Vec<Uuid> {
+    self.project_ids.clone()
+  }
+
   fn created_at(&self) -> DateTime<Utc> {
     self.created_at
   }
@@ -129,6 +135,7 @@ impl From<DBUser> for User {
       status: db_user.status,
       org_ids: db_user.org_ids,
       role_ids: db_user.role_ids,
+      project_ids: db_user.project_ids,
       created_at: db_user.created_at,
       created_by: db_user.created_by,
       updated_at: db_user.updated_at,

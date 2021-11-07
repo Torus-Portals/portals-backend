@@ -1,9 +1,11 @@
 use anyhow::Result;
 use chrono::{DateTime, Utc};
-use sqlx::{PgPool, PgExecutor};
+use sqlx::{PgExecutor, PgPool};
 use uuid::Uuid;
 
-use crate::{graphql::schema::project::NewProject, services::db::user_service::get_user_by_auth0_id};
+use crate::{
+  graphql::schema::project::NewProject, services::db::user_service::get_user_by_auth0_id,
+};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -11,6 +13,8 @@ pub struct DBProject {
   pub id: Uuid,
 
   pub name: String,
+
+  pub user_ids: Vec<Uuid>,
 
   pub created_at: DateTime<Utc>,
 
@@ -36,7 +40,19 @@ impl From<NewProject> for DBNewProject {
 pub async fn get_project(pool: impl PgExecutor<'_>, project_id: Uuid) -> Result<DBProject> {
   sqlx::query_as!(
     DBProject,
-    "select * from projects where id = $1",
+    r#"
+    with
+      _users_ids as (select user_id from user_project where project_id = $1)
+    select
+      id,
+      name,
+      array(select * from _users_ids) as "user_ids!",
+      created_at,
+      created_by,
+      updated_at,
+      updated_by
+    from projects where id = $1;
+    "#,
     project_id
   )
   .fetch_one(pool)
@@ -50,7 +66,19 @@ pub async fn get_projects(
 ) -> Result<Vec<DBProject>> {
   sqlx::query_as!(
     DBProject,
-    "select * from projects where id = any($1)",
+    r#"
+    with
+      _users_ids as (select * from user_project where project_id = any($1))
+    select
+      projects.id as "id!",
+      projects.name as "name!",
+      array(select user_id from _users_ids where project_id = projects.id) as "user_ids!",
+      projects.created_at as "created_at!",
+      projects.created_by as "created_by!",
+      projects.updated_at as "updated_at!",
+      projects.updated_by as "updated_by!"
+    from projects, users where projects.id = any($1);
+    "#,
     project_ids
   )
   .fetch_all(pool)
@@ -66,16 +94,17 @@ pub async fn get_auth0_user_projects(
     DBProject,
     r#"
     with 
-    _user as (select (id) from users where auth0id = $1),
-    _user_project as (select (project_id) from user_project where user_id = (select id from _user))
-  select
-    id as "id!",
-    name as "name!",
-    created_at as "created_at!",
-    created_by as "created_by!",
-    updated_at as "updated_at!",
-    updated_by as "updated_by!"
-  from projects where id = any(select project_id from _user_project);
+      _user as (select id from users where auth0id = $1),
+      _user_project as (select user_id, project_id from user_project where user_id = (select id from _user))
+    select
+      id as "id!",
+      name as "name!",
+      array(select user_id from user_project where project_id = projects.id) as "user_ids!",
+      created_at as "created_at!",
+      created_by as "created_by!",
+      updated_at as "updated_at!",
+      updated_by as "updated_by!"
+    from projects where id = any(select project_id from _user_project);
     "#,
     auth0_id
   )
@@ -118,9 +147,18 @@ pub async fn create_project(
   let project = sqlx::query_as!(
     DBProject,
     r#"
-    with _user as (select * from users where auth0id = $1)
+    with 
+      _user as (select * from users where auth0id = $1)
     insert into projects (name, created_by, updated_by) values ($2, (select id from _user), (select id from _user))
-    returning *;
+    returning
+      id as "id!",
+      name as "name!",
+      array(select user_id from user_project where project_id = projects.id) as "user_ids!",
+      created_at as "created_at!",
+      created_by as "created_by!",
+      updated_at as "updated_at!",
+      updated_by as "updated_by!"
+    ;
     "#,
     auth0_id,
     new_project.name,

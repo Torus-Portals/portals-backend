@@ -1944,6 +1944,7 @@ dependencies = [
  "derive_more",
  "env_logger",
  "futures",
+ "itertools",
  "json_payload_derive",
  "jsonwebtoken",
  "juniper",
