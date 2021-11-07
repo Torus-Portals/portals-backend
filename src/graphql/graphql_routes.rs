@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use crate::services::auth0_service::Auth0Service;
 use crate::services::google_sheets_service::GoogleSheetsService;
+use crate::services::s3_service::S3Service;
 use crate::state::State;
 use actix_web::{dev, web, Error, HttpResponse};
 
@@ -26,13 +27,15 @@ async fn graphql_route(
   state: web::Data<State>,
   auth0_api: web::Data<Arc<Mutex<Auth0Service>>>,
   google_sheets: web::Data<Arc<Mutex<GoogleSheetsService>>>,
+  s3: web::Data<Arc<Mutex<S3Service>>>,
   auth0_user_id: Auth0UserId,
 ) -> Result<HttpResponse, Error> {
   let p = state.pool.clone();
   let s = schema.get_ref();
   let a = auth0_api.into_inner();
   let gs = google_sheets.into_inner();
-  let ctx = GQLContext::new(p, auth0_user_id.id, a, gs);
+  let s3 = s3.into_inner();
+  let ctx = GQLContext::new(p, auth0_user_id.id, a, gs, s3);
 
   graphql_handler(s, &ctx, req, payload).await
 }
