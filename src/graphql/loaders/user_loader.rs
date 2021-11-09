@@ -48,8 +48,3 @@ pub type UserLoader = Loader<Uuid, Vec<User>, UserBatcher>;
 pub fn get_user_loader(pool: PgPool) -> UserLoader {
   Loader::new(UserBatcher { pool }).with_yield_count(20)
 }
-
-// db_users
-//   .into_iter()
-//   .map(|db_user| (db_user.project_id, User::from(db_user)))
-//   .into_group_map()

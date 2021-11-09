@@ -1,7 +1,7 @@
 use juniper::GraphQLObject;
 use uuid::Uuid;
 
-#[derive(GraphQLObject, Debug, Serialize, Deserialize)]
+#[derive(GraphQLObject, Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct BlockSource {
   pub block_id: Uuid,

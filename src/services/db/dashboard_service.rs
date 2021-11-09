@@ -72,7 +72,7 @@ pub async fn get_dashboard(pool: impl PgExecutor<'_>, dashboard_id: Uuid) -> Res
   .map_err(anyhow::Error::from)
 }
 
-pub async fn get_dashboards(
+pub async fn _get_dashboards(
   pool: impl PgExecutor<'_>,
   dashboard_ids: &[Uuid],
 ) -> Result<Vec<DBDashboard>> {
