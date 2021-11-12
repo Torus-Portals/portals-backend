@@ -11,6 +11,7 @@ pub mod integration;
 pub mod integrations;
 pub mod org;
 pub mod page;
+pub mod policy;
 pub mod project;
 pub mod role;
 pub mod source;
