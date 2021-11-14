@@ -21,7 +21,7 @@ pub mod sourcequery;
 pub mod sources;
 pub mod user;
 
-use crate::graphql::schema::policy::UpdatePolicy;
+use crate::graphql::schema::policy::{UpdatePolicy, UserPermissionInput};
 
 use self::{integrations::google_sheets::GoogleSheetsAuthorization, policy::Policy};
 
@@ -204,6 +204,13 @@ impl Query {
     key: String,
   ) -> FieldResult<String> {
     Query::s3_download_presigned_url_impl(ctx, bucket, key).await
+  }
+
+  async fn check_user_permission(
+    ctx: &GQLContext,
+    user_permission: UserPermissionInput,
+  ) -> FieldResult<bool> {
+    Query::check_user_permission_impl(ctx, user_permission).await
   }
 }
 

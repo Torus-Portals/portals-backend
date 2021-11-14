@@ -59,7 +59,7 @@ impl From<NewPolicy> for DBNewPolicy {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct DBUpdatePolicy {
-  pub id: Uuid,
+  pub resource_id: Uuid,
 
   pub policy_type: String,
 
@@ -73,7 +73,7 @@ pub struct DBUpdatePolicy {
 impl From<UpdatePolicy> for DBUpdatePolicy {
   fn from(update_policy: UpdatePolicy) -> Self {
     DBUpdatePolicy {
-      id: update_policy.id,
+      resource_id: update_policy.resource_id,
       policy_type: update_policy.policy_type.to_string(),
       permission_type: update_policy.permission_type.to_string(),
       grant_type: update_policy.grant_type.to_string(),
@@ -127,7 +127,7 @@ pub async fn update_policy(
     update policies
       set
         user_ids = user_ids || $2
-      where id = $3
+      where resource_id = $3
       and policy_type = $4
       and permission_type = $5
       and grant_type = $6
@@ -135,7 +135,7 @@ pub async fn update_policy(
     "#,
     auth0_user_id,
     &update_policy.user_ids,
-    update_policy.id,
+    update_policy.resource_id,
     update_policy.policy_type,
     update_policy.permission_type,
     update_policy.grant_type
@@ -143,4 +143,27 @@ pub async fn update_policy(
   .fetch_one(pool)
   .await
   .map_err(anyhow::Error::from)
+}
+
+pub async fn check_permission(
+  pool: impl PgExecutor<'_>,
+  resource_id: Uuid,
+  user_id: Uuid,
+  grant_type: String,
+) -> Result<bool> {
+  let db_policy = sqlx::query_as!(
+    DBPolicy,
+    r#"
+    select * from policies
+    where resource_id = $1 and user_ids @> $2 and grant_type = $3;
+    "#,
+    resource_id,
+    &vec![user_id],
+    grant_type,
+  )
+  .fetch_optional(pool)
+  .await
+  .map_err(anyhow::Error::from)?;
+
+  Ok(db_policy.is_some())
 }

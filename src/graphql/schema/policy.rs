@@ -10,10 +10,10 @@ use uuid::Uuid;
 
 use crate::{
   graphql::context::GQLContext,
-  services::db::policy_service::{update_policy, DBPolicy},
+  services::db::policy_service::{check_permission, update_policy, DBPolicy},
 };
 
-use super::Mutation;
+use super::{Mutation, Query};
 
 #[derive(Debug, Serialize, Deserialize, GraphQLEnum, EnumString, Display)]
 pub enum PolicyTypes {
@@ -119,7 +119,7 @@ pub struct NewPolicy {
 // Entails granting specific access to a user to a particular resource.
 #[derive(GraphQLInputObject, Debug, Serialize, Deserialize)]
 pub struct UpdatePolicy {
-  pub id: Uuid,
+  pub resource_id: Uuid,
 
   pub policy_type: PolicyTypes,
 
@@ -128,6 +128,31 @@ pub struct UpdatePolicy {
   pub grant_type: GrantTypes,
 
   pub user_ids: Vec<Uuid>,
+}
+
+#[derive(GraphQLInputObject, Debug, Serialize, Deserialize)]
+pub struct UserPermissionInput {
+  pub resource_id: Uuid,
+
+  pub user_id: Uuid,
+
+  pub grant_type: GrantTypes,
+}
+
+impl Query {
+  pub async fn check_user_permission_impl(
+    ctx: &GQLContext,
+    user_access: UserPermissionInput,
+  ) -> FieldResult<bool> {
+    check_permission(
+      &ctx.pool,
+      user_access.resource_id,
+      user_access.user_id,
+      user_access.grant_type.to_string(),
+    )
+    .await
+    .map_err(FieldError::from)
+  }
 }
 
 impl Mutation {
