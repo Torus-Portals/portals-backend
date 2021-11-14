@@ -4,8 +4,12 @@ use sqlx::{PgExecutor, PgPool};
 use uuid::Uuid;
 
 use crate::{
-  graphql::schema::dashboard::{NewDashboard, UpdateDashboard},
+  graphql::schema::{
+    dashboard::{NewDashboard, UpdateDashboard},
+    policy::{GrantTypes, NewPolicy, PermissionTypes, PolicyTypes},
+  },
   services::db::{
+    policy_service::create_policy,
     project_service::{add_user_to_project, get_auth0_user_projects},
     user_service::get_user_by_auth0_id,
   },
@@ -109,7 +113,6 @@ pub async fn _get_dashboards(
 // }
 
 pub async fn get_project_dashboards(
-
   pool: impl PgExecutor<'_>,
   project_ids: &[Uuid],
 ) -> Result<Vec<DBDashboard>> {
@@ -201,7 +204,15 @@ pub async fn create_dashboard(
   {
     add_user_to_project(&mut tx, auth0_id, user.id, dashboard.project_id).await?;
   }
-  add_user_to_dashboard(&mut tx, auth0_id, user.id, dashboard.id).await?;
+  // add_user_to_dashboard(&mut tx, auth0_id, user.id, dashboard.id).await?;
+  let new_dashboard_policy = NewPolicy {
+    resource_id: dashboard.id,
+    policy_type: PolicyTypes::DashboardPolicy,
+    permission_type: PermissionTypes::PagePermission,
+    grant_type: GrantTypes::All,
+    user_ids: vec![user.id],
+  };
+  create_policy(&mut tx, auth0_id, new_dashboard_policy.into()).await?;
 
   tx.commit().await?;
 

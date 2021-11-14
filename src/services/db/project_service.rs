@@ -4,7 +4,11 @@ use sqlx::{PgExecutor, PgPool};
 use uuid::Uuid;
 
 use crate::{
-  graphql::schema::project::NewProject, services::db::user_service::get_user_by_auth0_id,
+  graphql::schema::{
+    policy::{GrantTypes, NewPolicy, PermissionTypes, PolicyTypes},
+    project::NewProject,
+  },
+  services::db::{policy_service::create_policy, user_service::get_user_by_auth0_id},
 };
 
 use super::dashboard_service::{add_user_to_dashboards, get_project_dashboards};
@@ -190,7 +194,14 @@ pub async fn create_project(
   .await
   .map_err(anyhow::Error::from)?;
 
-  add_user_to_project(&mut tx, auth0_id, user.id, project.id).await?;
+  let new_project_policy = NewPolicy {
+    resource_id: project.id,
+    policy_type: PolicyTypes::ProjectPolicy,
+    permission_type: PermissionTypes::DashboardPermission,
+    grant_type: GrantTypes::All,
+    user_ids: vec![user.id],
+  };
+  create_policy(&mut tx, auth0_id, new_project_policy.into()).await?;
 
   tx.commit().await?;
 

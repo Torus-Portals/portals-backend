@@ -2,7 +2,7 @@ use std::str::FromStr;
 
 use anyhow::Result;
 use chrono::{DateTime, Utc};
-use sqlx::{PgExecutor, PgPool};
+use sqlx::PgExecutor;
 use strum::IntoEnumIterator;
 use uuid::Uuid;
 
@@ -83,12 +83,10 @@ impl From<UpdatePolicy> for DBUpdatePolicy {
 }
 
 pub async fn create_policy(
-  pool: PgPool,
+  pool: impl PgExecutor<'_>,
   auth0_user_id: &str,
   new_policy: DBNewPolicy,
 ) -> Result<i32> {
-  let mut tx = pool.begin().await?;
-
   let grants = match GrantTypes::from_str(&new_policy.grant_type)? {
     GrantTypes::All => GrantTypes::iter()
       .skip(1)
@@ -97,28 +95,24 @@ pub async fn create_policy(
     _ => vec![new_policy.grant_type],
   };
 
-  let mut rows = 0;
-  for grant in grants {
-    rows += sqlx::query!(
+  sqlx::query!(
       r#"
       with _user as (select * from users where auth0id = $1)
       insert into policies (resource_id, policy_type, permission_type, grant_type, user_ids, created_by, updated_by)
-      values ($2, $3, $4, $5, $6, (select id from _user), (select id from _user));
+      select $2, $3, $4, *, $6, (select id from _user), (select id from _user)
+      from unnest($5::text[]);
       "#,
       auth0_user_id,
       new_policy.resource_id,
       new_policy.policy_type,
       new_policy.permission_type,
-      grant,
+      &grants,
       &new_policy.user_ids
     )
-    .execute(&mut tx)
+    .execute(pool)
     .await
     .map(|qr| qr.rows_affected() as i32)
-    .map_err(anyhow::Error::from)?;
-  }
-
-  Ok(rows)
+    .map_err(anyhow::Error::from)
 }
 
 pub async fn update_policy(
