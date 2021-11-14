@@ -127,13 +127,14 @@ pub async fn update_policy(
     update policies
       set
         user_ids = user_ids || $2
-      where id = $2
-      and policy_type = $3
-      and permission_type = $4
-      and grant_type = $5
+      where id = $3
+      and policy_type = $4
+      and permission_type = $5
+      and grant_type = $6
       returning *;
     "#,
     auth0_user_id,
+    &update_policy.user_ids,
     update_policy.id,
     update_policy.policy_type,
     update_policy.permission_type,

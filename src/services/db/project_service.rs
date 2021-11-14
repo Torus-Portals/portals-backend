@@ -115,10 +115,10 @@ pub async fn get_auth0_user_projects(
     with 
     _user as (select (id) from users where auth0id = $1),
     _user_project as 
-      (select (object_id) as project_id from user_access 
-      where user_id = (select id from _user)
-      and object_type = 'Project')
-  select
+      (select resource_id as project_id
+       from policies
+       where policy_type = 'Project' and user_ids @> array(select id from _user))
+    select
     id as "id!",
     name as "name!",
     array(select user_id from user_access where object_id = projects.id) as "user_ids!",

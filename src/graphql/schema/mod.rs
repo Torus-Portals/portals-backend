@@ -14,20 +14,21 @@ pub mod page;
 pub mod policy;
 pub mod project;
 pub mod role;
+pub mod s3;
 pub mod source;
 pub mod sourcequeries;
 pub mod sourcequery;
 pub mod sources;
-pub mod s3;
 pub mod user;
 
-use self::integrations::google_sheets::GoogleSheetsAuthorization;
+use crate::graphql::schema::policy::UpdatePolicy;
+
+use self::{integrations::google_sheets::GoogleSheetsAuthorization, policy::Policy};
 
 use super::context::GQLContext;
 use block::{Block, NewBlock, UpdateBlock};
 use connection::{Connection, NewConnection, UpdateConnection};
-use connection_content::{ConnectionContent};
-use source::{NewSource, Source};
+use connection_content::ConnectionContent;
 use dashboard::{Dashboard, NewDashboard, UpdateDashboard};
 use integration::{Integration, NewIntegration};
 use integrations::google_sheets::GoogleSheetsRedirectURI;
@@ -35,6 +36,7 @@ use org::{NewOrg, Org};
 use page::{NewPage, Page, UpdatePage};
 use project::{NewProject, Project, ProjectParts};
 use role::{NewRole, Role};
+use source::{NewSource, Source};
 use source::{PossibleSource, PossibleSourceInput};
 use user::{NewUser, UpdateUser, User};
 
@@ -65,7 +67,7 @@ impl Query {
   async fn user(ctx: &GQLContext, user_id: Uuid) -> FieldResult<User> {
     Query::user_impl(ctx, user_id).await
   }
-  
+
   async fn user_by_email(ctx: &GQLContext, user_email: String) -> FieldResult<User> {
     Query::user_by_email_impl(ctx, user_email).await
   }
@@ -93,8 +95,12 @@ impl Query {
   async fn projects(ctx: &GQLContext) -> FieldResult<Vec<Project>> {
     Query::projects_impl(ctx).await
   }
-  
-  async fn share_project(ctx: &GQLContext, project_id: Uuid, user_ids: Vec<Uuid>) -> FieldResult<i32> {
+
+  async fn share_project(
+    ctx: &GQLContext,
+    project_id: Uuid,
+    user_ids: Vec<Uuid>,
+  ) -> FieldResult<i32> {
     Query::share_project_impl(ctx, project_id, user_ids).await
   }
 
@@ -107,8 +113,12 @@ impl Query {
   async fn dashboards(ctx: &GQLContext, project_id: Uuid) -> FieldResult<Vec<Dashboard>> {
     Query::dashboards_impl(ctx, project_id).await
   }
-  
-  async fn share_dashboard(ctx: &GQLContext, dashboard_id: Uuid, user_ids: Vec<Uuid>) -> FieldResult<i32> {
+
+  async fn share_dashboard(
+    ctx: &GQLContext,
+    dashboard_id: Uuid,
+    user_ids: Vec<Uuid>,
+  ) -> FieldResult<i32> {
     Query::share_dashboard_impl(ctx, dashboard_id, user_ids).await
   }
 
@@ -146,7 +156,10 @@ impl Query {
     Query::connections_impl(ctx, block_id).await
   }
 
-  async fn connection_content(ctx: &GQLContext, block_id: Uuid) -> FieldResult<Vec<ConnectionContent>> {
+  async fn connection_content(
+    ctx: &GQLContext,
+    block_id: Uuid,
+  ) -> FieldResult<Vec<ConnectionContent>> {
     Query::connection_content_impl(ctx, block_id).await
   }
 
@@ -174,14 +187,22 @@ impl Query {
   async fn google_sheets_redirect_uri(state: String) -> FieldResult<GoogleSheetsRedirectURI> {
     Query::google_sheets_redirect_uri_impl(state).await
   }
-  
+
   // S3
 
-  async fn s3_upload_presigned_url(ctx: &GQLContext, bucket: String, key: String) -> FieldResult<String> {
+  async fn s3_upload_presigned_url(
+    ctx: &GQLContext,
+    bucket: String,
+    key: String,
+  ) -> FieldResult<String> {
     Query::s3_upload_presigned_url_impl(ctx, bucket, key).await
   }
 
-  async fn s3_download_presigned_url(ctx: &GQLContext, bucket: String, key: String) -> FieldResult<String> {
+  async fn s3_download_presigned_url(
+    ctx: &GQLContext,
+    bucket: String,
+    key: String,
+  ) -> FieldResult<String> {
     Query::s3_download_presigned_url_impl(ctx, bucket, key).await
   }
 }
@@ -206,6 +227,13 @@ impl Mutation {
     Mutation::update_user_impl(ctx, update_user).await
   }
 
+  async fn update_resource_policy(
+    ctx: &GQLContext,
+    update_policy: UpdatePolicy,
+  ) -> FieldResult<Policy> {
+    Mutation::update_resource_policy_impl(ctx, update_policy).await
+  }
+
   // Role
 
   async fn create_role(ctx: &GQLContext, new_role: NewRole) -> FieldResult<Role> {
@@ -218,7 +246,11 @@ impl Mutation {
     Mutation::create_project_impl(ctx, new_project).await
   }
 
-  async fn add_user_to_project(ctx: &GQLContext, user_email: String, project_id: Uuid) -> FieldResult<Project> {
+  async fn add_user_to_project(
+    ctx: &GQLContext,
+    user_email: String,
+    project_id: Uuid,
+  ) -> FieldResult<Project> {
     Mutation::add_user_to_project_impl(ctx, user_email, project_id).await
   }
 
