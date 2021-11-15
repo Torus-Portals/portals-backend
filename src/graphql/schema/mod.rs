@@ -27,12 +27,13 @@ use block::{Block, NewBlock, UpdateBlock};
 use connection::{Connection, NewConnection, UpdateConnection};
 use connection_content::{ConnectionContent};
 use source::{NewSource, Source};
+use sourcequery::{NewSourceQuery, SourceQuery};
 use dashboard::{Dashboard, NewDashboard, UpdateDashboard};
 use integration::{Integration, NewIntegration};
 use integrations::google_sheets::GoogleSheetsRedirectURI;
 use org::{NewOrg, Org};
 use page::{NewPage, Page, UpdatePage};
-use project::{NewProject, Project, ProjectParts};
+use project::{NewProject, Project};
 use role::{NewRole, Role};
 use source::{PossibleSource, PossibleSourceInput};
 use user::{NewUser, UpdateUser, User};
@@ -144,6 +145,12 @@ impl Query {
     input: PossibleSourceInput,
   ) -> FieldResult<Vec<PossibleSource>> {
     Query::possible_sources_impl(ctx, input).await
+  }
+
+  // SourceQuery
+
+  async fn sourcequery(ctx: &GQLContext, sourcequery_id: Uuid) -> FieldResult<SourceQuery> {
+    Query::sourcequery_impl(ctx, sourcequery_id).await
   }
 
   // Integration
@@ -277,6 +284,12 @@ impl Mutation {
 
   async fn create_source(ctx: &GQLContext, new_source: NewSource) -> FieldResult<Source> {
     Mutation::create_source_impl(ctx, new_source).await
+  }
+
+  async fn create_sourcequery(
+    ctx: &GQLContext,
+    new_sourcequery: NewSourceQuery) -> FieldResult<SourceQuery> {
+    Mutation::create_sourcequery_impl(ctx, new_sourcequery).await
   }
 
   // Integration

@@ -13,7 +13,7 @@ pub struct DBConnection {
 
   pub source_id: Option<Uuid>,
 
-  pub query_id: Option<Uuid>,
+  pub sourcequery_id: Option<Uuid>,
 
   pub destination_id: Option<Uuid>,
 
@@ -33,7 +33,7 @@ pub struct DBNewConnection {
 
   pub source_id: Option<Uuid>,
 
-  pub query_id: Option<Uuid>,
+  pub sourcequery_id: Option<Uuid>,
 
   pub destination_id: Option<Uuid>,
 
@@ -49,7 +49,7 @@ impl From<NewConnection> for DBNewConnection {
     Self {
       block_id: new_connection.block_id,
       source_id: new_connection.source_id,
-      query_id: new_connection.query_id,
+      sourcequery_id: new_connection.query_id,
       destination_id: new_connection.destination_id,
       destination_type,
     }
@@ -78,7 +78,7 @@ pub async fn create_connection(pool: impl PgExecutor<'_>, auth0_id: &str, connec
     insert into connections (
       block_id,
       source_id,
-      query_id,
+      sourcequery_id,
       destination_id,
       destination_type,
       created_by,
@@ -97,7 +97,7 @@ pub async fn create_connection(pool: impl PgExecutor<'_>, auth0_id: &str, connec
     auth0_id,
     connection.block_id,
     connection.source_id,
-    connection.query_id,
+    connection.sourcequery_id,
     connection.destination_id,
     connection.destination_type
   )

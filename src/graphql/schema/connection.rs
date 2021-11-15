@@ -26,7 +26,7 @@ pub struct Connection {
 
   pub source_id: Option<Uuid>,
 
-  pub query_id: Option<Uuid>,
+  pub sourcequery_id: Option<Uuid>,
 
   pub destination_id: Option<Uuid>,
 
@@ -54,7 +54,7 @@ impl From<DBConnection> for Connection {
       id: db_connection.id,
       block_id: db_connection.block_id,
       source_id: db_connection.source_id,
-      query_id: db_connection.query_id,
+      sourcequery_id: db_connection.sourcequery_id,
       destination_id: db_connection.destination_id,
       destination_type,
       created_at: db_connection.created_at,
