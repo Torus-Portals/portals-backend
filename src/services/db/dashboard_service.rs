@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use chrono::{DateTime, Utc};
 use sqlx::{PgExecutor, PgPool};
 use uuid::Uuid;
@@ -9,7 +9,7 @@ use crate::{
     policy::{GrantTypes, NewPolicy, PermissionTypes, PolicyTypes},
   },
   services::db::{
-    policy_service::create_policy,
+    policy_service::{check_permission, create_policy},
     project_service::{add_user_to_project, get_auth0_user_projects},
     user_service::get_user_by_auth0_id,
   },
@@ -179,7 +179,22 @@ pub async fn create_dashboard(
   let mut tx = pool.begin().await?;
   let user = get_user_by_auth0_id(&mut tx, auth0_id).await?;
 
+  // TODO: check if user has permission to create a dashboard in current project?
+  if !check_permission(
+    &mut tx,
+    new_dashboard.project_id,
+    user.id,
+    GrantTypes::Create.to_string(),
+  )
+  .await?
+  {
+    return Err(anyhow!(
+      "Current user does not have permission to create dashboard"
+    ));
+  }
+
   // TODO: Would be nice to be able to create a default starter page for a new dashboard.
+  // TODO: check if user has permission to add dashboard to current project
   let dashboard = sqlx::query_as!(
     DBDashboard,
     r#"
@@ -196,14 +211,14 @@ pub async fn create_dashboard(
   .await
   .map_err(anyhow::Error::from)?;
 
-  let user_projects = get_auth0_user_projects(&mut tx, auth0_id).await?;
-  if !user_projects
-    .into_iter()
-    .map(|db_project| db_project.id)
-    .any(|id| id == dashboard.project_id)
-  {
-    add_user_to_project(&mut tx, auth0_id, user.id, dashboard.project_id).await?;
-  }
+  // let user_projects = get_auth0_user_projects(&mut tx, auth0_id).await?;
+  // if !user_projects
+  //   .into_iter()
+  //   .map(|db_project| db_project.id)
+  //   .any(|id| id == dashboard.project_id)
+  // {
+  //   add_user_to_project(&mut tx, auth0_id, user.id, dashboard.project_id).await?;
+  // }
   // add_user_to_dashboard(&mut tx, auth0_id, user.id, dashboard.id).await?;
   let new_dashboard_policy = NewPolicy {
     resource_id: dashboard.id,
