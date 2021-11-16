@@ -10,7 +10,7 @@ use uuid::Uuid;
 
 use crate::{
   graphql::context::GQLContext,
-  services::db::policy_service::{check_permission, update_policy, DBPolicy},
+  services::db::policy_service::{check_permission, update_policy, user_permissions, DBPolicy},
 };
 
 use super::{Mutation, Query};
@@ -140,6 +140,27 @@ pub struct UserPermissionInput {
 }
 
 impl Query {
+  pub async fn get_user_permissions_impl(
+    ctx: &GQLContext,
+    user_id: Uuid,
+  ) -> FieldResult<Vec<Policy>> {
+    user_permissions(&ctx.pool, user_id)
+      .await
+      .and_then(|db_policies| {
+        Ok(
+          db_policies
+            .into_iter()
+            .map(|db_policy| {
+              db_policy
+                .try_into()
+                .expect("Failed to convert DBPolicy into Policy")
+            })
+            .collect::<Vec<Policy>>(),
+        )
+      })
+      .map_err(FieldError::from)
+  }
+
   pub async fn check_user_permission_impl(
     ctx: &GQLContext,
     user_access: UserPermissionInput,

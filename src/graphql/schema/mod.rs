@@ -205,6 +205,10 @@ impl Query {
   ) -> FieldResult<String> {
     Query::s3_download_presigned_url_impl(ctx, bucket, key).await
   }
+  
+  async fn get_user_permissions(ctx: &GQLContext, user_id: Uuid) -> FieldResult<Vec<Policy>> {
+    Query::get_user_permissions_impl(ctx, user_id).await
+  }
 
   async fn check_user_permission(
     ctx: &GQLContext,

@@ -167,3 +167,17 @@ pub async fn check_permission(
 
   Ok(db_policy.is_some())
 }
+
+pub async fn user_permissions(pool: impl PgExecutor<'_>, user_id: Uuid) -> Result<Vec<DBPolicy>> {
+  sqlx::query_as!(
+    DBPolicy,
+    r#"
+    select * from policies
+    where user_ids @> $1
+    "#,
+    &vec![user_id],
+  )
+  .fetch_all(pool)
+  .await
+  .map_err(anyhow::Error::from)
+}
