@@ -1,13 +1,10 @@
 use std::str::FromStr;
 
-use crate::graphql::schema::{
-  block::{BlockTypes, NewBlock, UpdateBlock},
-  blocks::table_block::TableBlock,
-};
+use crate::{graphql::schema::{block::{BlockTypes, NewBlock, UpdateBlock}, blocks::table_block::TableBlock, policy::{GrantTypes, NewPolicy, PermissionTypes, PolicyTypes}}, services::db::{policy_service::{check_permission, create_policy}, user_service::get_user_by_auth0_id}};
 
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use chrono::{DateTime, Utc};
-use sqlx::{PgExecutor};
+use sqlx::{PgExecutor, PgPool};
 use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -165,11 +162,27 @@ pub async fn get_project_blocks(
 }
 
 pub async fn create_block(
-  pool: impl PgExecutor<'_>,
+  pool: PgPool,
   auth0_user_id: &str,
   new_block: DBNewBlock,
 ) -> Result<DBBlock> {
-  sqlx::query_as!(
+  let mut tx = pool.begin().await?;
+  let user = get_user_by_auth0_id(&mut tx, auth0_user_id).await?;
+
+  if !check_permission(
+    &mut tx,
+    new_block.page_id,
+    user.id,
+    GrantTypes::Create.to_string(),
+  )
+  .await?
+  {
+    return Err(anyhow!(
+      "Current user does not have permission to create block"
+    ));
+  }
+  
+  let block = sqlx::query_as!(
     DBBlock,
     r#"
     with _user as (select * from users where auth0id = $1)
@@ -185,9 +198,22 @@ pub async fn create_block(
     new_block.block_type,
     new_block.block_data
   )
-  .fetch_one(pool)
+  .fetch_one(&mut tx)
   .await
-  .map_err(anyhow::Error::from)
+  .map_err(anyhow::Error::from)?;
+  let new_block_policy = NewPolicy {
+    resource_id: block.id,
+    policy_type: PolicyTypes::BlockPolicy,
+    // TODO: CellPermission?
+    permission_type: PermissionTypes::BlockPermission,
+    grant_type: GrantTypes::All,
+    user_ids: vec![user.id],
+  };
+  create_policy(&mut tx, auth0_user_id, new_block_policy.into()).await?;
+  
+  tx.commit().await?;
+
+  Ok(block)
 }
 
 pub async fn update_block(
