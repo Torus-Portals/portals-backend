@@ -263,25 +263,25 @@ pub async fn update_dashboard(
   .map_err(anyhow::Error::from)
 }
 
-pub async fn share_dashboard(
-  pool: PgPool,
-  auth0_id: &str,
-  dashboard_id: Uuid,
-  user_ids: Vec<Uuid>,
-) -> Result<i32> {
-  let mut tx = pool.begin().await?;
-  let mut res = 0;
+// pub async fn share_dashboard(
+//   pool: PgPool,
+//   auth0_id: &str,
+//   dashboard_id: Uuid,
+//   user_ids: Vec<Uuid>,
+// ) -> Result<i32> {
+//   let mut tx = pool.begin().await?;
+//   let mut res = 0;
 
-  // Adds user to containing Project as well -- but not other dashboards
-  // TODO: Can't run async closure with &mut
-  let dashboard = get_dashboard(&mut tx, dashboard_id).await?;
-  let project = get_project(&mut tx, dashboard.project_id).await?;
-  for user_id in user_ids {
-    res += add_user_to_dashboard(&mut tx, auth0_id, user_id, dashboard_id).await?;
-    res += add_user_to_project(&mut tx, auth0_id, user_id, project.id).await?;
-  }
+//   // Adds user to containing Project as well -- but not other dashboards
+//   // TODO: Can't run async closure with &mut
+//   let dashboard = get_dashboard(&mut tx, dashboard_id).await?;
+//   let project = get_project(&mut tx, dashboard.project_id).await?;
+//   for user_id in user_ids {
+//     res += add_user_to_dashboard(&mut tx, auth0_id, user_id, dashboard_id).await?;
+//     res += add_user_to_project(&mut tx, auth0_id, user_id, project.id).await?;
+//   }
 
-  tx.commit().await?;
+//   tx.commit().await?;
 
-  Ok(res)
-}
+//   Ok(res)
+// }

@@ -208,28 +208,28 @@ pub async fn create_project(
   Ok(project)
 }
 
-pub async fn share_project(
-  pool: PgPool,
-  auth0_id: &str,
-  project_id: Uuid,
-  user_ids: Vec<Uuid>,
-) -> Result<i32> {
-  let mut tx = pool.begin().await?;
-  let mut res = 0;
+// pub async fn share_project(
+//   pool: PgPool,
+//   auth0_id: &str,
+//   project_id: Uuid,
+//   user_ids: Vec<Uuid>,
+// ) -> Result<i32> {
+//   let mut tx = pool.begin().await?;
+//   let mut res = 0;
 
-  // TODO: Can't run async closure with &mut
-  // For now, adding a user to a project directly adds the user to all dashboards as well
-  let dashboards = get_project_dashboards(&mut tx, &[project_id]).await?;
-  let dashboard_ids = dashboards
-    .into_iter()
-    .map(|db_dashboard| db_dashboard.id)
-    .collect::<Vec<Uuid>>();
-  for user_id in user_ids {
-    res += add_user_to_project(&mut tx, auth0_id, user_id, project_id).await?;
-    res += add_user_to_dashboards(&mut tx, auth0_id, user_id, &dashboard_ids).await?;
-  }
+//   // TODO: Can't run async closure with &mut
+//   // For now, adding a user to a project directly adds the user to all dashboards as well
+//   let dashboards = get_project_dashboards(&mut tx, &[project_id]).await?;
+//   let dashboard_ids = dashboards
+//     .into_iter()
+//     .map(|db_dashboard| db_dashboard.id)
+//     .collect::<Vec<Uuid>>();
+//   for user_id in user_ids {
+//     res += add_user_to_project(&mut tx, auth0_id, user_id, project_id).await?;
+//     res += add_user_to_dashboards(&mut tx, auth0_id, user_id, &dashboard_ids).await?;
+//   }
 
-  tx.commit().await?;
+//   tx.commit().await?;
 
-  Ok(res)
-}
+//   Ok(res)
+// }

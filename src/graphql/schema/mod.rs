@@ -96,13 +96,13 @@ impl Query {
     Query::projects_impl(ctx).await
   }
 
-  async fn share_project(
-    ctx: &GQLContext,
-    project_id: Uuid,
-    user_ids: Vec<Uuid>,
-  ) -> FieldResult<i32> {
-    Query::share_project_impl(ctx, project_id, user_ids).await
-  }
+  // async fn share_project(
+  //   ctx: &GQLContext,
+  //   project_id: Uuid,
+  //   user_ids: Vec<Uuid>,
+  // ) -> FieldResult<i32> {
+  //   Query::share_project_impl(ctx, project_id, user_ids).await
+  // }
 
   // Dashboard
 
@@ -114,13 +114,13 @@ impl Query {
     Query::dashboards_impl(ctx, project_id).await
   }
 
-  async fn share_dashboard(
-    ctx: &GQLContext,
-    dashboard_id: Uuid,
-    user_ids: Vec<Uuid>,
-  ) -> FieldResult<i32> {
-    Query::share_dashboard_impl(ctx, dashboard_id, user_ids).await
-  }
+  // async fn share_dashboard(
+  //   ctx: &GQLContext,
+  //   dashboard_id: Uuid,
+  //   user_ids: Vec<Uuid>,
+  // ) -> FieldResult<i32> {
+  //   Query::share_dashboard_impl(ctx, dashboard_id, user_ids).await
+  // }
 
   // Page
 
