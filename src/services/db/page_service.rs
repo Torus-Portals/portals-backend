@@ -1,9 +1,9 @@
 use anyhow::Result;
 use chrono::{DateTime, Utc};
-use sqlx::PgExecutor;
+use sqlx::{PgPool, PgExecutor};
 use uuid::Uuid;
 
-use crate::graphql::schema::page::{Grid, NewPage, UpdatePage};
+use crate::{graphql::schema::page::{Grid, NewPage, UpdatePage}, services::db::dashboard_service::remove_page_from_dashboard};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -78,7 +78,7 @@ impl From<UpdatePage> for DBUpdatePage {
 pub async fn get_page(pool: impl PgExecutor<'_>, page_id: Uuid) -> Result<DBPage> {
   sqlx::query_as!(
     DBPage,
-    "select * from pages where id = $1 and deleted_at = null",
+    "select * from pages where id = $1 and deleted_at is null",
     page_id
   )
   .fetch_one(pool)
@@ -89,7 +89,7 @@ pub async fn get_page(pool: impl PgExecutor<'_>, page_id: Uuid) -> Result<DBPage
 pub async fn _get_pages(pool: impl PgExecutor<'_>, page_ids: &[Uuid]) -> Result<Vec<DBPage>> {
   sqlx::query_as!(
     DBPage,
-    "select * from pages where id = any($1) and deleted_at = null",
+    "select * from pages where id = any($1) and deleted_at is null",
     page_ids
   )
   .fetch_all(pool)
@@ -103,7 +103,7 @@ pub async fn get_dashboard_pages(
 ) -> Result<Vec<DBPage>> {
   sqlx::query_as!(
     DBPage,
-    "select * from pages where dashboard_id = $1",
+    "select * from pages where dashboard_id = $1 and deleted_at is null",
     dashboard_id
   )
   .fetch_all(pool)
@@ -168,8 +168,12 @@ pub async fn update_page(
   .map_err(anyhow::Error::from)
 }
 
-pub async fn delete_page(pool: impl PgExecutor<'_>, auth0_id: &str, page_id: Uuid) -> Result<DateTime<Utc>> {
-  sqlx::query_as!(
+pub async fn delete_page(pool: PgPool, auth0_id: &str, page_id: Uuid) -> Result<DateTime<Utc>> {
+  let mut tx = pool.begin().await?;
+  
+  let page = get_page(&mut tx, page_id).await?;
+
+  let time_deleted= sqlx::query_as!(
     DBPage,
     r#"
     with _user as (select * from users where auth0id = $1)
@@ -183,8 +187,14 @@ pub async fn delete_page(pool: impl PgExecutor<'_>, auth0_id: &str, page_id: Uui
     auth0_id,
     page_id
   )
-  .fetch_one(pool)
+  .fetch_one(&mut tx)
   .await
   .map(|db_p|db_p.deleted_at.unwrap())
-  .map_err(anyhow::Error::from)
+  .map_err(anyhow::Error::from)?;
+
+  remove_page_from_dashboard(&mut tx, auth0_id, page_id, page.dashboard_id).await?;
+
+  tx.commit().await?;
+
+  Ok(time_deleted)
 }

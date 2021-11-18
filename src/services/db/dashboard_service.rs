@@ -146,7 +146,35 @@ pub async fn update_dashboard(
     updated_dashboard.id,
     updated_dashboard.name,
     updated_dashboard.project_id,
-    updated_dashboard.page_ids.as_deref()
+    updated_dashboard
+      .page_ids
+      .as_deref()
+  )
+  .fetch_one(pool)
+  .await
+  .map_err(anyhow::Error::from)
+}
+
+pub async fn remove_page_from_dashboard(
+  pool: impl PgExecutor<'_>,
+  auth0_id: &str,
+  page_id: Uuid,
+  dashboard_id: Uuid,
+) -> Result<DBDashboard> {
+  sqlx::query_as!(
+    DBDashboard,
+    r#"
+    with _user as (select * from users where auth0id = $1)
+    update dashboards
+    set 
+      page_ids = array_remove(page_ids, $2),
+      updated_by = (select id from _user)
+    where id = $3
+    returning *;
+    "#,
+    auth0_id,
+    page_id,
+    dashboard_id
   )
   .fetch_one(pool)
   .await

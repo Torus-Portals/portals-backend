@@ -177,7 +177,8 @@ impl Mutation {
   }
 
   pub async fn delete_page_impl(ctx: &GQLContext, page_id: Uuid) -> FieldResult<DateTime<Utc>> {
-    delete_page(&ctx.pool, &ctx.auth0_user_id, page_id)
+    let local_pool = ctx.pool.clone();
+    delete_page(local_pool, &ctx.auth0_user_id, page_id)
       .await
       .map_err(FieldError::from)
   }
