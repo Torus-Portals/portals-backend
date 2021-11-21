@@ -165,7 +165,9 @@ impl Query {
 
 impl Mutation {
   pub async fn create_page_impl(ctx: &GQLContext, new_page: NewPage) -> FieldResult<Page> {
-    create_page(&ctx.pool, &ctx.auth0_user_id, new_page.into())
+    let local_pool = ctx.pool.clone();
+
+    create_page(local_pool, &ctx.auth0_user_id, new_page.into())
       .await
       .map(|db_page| db_page.into())
       .map_err(FieldError::from)

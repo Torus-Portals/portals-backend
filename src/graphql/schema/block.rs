@@ -159,7 +159,9 @@ impl Query {
 
 impl Mutation {
   pub async fn create_block(ctx: &GQLContext, new_block: NewBlock) -> FieldResult<Block> {
-    create_block(&ctx.pool, &ctx.auth0_user_id, new_block.into())
+    let local_pool = ctx.pool.clone();
+
+    create_block(local_pool, &ctx.auth0_user_id, new_block.into())
       .await
       .map(|db_block| db_block.into())
       .map_err(FieldError::from)

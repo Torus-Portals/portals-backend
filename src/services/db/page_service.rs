@@ -1,10 +1,19 @@
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use chrono::{DateTime, Utc};
-use sqlx::{PgPool, PgExecutor};
+use sqlx::{PgExecutor, PgPool};
 use uuid::Uuid;
 use std::convert::TryFrom;
 
-use crate::{graphql::schema::page::{Grid, NewPage, UpdatePage}, services::db::dashboard_service::remove_page_from_dashboard};
+use crate::{
+  graphql::schema::{
+    page::{Grid, NewPage, UpdatePage}, 
+    policy::{GrantTypes, NewPolicy, PermissionTypes, PolicyTypes}}, 
+    services::db::{
+      policy_service::{check_permission, create_policy}, 
+      user_service::get_user_by_auth0_id,
+      dashboard_service::remove_page_from_dashboard
+  }
+};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -122,13 +131,28 @@ pub async fn get_dashboard_pages(
 }
 
 pub async fn create_page(
-  pool: impl PgExecutor<'_>,
+  pool: PgPool,
   auth0_id: &str,
   new_page: DBNewPage,
 ) -> Result<DBPage> {
+  let mut tx = pool.begin().await?;
   let grid = serde_json::to_value(Grid::new())?;
+  let user = get_user_by_auth0_id(&mut tx, auth0_id).await?;
 
-  sqlx::query_as!(
+  if !check_permission(
+    &mut tx,
+    new_page.dashboard_id,
+    user.id,
+    GrantTypes::Create.to_string(),
+  )
+  .await?
+  {
+    return Err(anyhow!(
+      "Current user does not have permission to create page"
+    ));
+  }
+
+  let page = sqlx::query_as!(
     DBPage,
     r#"
     with _user as (select * from users where auth0id = $1)
@@ -142,9 +166,22 @@ pub async fn create_page(
     new_page.dashboard_id,
     grid
   )
-  .fetch_one(pool)
+  .fetch_one(&mut tx)
   .await
-  .map_err(anyhow::Error::from)
+  .map_err(anyhow::Error::from)?;
+    
+  let new_page_policy = NewPolicy {
+    resource_id: page.id,
+    policy_type: PolicyTypes::PagePolicy,
+    permission_type: PermissionTypes::BlockPermission,
+    grant_type: GrantTypes::All,
+    user_ids: vec![user.id],
+  };
+  create_policy(&mut tx, auth0_id, new_page_policy.into()).await?;
+
+  tx.commit().await?;
+
+  Ok(page)
 }
 
 pub async fn update_page(

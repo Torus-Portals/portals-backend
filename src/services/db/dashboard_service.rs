@@ -1,9 +1,21 @@
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use chrono::{DateTime, Utc};
-use sqlx::PgExecutor;
+use sqlx::{PgExecutor, PgPool};
 use uuid::Uuid;
 
-use crate::graphql::schema::dashboard::{NewDashboard, UpdateDashboard};
+use crate::{
+  graphql::schema::{
+    dashboard::{NewDashboard, UpdateDashboard},
+    policy::{GrantTypes, NewPolicy, PermissionTypes, PolicyTypes},
+  },
+  services::db::{
+    policy_service::{check_permission, create_policy},
+    project_service::{add_user_to_project, get_auth0_user_projects},
+    user_service::get_user_by_auth0_id,
+  },
+};
+
+use super::project_service::get_project;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -86,6 +98,20 @@ pub async fn _get_dashboards(
   .map_err(anyhow::Error::from)
 }
 
+// pub async fn get_project_dashboards(
+//   pool: impl PgExecutor<'_>,
+//   project_id: Uuid,
+// ) -> Result<Vec<DBDashboard>> {
+//   sqlx::query_as!(
+//     DBDashboard,
+//     "select * from dashboards where project_id = $1",
+//     project_id
+//   )
+//   .fetch_all(pool)
+//   .await
+//   .map_err(anyhow::Error::from)
+// }
+
 pub async fn get_project_dashboards(
   pool: impl PgExecutor<'_>,
   project_ids: &[Uuid],
@@ -100,14 +126,76 @@ pub async fn get_project_dashboards(
   .map_err(anyhow::Error::from)
 }
 
-pub async fn create_dashboard(
+pub async fn add_user_to_dashboard(
   pool: impl PgExecutor<'_>,
+  auth0_id: &str,
+  user_id: Uuid,
+  dashboard_id: Uuid,
+) -> Result<i32> {
+  sqlx::query!(
+    r#"
+  with _user as (select * from users where auth0id = $1)
+  insert into user_access (user_id, object_type, object_id, created_by, updated_by)
+  values ($2, 'Dashboard', $3, (select id from _user), (select id from _user))
+  "#,
+    auth0_id,
+    user_id,
+    dashboard_id,
+  )
+  .execute(pool)
+  .await
+  .map(|qr| qr.rows_affected() as i32)
+  .map_err(anyhow::Error::from)
+}
+
+pub async fn add_user_to_dashboards(
+  pool: impl PgExecutor<'_>,
+  auth0_id: &str,
+  user_id: Uuid,
+  dashboard_ids: &[Uuid],
+) -> Result<i32> {
+  sqlx::query!(
+    r#"
+  with _user as (select * from users where auth0id = $1)
+  insert into user_access (user_id, object_type, object_id, created_by, updated_by)
+  select $2, 'Dashboard', *, (select id from _user), (select id from _user)
+  from unnest($3::uuid[])
+  "#,
+    auth0_id,
+    user_id,
+    dashboard_ids,
+  )
+  .execute(pool)
+  .await
+  .map(|qr| qr.rows_affected() as i32)
+  .map_err(anyhow::Error::from)
+}
+
+pub async fn create_dashboard(
+  pool: PgPool,
   auth0_id: &str,
   new_dashboard: DBNewDashboard,
 ) -> Result<DBDashboard> {
-  // TODO: Would be nice to be able to create a default starter page for a new dashboard.
+  let mut tx = pool.begin().await?;
+  let user = get_user_by_auth0_id(&mut tx, auth0_id).await?;
 
-  sqlx::query_as!(
+  // TODO: check if user has permission to create a dashboard in current project?
+  if !check_permission(
+    &mut tx,
+    new_dashboard.project_id,
+    user.id,
+    GrantTypes::Create.to_string(),
+  )
+  .await?
+  {
+    return Err(anyhow!(
+      "Current user does not have permission to create dashboard"
+    ));
+  }
+
+  // TODO: Would be nice to be able to create a default starter page for a new dashboard.
+  // TODO: check if user has permission to add dashboard to current project
+  let dashboard = sqlx::query_as!(
     DBDashboard,
     r#"
     with _user as (select * from users where auth0id = $1)
@@ -119,9 +207,31 @@ pub async fn create_dashboard(
     new_dashboard.name,
     new_dashboard.project_id
   )
-  .fetch_one(pool)
+  .fetch_one(&mut tx)
   .await
-  .map_err(anyhow::Error::from)
+  .map_err(anyhow::Error::from)?;
+
+  // let user_projects = get_auth0_user_projects(&mut tx, auth0_id).await?;
+  // if !user_projects
+  //   .into_iter()
+  //   .map(|db_project| db_project.id)
+  //   .any(|id| id == dashboard.project_id)
+  // {
+  //   add_user_to_project(&mut tx, auth0_id, user.id, dashboard.project_id).await?;
+  // }
+  // add_user_to_dashboard(&mut tx, auth0_id, user.id, dashboard.id).await?;
+  let new_dashboard_policy = NewPolicy {
+    resource_id: dashboard.id,
+    policy_type: PolicyTypes::DashboardPolicy,
+    permission_type: PermissionTypes::PagePermission,
+    grant_type: GrantTypes::All,
+    user_ids: vec![user.id],
+  };
+  create_policy(&mut tx, auth0_id, new_dashboard_policy.into()).await?;
+
+  tx.commit().await?;
+
+  Ok(dashboard)
 }
 
 pub async fn update_dashboard(
@@ -180,3 +290,26 @@ pub async fn remove_page_from_dashboard(
   .await
   .map_err(anyhow::Error::from)
 }
+
+// pub async fn share_dashboard(
+//   pool: PgPool,
+//   auth0_id: &str,
+//   dashboard_id: Uuid,
+//   user_ids: Vec<Uuid>,
+// ) -> Result<i32> {
+//   let mut tx = pool.begin().await?;
+//   let mut res = 0;
+
+//   // Adds user to containing Project as well -- but not other dashboards
+//   // TODO: Can't run async closure with &mut
+//   let dashboard = get_dashboard(&mut tx, dashboard_id).await?;
+//   let project = get_project(&mut tx, dashboard.project_id).await?;
+//   for user_id in user_ids {
+//     res += add_user_to_dashboard(&mut tx, auth0_id, user_id, dashboard_id).await?;
+//     res += add_user_to_project(&mut tx, auth0_id, user_id, project.id).await?;
+//   }
+
+//   tx.commit().await?;
+
+//   Ok(res)
+// }

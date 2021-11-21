@@ -10,6 +10,7 @@ pub mod connection_service;
 pub mod connection_content_service;
 pub mod source_service;
 pub mod sourcequery_service;
+pub mod policy_service;
 
 // These are probably going away, or being drasically altered.
 pub mod integration_service;

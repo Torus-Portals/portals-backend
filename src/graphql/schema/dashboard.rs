@@ -6,6 +6,7 @@ use super::Mutation;
 use super::Query;
 
 use crate::graphql::context::GQLContext;
+// use crate::services::db::dashboard_service::share_dashboard;
 use crate::services::db::dashboard_service::{
   create_dashboard, get_dashboard, get_project_dashboards, update_dashboard, DBDashboard,
   DBNewDashboard,
@@ -107,6 +108,14 @@ impl Query {
       })
       .map_err(FieldError::from)
   }
+  
+  // pub async fn share_dashboard_impl(ctx: &GQLContext, dashboard_id: Uuid, user_ids: Vec<Uuid>) -> FieldResult<i32> {
+  //   let local_pool = ctx.pool.clone();
+
+  //   share_dashboard(local_pool, &ctx.auth0_user_id, dashboard_id, user_ids)
+  //     .await
+  //     .map_err(FieldError::from)
+  // }
 }
 
 impl Mutation {
@@ -114,7 +123,9 @@ impl Mutation {
     ctx: &GQLContext,
     new_dashboard: NewDashboard,
   ) -> FieldResult<Dashboard> {
-    create_dashboard(&ctx.pool, &ctx.auth0_user_id, new_dashboard.into())
+    let local_pool = ctx.pool.clone();
+
+    create_dashboard(local_pool, &ctx.auth0_user_id, new_dashboard.into())
       .await
       .map(|db_d| db_d.into())
       .map_err(FieldError::from)

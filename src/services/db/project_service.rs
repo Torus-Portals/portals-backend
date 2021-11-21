@@ -4,8 +4,14 @@ use sqlx::{PgExecutor, PgPool};
 use uuid::Uuid;
 
 use crate::{
-  graphql::schema::project::NewProject, services::db::user_service::get_user_by_auth0_id,
+  graphql::schema::{
+    policy::{GrantTypes, NewPolicy, PermissionTypes, PolicyTypes},
+    project::NewProject,
+  },
+  services::db::{policy_service::create_policy, user_service::get_user_by_auth0_id},
 };
+
+use super::dashboard_service::{add_user_to_dashboards, get_project_dashboards};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -92,19 +98,35 @@ pub async fn get_auth0_user_projects(
 ) -> Result<Vec<DBProject>> {
   sqlx::query_as!(
     DBProject,
+    //   r#"
+    //   with
+    //   _user as (select (id) from users where auth0id = $1),
+    //   _user_project as (select (project_id) from user_project where user_id = (select id from _user))
+    // select
+    //   id as "id!",
+    //   name as "name!",
+    //   created_at as "created_at!",
+    //   created_by as "created_by!",
+    //   updated_at as "updated_at!",
+    //   updated_by as "updated_by!"
+    // from projects where id = any(select project_id from _user_project);
+    //   "#,
     r#"
     with 
-      _user as (select id from users where auth0id = $1),
-      _user_project as (select user_id, project_id from user_project where user_id = (select id from _user))
+    _user as (select (id) from users where auth0id = $1),
+    _user_project as 
+      (select resource_id as project_id
+       from policies
+       where policy_type = 'Project' and user_ids @> array(select id from _user))
     select
-      id as "id!",
-      name as "name!",
-      array(select user_id from user_project where project_id = projects.id) as "user_ids!",
-      created_at as "created_at!",
-      created_by as "created_by!",
-      updated_at as "updated_at!",
-      updated_by as "updated_by!"
-    from projects where id = any(select project_id from _user_project);
+    id as "id!",
+    name as "name!",
+    array(select user_id from user_access where object_id = projects.id) as "user_ids!",
+    created_at as "created_at!",
+    created_by as "created_by!",
+    updated_at as "updated_at!",
+    updated_by as "updated_by!"
+  from projects where id = any(select project_id from _user_project);
     "#,
     auth0_id
   )
@@ -120,10 +142,15 @@ pub async fn add_user_to_project(
   project_id: Uuid,
 ) -> Result<i32> {
   sqlx::query!(
+    //   r#"
+    // with _user as (select * from users where auth0id = $1)
+    // insert into user_project (user_id, project_id, created_by, updated_by)
+    // values ($2, $3, (select id from _user), (select id from _user))
+    // "#,
     r#"
-  with _user as (select * from users where auth0id = $1)
-  insert into user_project (user_id, project_id, created_by, updated_by)
-  values ($2, $3, (select id from _user), (select id from _user))
+    with _user as (select * from users where auth0id = $1)
+    insert into user_access (user_id, object_type, object_id, created_by, updated_by)
+    values ($2, 'Project', $3, (select id from _user), (select id from _user))
   "#,
     auth0_id,
     user_id,
@@ -167,9 +194,42 @@ pub async fn create_project(
   .await
   .map_err(anyhow::Error::from)?;
 
-  add_user_to_project(&mut tx, auth0_id, user.id, project.id).await?;
+  let new_project_policy = NewPolicy {
+    resource_id: project.id,
+    policy_type: PolicyTypes::ProjectPolicy,
+    permission_type: PermissionTypes::DashboardPermission,
+    grant_type: GrantTypes::All,
+    user_ids: vec![user.id],
+  };
+  create_policy(&mut tx, auth0_id, new_project_policy.into()).await?;
 
   tx.commit().await?;
 
   Ok(project)
 }
+
+// pub async fn share_project(
+//   pool: PgPool,
+//   auth0_id: &str,
+//   project_id: Uuid,
+//   user_ids: Vec<Uuid>,
+// ) -> Result<i32> {
+//   let mut tx = pool.begin().await?;
+//   let mut res = 0;
+
+//   // TODO: Can't run async closure with &mut
+//   // For now, adding a user to a project directly adds the user to all dashboards as well
+//   let dashboards = get_project_dashboards(&mut tx, &[project_id]).await?;
+//   let dashboard_ids = dashboards
+//     .into_iter()
+//     .map(|db_dashboard| db_dashboard.id)
+//     .collect::<Vec<Uuid>>();
+//   for user_id in user_ids {
+//     res += add_user_to_project(&mut tx, auth0_id, user_id, project_id).await?;
+//     res += add_user_to_dashboards(&mut tx, auth0_id, user_id, &dashboard_ids).await?;
+//   }
+
+//   tx.commit().await?;
+
+//   Ok(res)
+// }
