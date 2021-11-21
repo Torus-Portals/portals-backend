@@ -38,7 +38,6 @@ use org::{NewOrg, Org};
 use page::{NewPage, Page, UpdatePage};
 use project::{NewProject, Project};
 use role::{NewRole, Role};
-use source::{NewSource, Source};
 use source::{PossibleSource, PossibleSourceInput};
 use user::{NewUser, UpdateUser, User};
 
