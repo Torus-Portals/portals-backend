@@ -2,6 +2,7 @@ use anyhow::Result;
 use chrono::{DateTime, Utc};
 use sqlx::{PgPool, PgExecutor};
 use uuid::Uuid;
+use std::convert::TryFrom;
 
 use crate::{graphql::schema::page::{Grid, NewPage, UpdatePage}, services::db::dashboard_service::remove_page_from_dashboard};
 
@@ -49,6 +50,7 @@ impl From<NewPage> for DBNewPage {
   }
 }
 
+#[derive(Debug, Clone)]
 pub struct DBUpdatePage {
   pub id: Uuid,
 
@@ -61,17 +63,25 @@ pub struct DBUpdatePage {
   pub grid: Option<serde_json::Value>,
 }
 
-impl From<UpdatePage> for DBUpdatePage {
-  fn from(update_page: UpdatePage) -> Self {
-    let grid = serde_json::to_value(&update_page.grid).ok();
+impl TryFrom<UpdatePage> for DBUpdatePage {
+  type Error = anyhow::Error;
 
-    DBUpdatePage {
+  fn try_from(update_page: UpdatePage) -> Result<Self, Self::Error> {
+    let grid = match update_page.grid {
+      Some(grid) => {
+        let value = serde_json::to_value(&grid).map_err(anyhow::Error::from)?;
+        Some(value)
+      }
+      None => None,
+    };
+
+    Ok(DBUpdatePage {
       id: update_page.id,
       name: update_page.name,
       project_id: update_page.project_id,
       dashboard_id: update_page.dashboard_id,
       grid,
-    }
+    })
   }
 }
 
@@ -140,7 +150,7 @@ pub async fn create_page(
 pub async fn update_page(
   pool: impl PgExecutor<'_>,
   auth0_id: &str,
-  new_page: DBUpdatePage,
+  updated_page: DBUpdatePage,
 ) -> Result<DBPage> {
   sqlx::query_as!(
     DBPage,
@@ -157,11 +167,11 @@ pub async fn update_page(
     returning *;
     "#,
     auth0_id,
-    new_page.id,
-    new_page.name,
-    new_page.project_id,
-    new_page.dashboard_id,
-    new_page.grid,
+    updated_page.id,
+    updated_page.name,
+    updated_page.project_id,
+    updated_page.dashboard_id,
+    updated_page.grid,
   )
   .fetch_one(pool)
   .await

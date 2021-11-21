@@ -1,11 +1,13 @@
 use chrono::{DateTime, Utc};
 use juniper::{FieldError, FieldResult, GraphQLInputObject, GraphQLObject};
 use uuid::Uuid;
+use std::convert::TryInto;
 
 use super::Mutation;
 use super::Query;
 
 use crate::graphql::context::GQLContext;
+use crate::services::db::page_service::DBUpdatePage;
 use crate::services::db::page_service::{
   create_page, get_dashboard_pages, get_page, update_page, delete_page, DBPage,
 };
@@ -170,7 +172,9 @@ impl Mutation {
   }
 
   pub async fn update_page_impl(ctx: &GQLContext, updated_page: UpdatePage) -> FieldResult<Page> {
-    update_page(&ctx.pool, &ctx.auth0_user_id, updated_page.into())
+    let db_update_page: DBUpdatePage = updated_page.try_into().map_err(FieldError::from)?;
+
+    update_page(&ctx.pool, &ctx.auth0_user_id, db_update_page)
       .await
       .map(|db_page| db_page.into())
       .map_err(FieldError::from)
