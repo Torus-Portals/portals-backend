@@ -278,7 +278,7 @@ pub async fn get_project_users(
     DBUser,
     r#"
     with
-      _user_projects as (select * from user_project where project_id = any($1))
+      _user_projects as (select * from user_access where object_type = 'Project' and object_id = any($1))
     select
       users.id as "id!",
       users.auth0id as "auth0id!",
@@ -288,7 +288,7 @@ pub async fn get_project_users(
       users.status as "status!",
       users.org_ids as "org_ids!",
       users.role_ids as "role_ids!",
-      array(select project_id from user_project where user_id = users.id) as "project_ids!",
+      array(select object_id from user_access where user_id = users.id) as "project_ids!",
       users.created_at as "created_at!",
       users.created_by as "created_by!",
       users.updated_at as "updated_at!",

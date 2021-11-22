@@ -48,7 +48,7 @@ pub async fn get_project(pool: impl PgExecutor<'_>, project_id: Uuid) -> Result<
     DBProject,
     r#"
     with
-      _users_ids as (select user_id from user_project where project_id = $1)
+      _users_ids as (select user_id from user_access where object_type = 'Project' and object_id = $1)
     select
       id,
       name,
@@ -202,6 +202,8 @@ pub async fn create_project(
     user_ids: vec![user.id],
   };
   create_policy(&mut tx, auth0_id, new_project_policy.into()).await?;
+
+  add_user_to_project(&mut tx, auth0_id, user.id, project.id).await?;
 
   tx.commit().await?;
 
