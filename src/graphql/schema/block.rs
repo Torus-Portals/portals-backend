@@ -9,6 +9,8 @@ use uuid::Uuid;
 
 use super::blocks::empty_block::EmptyBlock;
 use super::blocks::table_block::TableBlock;
+use super::blocks::text_block::TextBlock;
+use super::blocks::cells_block::CellsBlock;
 
 use super::Mutation;
 use super::Query;
@@ -24,6 +26,10 @@ pub enum GQLBlocks {
   Empty(EmptyBlock),
 
   Table(TableBlock),
+
+  Text(TextBlock),
+
+  Cells(CellsBlock),
 }
 
 #[derive(Debug, Serialize, Deserialize, GraphQLEnum, EnumString, Display)]
@@ -31,6 +37,14 @@ pub enum BlockTypes {
   #[strum(serialize = "Table")]
   #[graphql(name = "Table")]
   Table,
+
+  #[strum(serialize = "Text")]
+  #[graphql(name = "Text")]
+  Text,
+
+  #[strum(serialize = "Cells")]
+  #[graphql(name = "Cells")]
+  Cells,
 }
 
 #[derive(GraphQLObject, Debug, Serialize, Deserialize)]
@@ -62,6 +76,7 @@ pub struct Block {
 
 impl From<DBBlock> for Block {
   fn from(db_block: DBBlock) -> Self {
+    // TODO: Probably a better way to do this
     let block_data = match db_block
       .block_type
       .as_str()
@@ -75,6 +90,16 @@ impl From<DBBlock> for Block {
         let b: TableBlock =
           serde_json::from_value(db_block.block_data).expect("unable to deserialize table block");
         GQLBlocks::Table(b)
+      }
+      "Text" => {
+        let b: TextBlock =
+          serde_json::from_value(db_block.block_data).expect("unable to deserialize text block");
+        GQLBlocks::Text(b)
+      }
+      "Cells" => {
+        let b: CellsBlock =
+          serde_json::from_value(db_block.block_data).expect("unable to deserialize cells block");
+        GQLBlocks::Cells(b)
       }
       &_ => GQLBlocks::Empty(EmptyBlock {
         block_type: String::from("nothing"),

@@ -1,6 +1,20 @@
 use std::str::FromStr;
 
-use crate::{graphql::schema::{block::{BlockTypes, NewBlock, UpdateBlock}, blocks::table_block::TableBlock, policy::{GrantTypes, NewPolicy, PermissionTypes, PolicyTypes}}, services::db::{policy_service::{check_permission, create_policy}, user_service::get_user_by_auth0_id}};
+use crate::{
+  graphql::schema::{
+    block::{BlockTypes, NewBlock, UpdateBlock},
+    blocks::{
+      table_block::TableBlock,
+      text_block::TextBlock,
+      cells_block::CellsBlock,
+    },
+    policy::{GrantTypes, NewPolicy, PermissionTypes, PolicyTypes},
+  },
+  services::db::{
+    policy_service::{check_permission, create_policy},
+    user_service::get_user_by_auth0_id,
+  },
+};
 
 use anyhow::{anyhow, Result};
 use chrono::{DateTime, Utc};
@@ -109,20 +123,14 @@ impl From<UpdateBlock> for DBUpdateBlock {
   }
 }
 
-pub async fn get_block(
-  pool: impl PgExecutor<'_>,
-  block_id: Uuid,
-) -> Result<DBBlock> {
+pub async fn get_block(pool: impl PgExecutor<'_>, block_id: Uuid) -> Result<DBBlock> {
   sqlx::query_as!(DBBlock, "select * from blocks where id = $1", block_id)
     .fetch_one(pool)
     .await
     .map_err(anyhow::Error::from)
 }
 
-pub async fn get_blocks(
-  pool: impl PgExecutor<'_>,
-  block_ids: Vec<Uuid>,
-) -> Result<Vec<DBBlock>> {
+pub async fn get_blocks(pool: impl PgExecutor<'_>, block_ids: Vec<Uuid>) -> Result<Vec<DBBlock>> {
   sqlx::query_as!(
     DBBlock,
     "select * from blocks where id = any($1)",
@@ -133,18 +141,11 @@ pub async fn get_blocks(
   .map_err(anyhow::Error::from)
 }
 
-pub async fn get_page_blocks(
-  pool: impl PgExecutor<'_>,
-  page_id: Uuid,
-) -> Result<Vec<DBBlock>> {
-  sqlx::query_as!(
-    DBBlock,
-    "select * from blocks where page_id = $1",
-    page_id
-  )
-  .fetch_all(pool)
-  .await
-  .map_err(anyhow::Error::from)
+pub async fn get_page_blocks(pool: impl PgExecutor<'_>, page_id: Uuid) -> Result<Vec<DBBlock>> {
+  sqlx::query_as!(DBBlock, "select * from blocks where page_id = $1", page_id)
+    .fetch_all(pool)
+    .await
+    .map_err(anyhow::Error::from)
 }
 
 pub async fn get_project_blocks(
@@ -181,7 +182,7 @@ pub async fn create_block(
       "Current user does not have permission to create block"
     ));
   }
-  
+
   let block = sqlx::query_as!(
     DBBlock,
     r#"
@@ -210,7 +211,7 @@ pub async fn create_block(
     user_ids: vec![user.id],
   };
   create_policy(&mut tx, auth0_user_id, new_block_policy.into()).await?;
-  
+
   tx.commit().await?;
 
   Ok(block)
@@ -272,10 +273,7 @@ pub async fn delete_block(
   .map_err(anyhow::Error::from)
 }
 
-pub async fn delete_blocks(
-  pool: impl PgExecutor<'_>,
-  block_ids: Vec<Uuid>,
-) -> Result<i32> {
+pub async fn delete_blocks(pool: impl PgExecutor<'_>, block_ids: Vec<Uuid>) -> Result<i32> {
   sqlx::query!("delete from blocks where id = any($1)", &block_ids)
     .execute(pool)
     .await
@@ -283,10 +281,7 @@ pub async fn delete_blocks(
     .map_err(anyhow::Error::from)
 }
 
-pub async fn delete_page_blocks(
-  pool: impl PgExecutor<'_>,
-  page_id: Uuid,
-) -> Result<i32> {
+pub async fn delete_page_blocks(pool: impl PgExecutor<'_>, page_id: Uuid) -> Result<i32> {
   sqlx::query!("delete from blocks where page_id = $1", page_id)
     .execute(pool)
     .await
@@ -301,6 +296,14 @@ pub fn block_string_to_serde_value(
   let value = match block_type {
     BlockTypes::Table => {
       let block: TableBlock = serde_json::from_str(&bd)?;
+      serde_json::to_value(block)
+    }
+    BlockTypes::Text => {
+      let block: TextBlock = serde_json::from_str(&bd)?;
+      serde_json::to_value(block)
+    }
+    BlockTypes::Cells => {
+      let block: CellsBlock = serde_json::from_str(&bd)?;
       serde_json::to_value(block)
     }
   };
