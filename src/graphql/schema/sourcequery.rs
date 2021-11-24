@@ -10,20 +10,19 @@ use std::str::FromStr;
 use strum_macros::{Display, EnumString};
 use uuid::Uuid;
 
-use super::sourcequeries::block_sourcequery::BlockSourceQuery;
-
+use super::sourcequeries::table_block_sourcequery::TableBlockSourceQuery;
 use super::Mutation;
 use super::Query;
 
 #[derive(Debug, Serialize, Deserialize, GraphQLEnum, EnumString, Display)]
 pub enum SourceQueryTypes {
-  Block,
+  TableBlock,
 }
 
 #[derive(Debug, GraphQLUnion, Serialize, Deserialize)]
 #[graphql(Context = GQLContext)]
 pub enum GQLSourceQueries {
-  Block(BlockSourceQuery),
+  TableBlock(TableBlockSourceQuery),
 }
 
 #[derive(GraphQLObject, Debug, Serialize, Deserialize)]
@@ -47,24 +46,17 @@ pub struct SourceQuery {
 
 impl From<DBSourceQuery> for SourceQuery {
   fn from(sourcequery: DBSourceQuery) -> Self {
-    let sourcequery_data = match sourcequery
-      .sourcequery_type
-      .as_str()
-    {
-      "Block" => {
-        let b: BlockSourceQuery = serde_json::from_value(sourcequery.sourcequery_data)
+    let sourcequery_data = match sourcequery.sourcequery_type.as_str() {
+      "TableBlock" => {
+        let b: TableBlockSourceQuery = serde_json::from_value(sourcequery.sourcequery_data)
           .expect("unable to deserialize blocksourcequery");
-        GQLSourceQueries::Block(b)
+        GQLSourceQueries::TableBlock(b)
       }
       &_ => panic!("unknown sourcequery type"),
     };
 
-    let sourcequery_type = SourceQueryTypes::from_str(
-      sourcequery
-        .sourcequery_type
-        .as_str(),
-    )
-    .unwrap();
+    let sourcequery_type =
+      SourceQueryTypes::from_str(sourcequery.sourcequery_type.as_str()).unwrap();
 
     SourceQuery {
       id: sourcequery.id,
@@ -87,7 +79,10 @@ pub struct NewSourceQuery {
 }
 
 impl Query {
-  pub async fn sourcequery_impl(ctx: &GQLContext, sourcequery_id: Uuid) -> FieldResult<SourceQuery> {
+  pub async fn sourcequery_impl(
+    ctx: &GQLContext,
+    sourcequery_id: Uuid,
+  ) -> FieldResult<SourceQuery> {
     get_sourcequery(&ctx.pool, sourcequery_id)
       .await
       .map(|db_sourcequery| db_sourcequery.into())

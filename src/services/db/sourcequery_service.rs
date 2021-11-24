@@ -4,7 +4,7 @@ use sqlx::PgExecutor;
 use uuid::Uuid;
 
 use crate::graphql::schema::{
-  sourcequeries::block_sourcequery::BlockSourceQuery,
+  sourcequeries::table_block_sourcequery::TableBlockSourceQuery,
   sourcequery::{NewSourceQuery, SourceQueryTypes},
 };
 
@@ -138,8 +138,8 @@ pub fn sq_string_to_serde_value(
   sq_data: String,
 ) -> Result<serde_json::Value> {
   let value = match sq_type {
-    SourceQueryTypes::Block => {
-      let bsq: BlockSourceQuery = serde_json::from_str(&sq_data)?;
+    SourceQueryTypes::TableBlock => {
+      let bsq: TableBlockSourceQuery = serde_json::from_str(&sq_data)?;
       serde_json::to_value(bsq)
     }
   };
