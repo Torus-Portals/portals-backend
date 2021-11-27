@@ -35,6 +35,10 @@ pub struct DBDashboard {
   pub updated_at: DateTime<Utc>,
 
   pub updated_by: Uuid,
+
+  pub deleted_at: Option<DateTime<Utc>>,
+
+  pub deleted_by: Option<Uuid>,
 }
 
 pub struct DBNewDashboard {

@@ -21,16 +21,12 @@ pub mod sourcequery;
 pub mod sources;
 pub mod user;
 
-use crate::graphql::schema::policy::{UpdatePolicy, UserPermissionInput};
-
-use self::{integrations::google_sheets::GoogleSheetsAuthorization, policy::Policy};
+use self::{integrations::google_sheets::GoogleSheetsAuthorization};
 
 use super::context::GQLContext;
 use block::{Block, NewBlock, UpdateBlock};
 use connection::{Connection, NewConnection, UpdateConnection};
-use connection_content::{ConnectionContent};
-use source::{NewSource, Source};
-use sourcequery::{NewSourceQuery, SourceQuery};
+use connection_content::ConnectionContent;
 use dashboard::{Dashboard, NewDashboard, UpdateDashboard};
 use integration::{Integration, NewIntegration};
 use integrations::google_sheets::GoogleSheetsRedirectURI;
@@ -38,8 +34,11 @@ use org::{NewOrg, Org};
 use page::{NewPage, Page, UpdatePage};
 use project::{NewProject, Project};
 use role::{NewRole, Role};
+use source::{NewSource, Source};
 use source::{PossibleSource, PossibleSourceInput};
+use sourcequery::{NewSourceQuery, SourceQuery};
 use user::{NewUser, UpdateUser, User};
+use policy::{UpdatePolicy, Policy, UserPermissionInput};
 
 pub type Schema = RootNode<'static, Query, Mutation, EmptySubscription<GQLContext>>;
 pub struct Query;
@@ -212,6 +211,9 @@ impl Query {
   ) -> FieldResult<String> {
     Query::s3_download_presigned_url_impl(ctx, bucket, key).await
   }
+
+  
+  // Permissions and Policies
   
   async fn get_user_permissions(ctx: &GQLContext, user_id: Uuid) -> FieldResult<Vec<Policy>> {
     Query::get_user_permissions_impl(ctx, user_id).await
@@ -222,6 +224,18 @@ impl Query {
     user_permission: UserPermissionInput,
   ) -> FieldResult<bool> {
     Query::check_user_permission_impl(ctx, user_permission).await
+  }
+
+  async fn get_user_resource_perms(
+    ctx: &GQLContext,
+    user_id: Uuid,
+    resource_id: Uuid,
+  ) -> FieldResult<Vec<Policy>> {
+    Query::get_user_resource_perms_impl(ctx, user_id, resource_id).await
+  }
+
+  async fn resources_perms(ctx: &GQLContext, resource_ids: Vec<Uuid>) -> FieldResult<Vec<Policy>> {
+    Query::resources_perms_impl(ctx, resource_ids).await
   }
 }
 
@@ -344,7 +358,8 @@ impl Mutation {
 
   async fn create_sourcequery(
     ctx: &GQLContext,
-    new_sourcequery: NewSourceQuery) -> FieldResult<SourceQuery> {
+    new_sourcequery: NewSourceQuery,
+  ) -> FieldResult<SourceQuery> {
     Mutation::create_sourcequery_impl(ctx, new_sourcequery).await
   }
 
@@ -369,6 +384,8 @@ impl Mutation {
   ) -> FieldResult<bool> {
     Mutation::authorize_google_sheets_impl(ctx, auth).await
   }
+
+  
 }
 
 pub fn create_schema() -> Schema {

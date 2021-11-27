@@ -8,46 +8,68 @@ use juniper::{FieldError, FieldResult, GraphQLEnum, GraphQLInputObject, GraphQLO
 use strum_macros::{Display, EnumIter, EnumString};
 use uuid::Uuid;
 
-use crate::{
-  graphql::context::GQLContext,
-  services::db::policy_service::{check_permission, update_policy, user_permissions, DBPolicy},
-};
+use crate::{graphql::context::GQLContext, services::db::policy_service::{DBPolicy, check_permission, resources_perms, update_policy, user_permissions, user_resource_perms}};
 
 use super::{Mutation, Query};
 
 #[derive(Debug, Serialize, Deserialize, GraphQLEnum, EnumString, Display)]
 pub enum PolicyTypes {
   #[strum(serialize = "Project")]
+  #[graphql(name = "Project")]
   ProjectPolicy,
 
   #[strum(serialize = "Dashboard")]
+  #[graphql(name = "Dashboard")]
   DashboardPolicy,
 
   #[strum(serialize = "Page")]
+  #[graphql(name = "Page")]
   PagePolicy,
 
   #[strum(serialize = "Block")]
+  #[graphql(name = "Block")]
   BlockPolicy,
 }
 
 #[derive(Debug, Serialize, Deserialize, GraphQLEnum, EnumString, Display)]
 pub enum PermissionTypes {
   #[strum(serialize = "Dashboard")]
+  #[graphql(name = "Dashboard")]
   DashboardPermission,
 
   #[strum(serialize = "Page")]
+  #[graphql(name = "Page")]
   PagePermission,
 
   #[strum(serialize = "Block")]
+  #[graphql(name = "Block")]
   BlockPermission,
+
+  #[strum(serialize = "User")]
+  #[graphql(name = "User")]
+  UserPermission,
 }
 
 #[derive(Debug, Serialize, Deserialize, GraphQLEnum, EnumString, EnumIter, Display)]
 pub enum GrantTypes {
+  #[strum(serialize = "All")]
+  #[graphql(name = "All")]
   All,
+
+  #[strum(serialize = "Create")]
+  #[graphql(name = "Create")]
   Create,
+
+  #[strum(serialize = "Read")]
+  #[graphql(name = "Read")]
   Read,
+
+  #[strum(serialize = "Update")]
+  #[graphql(name = "Update")]
   Update,
+
+  #[strum(serialize = "Delete")]
+  #[graphql(name = "Delete")]
   Delete,
 }
 
@@ -161,6 +183,28 @@ impl Query {
       .map_err(FieldError::from)
   }
 
+  pub async fn get_user_resource_perms_impl(
+    ctx: &GQLContext,
+    user_id: Uuid,
+    resource_id: Uuid,
+  ) -> FieldResult<Vec<Policy>> {
+    user_resource_perms(&ctx.pool, user_id, resource_id)
+    .await
+    .and_then(|db_policies| {
+      Ok(
+        db_policies
+          .into_iter()
+          .map(|db_policy| {
+            db_policy
+              .try_into()
+              .expect("Failed to convert DBPolicy into Policy")
+          })
+          .collect::<Vec<Policy>>(),
+      )
+    })
+    .map_err(FieldError::from)
+  }  
+
   pub async fn check_user_permission_impl(
     ctx: &GQLContext,
     user_access: UserPermissionInput,
@@ -169,9 +213,32 @@ impl Query {
       &ctx.pool,
       user_access.resource_id,
       user_access.user_id,
-      user_access.grant_type.to_string(),
+      user_access
+        .grant_type
+        .to_string(),
     )
     .await
+    .map_err(FieldError::from)
+  }
+
+  pub async fn resources_perms_impl(
+    ctx: &GQLContext,
+    resource_ids: Vec<Uuid>,
+  ) -> FieldResult<Vec<Policy>> {
+    resources_perms(&ctx.pool, resource_ids)
+    .await
+    .and_then(|db_policies| {
+      Ok(
+        db_policies
+          .into_iter()
+          .map(|db_policy| {
+            db_policy
+              .try_into()
+              .expect("Failed to convert DBPolicy into Policy")
+          })
+          .collect::<Vec<Policy>>(),
+      )
+    })
     .map_err(FieldError::from)
   }
 }

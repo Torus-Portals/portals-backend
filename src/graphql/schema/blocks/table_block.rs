@@ -2,7 +2,7 @@ use juniper::{GraphQLEnum, GraphQLObject, GraphQLUnion};
 use strum_macros::{Display, EnumString};
 use uuid::Uuid;
 
-use crate::{services::db, utils::ir::*};
+use crate::{utils::ir::*};
 
 #[derive(GraphQLObject, Clone, Debug, Serialize, Deserialize)]
 pub struct TableBlockRow {

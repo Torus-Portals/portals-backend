@@ -11,8 +11,6 @@ use crate::{
   services::db::{policy_service::create_policy, user_service::get_user_by_auth0_id},
 };
 
-use super::dashboard_service::{add_user_to_dashboards, get_project_dashboards};
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DBProject {
@@ -74,11 +72,11 @@ pub async fn get_projects(
     DBProject,
     r#"
     with
-      _users_ids as (select * from user_project where project_id = any($1))
+      _users_ids as (select * from user_access where object_type = 'Project' and object_id = any($1))
     select
       projects.id as "id!",
       projects.name as "name!",
-      array(select user_id from _users_ids where project_id = projects.id) as "user_ids!",
+      array(select user_id from _users_ids where object_id = projects.id) as "user_ids!",
       projects.created_at as "created_at!",
       projects.created_by as "created_by!",
       projects.updated_at as "updated_at!",
@@ -180,7 +178,7 @@ pub async fn create_project(
     returning
       id as "id!",
       name as "name!",
-      array(select user_id from user_project where project_id = projects.id) as "user_ids!",
+      array(select user_id from user_access where object_id = projects.id) as "user_ids!",
       created_at as "created_at!",
       created_by as "created_by!",
       updated_at as "updated_at!",
@@ -194,10 +192,21 @@ pub async fn create_project(
   .await
   .map_err(anyhow::Error::from)?;
 
+  // Dashboard Permissions
   let new_project_policy = NewPolicy {
     resource_id: project.id,
     policy_type: PolicyTypes::ProjectPolicy,
     permission_type: PermissionTypes::DashboardPermission,
+    grant_type: GrantTypes::All,
+    user_ids: vec![user.id],
+  };
+  create_policy(&mut tx, auth0_id, new_project_policy.into()).await?;
+
+  // User Permissions
+  let new_project_policy = NewPolicy {
+    resource_id: project.id,
+    policy_type: PolicyTypes::ProjectPolicy,
+    permission_type: PermissionTypes::UserPermission,
     grant_type: GrantTypes::All,
     user_ids: vec![user.id],
   };

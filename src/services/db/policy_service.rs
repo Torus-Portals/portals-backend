@@ -126,7 +126,7 @@ pub async fn update_policy(
     with _user as (select * from users where auth0id = $1)
     update policies
       set
-        user_ids = user_ids || $2
+        user_ids = coalesce($2, user_ids)
       where resource_id = $3
       and policy_type = $4
       and permission_type = $5
@@ -176,6 +176,42 @@ pub async fn user_permissions(pool: impl PgExecutor<'_>, user_id: Uuid) -> Resul
     where user_ids @> $1
     "#,
     &vec![user_id],
+  )
+  .fetch_all(pool)
+  .await
+  .map_err(anyhow::Error::from)
+}
+
+pub async fn user_resource_perms(
+  pool: impl PgExecutor<'_>,
+  user_id: Uuid,
+  resource_id: Uuid,
+) -> Result<Vec<DBPolicy>> {
+  sqlx::query_as!(
+    DBPolicy,
+    r#"
+    select * from policies
+    where user_ids @> $1 and resource_id = $2
+    "#,
+    &vec![user_id],
+    resource_id,
+  )
+  .fetch_all(pool)
+  .await
+  .map_err(anyhow::Error::from)
+}
+
+pub async fn resources_perms(
+  pool: impl PgExecutor<'_>,
+  resource_ids: Vec<Uuid>,
+) -> Result<Vec<DBPolicy>> {
+  sqlx::query_as!(
+    DBPolicy,
+    r#"
+    select * from policies
+    where resource_id = any($1)
+    "#,
+    &resource_ids,
   )
   .fetch_all(pool)
   .await
