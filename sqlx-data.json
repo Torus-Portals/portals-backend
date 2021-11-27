@@ -1,0 +1,3968 @@
+{
+  "db": "PostgreSQL",
+  "04a8e12f0fbef1cb08b71a2f01a5b654d6ca4cc2040e7a19b81c4367bbe0e727": {
+    "query": "\n      with _user as (select * from users where auth0id = $1)\n      insert into policies (resource_id, policy_type, permission_type, grant_type, user_ids, created_by, updated_by)\n      select $2, $3, $4, *, $6, (select id from _user), (select id from _user)\n      from unnest($5::text[]);\n      ",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Uuid",
+          "Text",
+          "Text",
+          "TextArray",
+          "UuidArray"
+        ]
+      },
+      "nullable": []
+    }
+  },
+  "06dde42f92ac10a4e367be0c9629e7590193ccaa5f75fbf9ff9d467831d34f79": {
+    "query": "\n    with _user as (select * from users where auth0id = $1)\n    update pages\n      set\n        deleted_at = now(),\n        deleted_by = (select id from _user)\n    where id = $2\n    returning *;\n    ",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 1,
+          "name": "name",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 2,
+          "name": "project_id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 3,
+          "name": "dashboard_id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 4,
+          "name": "grid",
+          "type_info": "Jsonb"
+        },
+        {
+          "ordinal": 5,
+          "name": "created_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 6,
+          "name": "created_by",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 7,
+          "name": "updated_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 8,
+          "name": "updated_by",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 9,
+          "name": "deleted_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 10,
+          "name": "deleted_by",
+          "type_info": "Uuid"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Uuid"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        true,
+        true
+      ]
+    }
+  },
+  "07a3cf342d66cac4977cbbf0fc1d0338eb20936959649c236c8f8e203702b198": {
+    "query": "select * from blocks where id = any($1)",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 1,
+          "name": "name",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 2,
+          "name": "project_id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 3,
+          "name": "dashboard_id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 4,
+          "name": "page_id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 5,
+          "name": "block_type",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 6,
+          "name": "block_data",
+          "type_info": "Jsonb"
+        },
+        {
+          "ordinal": 7,
+          "name": "created_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 8,
+          "name": "created_by",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 9,
+          "name": "updated_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 10,
+          "name": "updated_by",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 11,
+          "name": "deleted_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 12,
+          "name": "deleted_by",
+          "type_info": "Uuid"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "UuidArray"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        true,
+        true
+      ]
+    }
+  },
+  "0db5dcd24c52261c3b59e277b71dbd9b647ada589a6f05ca11aa0b2b891b36fb": {
+    "query": "\n    select * from sources where id = any($1)\n    ",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 1,
+          "name": "source_type",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 2,
+          "name": "source_data",
+          "type_info": "Jsonb"
+        },
+        {
+          "ordinal": 3,
+          "name": "created_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 4,
+          "name": "created_by",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 5,
+          "name": "updated_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 6,
+          "name": "updated_by",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 7,
+          "name": "deleted_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 8,
+          "name": "deleted_by",
+          "type_info": "Uuid"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "UuidArray"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        true,
+        true
+      ]
+    }
+  },
+  "136d42ebd768da0adfd5b95abc8a31fcd89bff389ecf52bbdaa2ed983db14ab4": {
+    "query": "select * from blocks where project_id = $1",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 1,
+          "name": "name",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 2,
+          "name": "project_id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 3,
+          "name": "dashboard_id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 4,
+          "name": "page_id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 5,
+          "name": "block_type",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 6,
+          "name": "block_data",
+          "type_info": "Jsonb"
+        },
+        {
+          "ordinal": 7,
+          "name": "created_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 8,
+          "name": "created_by",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 9,
+          "name": "updated_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 10,
+          "name": "updated_by",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 11,
+          "name": "deleted_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 12,
+          "name": "deleted_by",
+          "type_info": "Uuid"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        true,
+        true
+      ]
+    }
+  },
+  "2086b4d9b39de7c8a52b476b1a1b9c1a68b02db747ceb3502a62dbd066dea7a8": {
+    "query": "\n    select\n      id,\n      sourcequery_type,\n      sourcequery_data,\n      created_at,\n      created_by,\n      updated_at,\n      updated_by\n    from\n      sourcequeries\n    where\n      id = any($1)\n    ",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 1,
+          "name": "sourcequery_type",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 2,
+          "name": "sourcequery_data",
+          "type_info": "Jsonb"
+        },
+        {
+          "ordinal": 3,
+          "name": "created_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 4,
+          "name": "created_by",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 5,
+          "name": "updated_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 6,
+          "name": "updated_by",
+          "type_info": "Uuid"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "UuidArray"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  },
+  "22175eb3a3c8e41073cd4c4320c1f4e409035a184e373f4be4c7aeed3973750e": {
+    "query": "\n    select\n      id,\n      sourcequery_type,\n      sourcequery_data,\n      created_at,\n      created_by,\n      updated_at,\n      updated_by\n    from\n      sourcequeries\n    where\n      id = $1\n    ",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 1,
+          "name": "sourcequery_type",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 2,
+          "name": "sourcequery_data",
+          "type_info": "Jsonb"
+        },
+        {
+          "ordinal": 3,
+          "name": "created_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 4,
+          "name": "created_by",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 5,
+          "name": "updated_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 6,
+          "name": "updated_by",
+          "type_info": "Uuid"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  },
+  "2489263946a6f6f9462b61357d36abb0a3e12728927634665e22304762457616": {
+    "query": "\n    with _user as (select * from users where auth0id = $1)\n    update blocks\n      set\n        deleted_by = (select id from _user),\n        deleted_at = now()\n      where id = $2\n    returning *;\n    ",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 1,
+          "name": "name",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 2,
+          "name": "project_id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 3,
+          "name": "dashboard_id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 4,
+          "name": "page_id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 5,
+          "name": "block_type",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 6,
+          "name": "block_data",
+          "type_info": "Jsonb"
+        },
+        {
+          "ordinal": 7,
+          "name": "created_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 8,
+          "name": "created_by",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 9,
+          "name": "updated_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 10,
+          "name": "updated_by",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 11,
+          "name": "deleted_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 12,
+          "name": "deleted_by",
+          "type_info": "Uuid"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Uuid"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        true,
+        true
+      ]
+    }
+  },
+  "263882fa7d01a2d522f3e8ac115995d8cff97f5e549ab97f942126d1d9f6b37e": {
+    "query": "select * from blocks where id = $1",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 1,
+          "name": "name",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 2,
+          "name": "project_id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 3,
+          "name": "dashboard_id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 4,
+          "name": "page_id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 5,
+          "name": "block_type",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 6,
+          "name": "block_data",
+          "type_info": "Jsonb"
+        },
+        {
+          "ordinal": 7,
+          "name": "created_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 8,
+          "name": "created_by",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 9,
+          "name": "updated_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 10,
+          "name": "updated_by",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 11,
+          "name": "deleted_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 12,
+          "name": "deleted_by",
+          "type_info": "Uuid"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        true,
+        true
+      ]
+    }
+  },
+  "26a4486b64f454379e1064e07592d82f4217b348c0d18b9c7bcb948062697b75": {
+    "query": "\n    select\n      id,\n      auth0id,\n      name,\n      nickname,\n      email,\n      status,\n      org_ids,\n      role_ids,\n      array(select object_id from user_access where user_id = users.id and object_type = 'Project') as \"project_ids!\",\n      created_at,\n      created_by,\n      updated_at,\n      updated_by\n    from users where auth0id = $1;\n    ",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 1,
+          "name": "auth0id",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 2,
+          "name": "name",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 3,
+          "name": "nickname",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 4,
+          "name": "email",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 5,
+          "name": "status",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 6,
+          "name": "org_ids",
+          "type_info": "UuidArray"
+        },
+        {
+          "ordinal": 7,
+          "name": "role_ids",
+          "type_info": "UuidArray"
+        },
+        {
+          "ordinal": 8,
+          "name": "project_ids!",
+          "type_info": "UuidArray"
+        },
+        {
+          "ordinal": 9,
+          "name": "created_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 10,
+          "name": "created_by",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 11,
+          "name": "updated_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 12,
+          "name": "updated_by",
+          "type_info": "Uuid"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        null,
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  },
+  "276674d3eeaebb8b76c019f93e956faf8dd1ce0bee1d2b6a97580ae3f54c1976": {
+    "query": "\n    with _user as (select * from users where auth0id = $1)\n    insert into dashboards (name, project_id, created_by, updated_by)\n    values ($2, $3, (select id from _user), (select id from _user))\n    returning *;\n    ",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 1,
+          "name": "name",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 2,
+          "name": "project_id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 3,
+          "name": "page_ids",
+          "type_info": "UuidArray"
+        },
+        {
+          "ordinal": 4,
+          "name": "created_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 5,
+          "name": "created_by",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 6,
+          "name": "updated_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 7,
+          "name": "updated_by",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 8,
+          "name": "deleted_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 9,
+          "name": "deleted_by",
+          "type_info": "Uuid"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Text",
+          "Uuid"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        true,
+        true
+      ]
+    }
+  },
+  "2e748df6f0534efd925b3b789b023877d616c2584af6e9135a6d8a67fe07cc8b": {
+    "query": "\n    select\n      id,\n      auth0id,\n      name,\n      nickname,\n      email,\n      status,\n      org_ids,\n      role_ids,\n      array(select object_id from user_access where user_id = users.id and object_type = 'Project') as \"project_ids!\",\n      created_at,\n      created_by,\n      updated_at,\n      updated_by\n    from users where email = $1;\n    ",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 1,
+          "name": "auth0id",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 2,
+          "name": "name",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 3,
+          "name": "nickname",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 4,
+          "name": "email",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 5,
+          "name": "status",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 6,
+          "name": "org_ids",
+          "type_info": "UuidArray"
+        },
+        {
+          "ordinal": 7,
+          "name": "role_ids",
+          "type_info": "UuidArray"
+        },
+        {
+          "ordinal": 8,
+          "name": "project_ids!",
+          "type_info": "UuidArray"
+        },
+        {
+          "ordinal": 9,
+          "name": "created_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 10,
+          "name": "created_by",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 11,
+          "name": "updated_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 12,
+          "name": "updated_by",
+          "type_info": "Uuid"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        null,
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  },
+  "31b2405c8d70b1e8e57c394d246b7ae05e621391ace7eb6ca768afe358de566b": {
+    "query": "select * from roles where id = $1",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 1,
+          "name": "role_type",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 2,
+          "name": "perms",
+          "type_info": "Jsonb"
+        },
+        {
+          "ordinal": 3,
+          "name": "created_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 4,
+          "name": "created_by",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 5,
+          "name": "updated_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 6,
+          "name": "updated_by",
+          "type_info": "Uuid"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  },
+  "3891419dd74753cfa7855c3b2022342881f28b00d0c2be8d9ceea6822daf12ea": {
+    "query": "select * from orgs where id = any($1)",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 1,
+          "name": "name",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 2,
+          "name": "personal",
+          "type_info": "Bool"
+        },
+        {
+          "ordinal": 3,
+          "name": "created_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 4,
+          "name": "created_by",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 5,
+          "name": "updated_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 6,
+          "name": "updated_by",
+          "type_info": "Uuid"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "UuidArray"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  },
+  "3a0ac81a3218edfb9a60f7c212e939e1499baf0ea01396a1f11a42882dce3156": {
+    "query": "\n      with _user as (select * from users where auth0id = $1)\n      update users\n        set\n          auth0id = coalesce($3, auth0id),\n          name = coalesce($4, name),\n          nickname = coalesce($5, nickname),\n          email = coalesce($6, email),\n          org_ids = coalesce($7, org_ids),\n          role_ids = coalesce($8, role_ids),\n          status = coalesce($9, status),\n          updated_by = coalesce((select id from _user), '11111111-2222-3333-4444-555555555555')\n      where id = $2\n      returning\n        users.id as \"id!\",\n        users.auth0id as \"auth0id!\",\n        users.name as \"name!\",\n        users.nickname as \"nickname!\",\n        users.email as \"email!\",\n        users.status as \"status!\",\n        users.org_ids as \"org_ids!\",\n        users.role_ids as \"role_ids!\",\n        array(select object_id from user_access where user_id = users.id and object_type = 'Project') as \"project_ids!\",\n        users.created_at as \"created_at!\",\n        users.created_by as \"created_by!\",\n        users.updated_at as \"updated_at!\",\n        users.updated_by as \"updated_by!\"\n      ;\n      ",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id!",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 1,
+          "name": "auth0id!",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 2,
+          "name": "name!",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 3,
+          "name": "nickname!",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 4,
+          "name": "email!",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 5,
+          "name": "status!",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 6,
+          "name": "org_ids!",
+          "type_info": "UuidArray"
+        },
+        {
+          "ordinal": 7,
+          "name": "role_ids!",
+          "type_info": "UuidArray"
+        },
+        {
+          "ordinal": 8,
+          "name": "project_ids!",
+          "type_info": "UuidArray"
+        },
+        {
+          "ordinal": 9,
+          "name": "created_at!",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 10,
+          "name": "created_by!",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 11,
+          "name": "updated_at!",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 12,
+          "name": "updated_by!",
+          "type_info": "Uuid"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Uuid",
+          "Text",
+          "Text",
+          "Text",
+          "Text",
+          "UuidArray",
+          "UuidArray",
+          "Text"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        null,
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  },
+  "417fc79b9945bd403f6f88d88498c421cf385f283c8970cb3bb276d84d693d41": {
+    "query": "\n    with \n      _user as (select * from users where auth0id = $1)\n    insert into projects (name, created_by, updated_by) values ($2, (select id from _user), (select id from _user))\n    returning\n      id as \"id!\",\n      name as \"name!\",\n      array(select user_id from user_access where object_id = projects.id) as \"user_ids!\",\n      created_at as \"created_at!\",\n      created_by as \"created_by!\",\n      updated_at as \"updated_at!\",\n      updated_by as \"updated_by!\"\n    ;\n    ",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id!",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 1,
+          "name": "name!",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 2,
+          "name": "user_ids!",
+          "type_info": "UuidArray"
+        },
+        {
+          "ordinal": 3,
+          "name": "created_at!",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 4,
+          "name": "created_by!",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 5,
+          "name": "updated_at!",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 6,
+          "name": "updated_by!",
+          "type_info": "Uuid"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Text"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        null,
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  },
+  "420660bb9a4ea8c67bc77634a688e3f12ce5ffe18121dd967edf2bf3171d2c81": {
+    "query": "\n    with _user as (select * from users where auth0id = $1)\n    update dashboards\n    set\n      name = coalesce($3, name),\n      project_id = coalesce($4, project_id),\n      page_ids = coalesce($5, page_ids),\n      updated_by = (select id from _user)\n    where id = $2\n    returning *;\n    ",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 1,
+          "name": "name",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 2,
+          "name": "project_id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 3,
+          "name": "page_ids",
+          "type_info": "UuidArray"
+        },
+        {
+          "ordinal": 4,
+          "name": "created_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 5,
+          "name": "created_by",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 6,
+          "name": "updated_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 7,
+          "name": "updated_by",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 8,
+          "name": "deleted_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 9,
+          "name": "deleted_by",
+          "type_info": "Uuid"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Uuid",
+          "Text",
+          "Uuid",
+          "UuidArray"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        true,
+        true
+      ]
+    }
+  },
+  "4ccca9ea875ecb7926b98e3434be1956aad6acf98633281f4e5c8ad69c1fba34": {
+    "query": "\n  with _user as (select * from users where auth0id = $1)\n  insert into user_access (user_id, object_type, object_id, created_by, updated_by)\n  values ($2, 'Dashboard', $3, (select id from _user), (select id from _user))\n  ",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Uuid",
+          "Uuid"
+        ]
+      },
+      "nullable": []
+    }
+  },
+  "4d9c12a2b47ab03d396433f3103ed79d7ba6cea14a4f9f6c17fca59c1b992bf6": {
+    "query": "select * from connections where block_id = $1",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 1,
+          "name": "block_id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 2,
+          "name": "source_id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 3,
+          "name": "sourcequery_id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 4,
+          "name": "destination_id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 5,
+          "name": "destination_type",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 6,
+          "name": "created_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 7,
+          "name": "created_by",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 8,
+          "name": "updated_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 9,
+          "name": "updated_by",
+          "type_info": "Uuid"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        true,
+        true,
+        true,
+        true,
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  },
+  "50a945bbca2178add3af8e87ce0d5f21f17b1c164dcdcacdfc7a46fdfd29e2b7": {
+    "query": "\n    select * from policies\n    where resource_id = $1 and user_ids @> $2 and grant_type = $3;\n    ",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 1,
+          "name": "resource_id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 2,
+          "name": "policy_type",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 3,
+          "name": "permission_type",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 4,
+          "name": "grant_type",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 5,
+          "name": "user_ids",
+          "type_info": "UuidArray"
+        },
+        {
+          "ordinal": 6,
+          "name": "created_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 7,
+          "name": "created_by",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 8,
+          "name": "updated_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 9,
+          "name": "updated_by",
+          "type_info": "Uuid"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "UuidArray",
+          "Text"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  },
+  "539b8e80a3af9442885ff6c47dacb2f16e3f00d94c85ee1c38b31b0299f2b82b": {
+    "query": "\n    with _user as (select * from users where auth0id = $1)\n    insert into orgs (name, personal, created_by, updated_by) values ($2, $3, (select id from _user), (select id from _user))\n    returning id, name, personal, created_at, created_by, updated_at, updated_by\n    ",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 1,
+          "name": "name",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 2,
+          "name": "personal",
+          "type_info": "Bool"
+        },
+        {
+          "ordinal": 3,
+          "name": "created_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 4,
+          "name": "created_by",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 5,
+          "name": "updated_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 6,
+          "name": "updated_by",
+          "type_info": "Uuid"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Text",
+          "Bool"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  },
+  "58c01cba51dcbe23979884d6e50189a32d79797e0745ae807e43d0b058872be5": {
+    "query": "\n    with\n      _users_ids as (select user_id from user_access where object_type = 'Project' and object_id = $1)\n    select\n      id,\n      name,\n      array(select * from _users_ids) as \"user_ids!\",\n      created_at,\n      created_by,\n      updated_at,\n      updated_by\n    from projects where id = $1;\n    ",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 1,
+          "name": "name",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 2,
+          "name": "user_ids!",
+          "type_info": "UuidArray"
+        },
+        {
+          "ordinal": 3,
+          "name": "created_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 4,
+          "name": "created_by",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 5,
+          "name": "updated_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 6,
+          "name": "updated_by",
+          "type_info": "Uuid"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        null,
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  },
+  "5c16e03091eb1e28e0e0464241450af444a80ea468dfd012f2c7ddfaf299923c": {
+    "query": "\n      insert into users (auth0id, name, nickname, email, status, org_ids, role_ids, created_by, updated_by)\n      values ($1, $2, $3, $4, $5, $6, $7, $8, $8)\n      returning\n      users.id as \"id!\",\n      users.auth0id as \"auth0id!\",\n      users.name as \"name!\",\n      users.nickname as \"nickname!\",\n      users.email as \"email!\",\n      users.status as \"status!\",\n      users.org_ids as \"org_ids!\",\n      users.role_ids as \"role_ids!\",\n      array(select object_id from user_access where user_id = users.id and object_type = 'Project') as \"project_ids!\",\n      users.created_at as \"created_at!\",\n      users.created_by as \"created_by!\",\n      users.updated_at as \"updated_at!\",\n      users.updated_by as \"updated_by!\";\n      ",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id!",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 1,
+          "name": "auth0id!",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 2,
+          "name": "name!",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 3,
+          "name": "nickname!",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 4,
+          "name": "email!",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 5,
+          "name": "status!",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 6,
+          "name": "org_ids!",
+          "type_info": "UuidArray"
+        },
+        {
+          "ordinal": 7,
+          "name": "role_ids!",
+          "type_info": "UuidArray"
+        },
+        {
+          "ordinal": 8,
+          "name": "project_ids!",
+          "type_info": "UuidArray"
+        },
+        {
+          "ordinal": 9,
+          "name": "created_at!",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 10,
+          "name": "created_by!",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 11,
+          "name": "updated_at!",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 12,
+          "name": "updated_by!",
+          "type_info": "Uuid"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Text",
+          "Text",
+          "Text",
+          "Text",
+          "UuidArray",
+          "UuidArray",
+          "Uuid"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        null,
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  },
+  "639b33e96203d94cad46710bf795b26047de18066f8073c48848e61ef224bb32": {
+    "query": "\n    with _user as (select * from users where auth0id = $1)\n    insert into sourcequeries (\n      sourcequery_type,\n      sourcequery_data,\n      created_by,\n      updated_by\n    )\n    values (\n      $2,\n      $3,\n      (select id from _user),\n      (select id from _user)\n    )\n    returning *;\n    ",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 1,
+          "name": "sourcequery_type",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 2,
+          "name": "sourcequery_data",
+          "type_info": "Jsonb"
+        },
+        {
+          "ordinal": 3,
+          "name": "created_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 4,
+          "name": "created_by",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 5,
+          "name": "updated_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 6,
+          "name": "updated_by",
+          "type_info": "Uuid"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Text",
+          "Jsonb"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  },
+  "64f71497d0fc68c756a60bc8d6aed7cad8e00e0f5a3cbde57e1d734b680006a0": {
+    "query": "select * from integrations where portal_id = $1",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 1,
+          "name": "name",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 2,
+          "name": "portal_id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 3,
+          "name": "integration_type",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 4,
+          "name": "integration_data",
+          "type_info": "Jsonb"
+        },
+        {
+          "ordinal": 5,
+          "name": "created_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 6,
+          "name": "created_by",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 7,
+          "name": "updated_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 8,
+          "name": "updated_by",
+          "type_info": "Uuid"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  },
+  "6e699a0877387c63eb13b6658c5d3c68e3271d37898e5b0fb21cf570999506ea": {
+    "query": "\n    with _user as (select * from users where auth0id = $1)\n    update policies\n      set\n        user_ids = coalesce($2, user_ids)\n      where resource_id = $3\n      and policy_type = $4\n      and permission_type = $5\n      and grant_type = $6\n      returning *;\n    ",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 1,
+          "name": "resource_id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 2,
+          "name": "policy_type",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 3,
+          "name": "permission_type",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 4,
+          "name": "grant_type",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 5,
+          "name": "user_ids",
+          "type_info": "UuidArray"
+        },
+        {
+          "ordinal": 6,
+          "name": "created_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 7,
+          "name": "created_by",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 8,
+          "name": "updated_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 9,
+          "name": "updated_by",
+          "type_info": "Uuid"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Text",
+          "UuidArray",
+          "Uuid",
+          "Text",
+          "Text",
+          "Text"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  },
+  "750341b6904ce0785245553525f527cd5d0392e45ad1b2a7aea036f7fa346cf8": {
+    "query": "\n    with _user as (select * from users where auth0id = $1)\n    insert into pages (name, project_id, dashboard_id, grid, created_by, updated_by)\n    values ($2, $3, $4, $5, (select id from _user), (select id from _user))\n    returning *;\n    ",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 1,
+          "name": "name",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 2,
+          "name": "project_id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 3,
+          "name": "dashboard_id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 4,
+          "name": "grid",
+          "type_info": "Jsonb"
+        },
+        {
+          "ordinal": 5,
+          "name": "created_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 6,
+          "name": "created_by",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 7,
+          "name": "updated_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 8,
+          "name": "updated_by",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 9,
+          "name": "deleted_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 10,
+          "name": "deleted_by",
+          "type_info": "Uuid"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Text",
+          "Uuid",
+          "Uuid",
+          "Jsonb"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        true,
+        true
+      ]
+    }
+  },
+  "75c5bd02535f0176b4086898947642e4d5e5a16abdb85f1d4918cc2a00fbc0bf": {
+    "query": "select * from pages where id = any($1) and deleted_at is null",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 1,
+          "name": "name",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 2,
+          "name": "project_id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 3,
+          "name": "dashboard_id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 4,
+          "name": "grid",
+          "type_info": "Jsonb"
+        },
+        {
+          "ordinal": 5,
+          "name": "created_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 6,
+          "name": "created_by",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 7,
+          "name": "updated_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 8,
+          "name": "updated_by",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 9,
+          "name": "deleted_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 10,
+          "name": "deleted_by",
+          "type_info": "Uuid"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "UuidArray"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        true,
+        true
+      ]
+    }
+  },
+  "793acdbf4249b0f10bd8a04932c35e12da2501ea05db816a1b858f293eed5853": {
+    "query": "\n    with _user as (select id from users where auth0id = $1)\n    insert into sources (source_type, source_data, created_by, updated_by)\n    values ($2, $3, (select id from _user), (select id from _user))\n    returning *;\n    ",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 1,
+          "name": "source_type",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 2,
+          "name": "source_data",
+          "type_info": "Jsonb"
+        },
+        {
+          "ordinal": 3,
+          "name": "created_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 4,
+          "name": "created_by",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 5,
+          "name": "updated_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 6,
+          "name": "updated_by",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 7,
+          "name": "deleted_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 8,
+          "name": "deleted_by",
+          "type_info": "Uuid"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Text",
+          "Jsonb"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        true,
+        true
+      ]
+    }
+  },
+  "7b0f171739bb6b73995f712bbbd9fbac41ad2f363a2f157540ac080629145eca": {
+    "query": "\n    with _user as (select * from users where auth0id = $1)\n    update blocks\n      set\n        name = coalesce($3, name),\n        block_data = coalesce($4, block_data),\n        updated_by = (select id from _user)\n      where id = $2\n      returning *;\n    ",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 1,
+          "name": "name",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 2,
+          "name": "project_id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 3,
+          "name": "dashboard_id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 4,
+          "name": "page_id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 5,
+          "name": "block_type",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 6,
+          "name": "block_data",
+          "type_info": "Jsonb"
+        },
+        {
+          "ordinal": 7,
+          "name": "created_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 8,
+          "name": "created_by",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 9,
+          "name": "updated_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 10,
+          "name": "updated_by",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 11,
+          "name": "deleted_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 12,
+          "name": "deleted_by",
+          "type_info": "Uuid"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Uuid",
+          "Text",
+          "Jsonb"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        true,
+        true
+      ]
+    }
+  },
+  "7c18ff70f999759133ccbbef22c6d9d10c5bb224f53bc5f5a7593ed0c4d03322": {
+    "query": "\n    select * from policies\n    where user_ids @> $1\n    ",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 1,
+          "name": "resource_id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 2,
+          "name": "policy_type",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 3,
+          "name": "permission_type",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 4,
+          "name": "grant_type",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 5,
+          "name": "user_ids",
+          "type_info": "UuidArray"
+        },
+        {
+          "ordinal": 6,
+          "name": "created_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 7,
+          "name": "created_by",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 8,
+          "name": "updated_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 9,
+          "name": "updated_by",
+          "type_info": "Uuid"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "UuidArray"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  },
+  "7d43545e96ee287663451d27b4efd24a26ff7cc3c46c618ae7a18a746dec78d8": {
+    "query": "select * from integrations where id = $1",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 1,
+          "name": "name",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 2,
+          "name": "portal_id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 3,
+          "name": "integration_type",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 4,
+          "name": "integration_data",
+          "type_info": "Jsonb"
+        },
+        {
+          "ordinal": 5,
+          "name": "created_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 6,
+          "name": "created_by",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 7,
+          "name": "updated_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 8,
+          "name": "updated_by",
+          "type_info": "Uuid"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  },
+  "87c5ac23261255133e649ce7826f53c4754937b7f8183cec7da5bdfe992fb2b0": {
+    "query": "\n    with _user as (select * from users where auth0id = $1)\n    update pages\n      set \n        name = coalesce($3, name),\n        project_id = coalesce($4, project_id),\n        dashboard_id = coalesce($5, dashboard_id),\n        grid = coalesce($6, grid),\n        updated_by = (select id from _user)\n    where id = $2\n    returning *;\n    ",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 1,
+          "name": "name",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 2,
+          "name": "project_id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 3,
+          "name": "dashboard_id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 4,
+          "name": "grid",
+          "type_info": "Jsonb"
+        },
+        {
+          "ordinal": 5,
+          "name": "created_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 6,
+          "name": "created_by",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 7,
+          "name": "updated_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 8,
+          "name": "updated_by",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 9,
+          "name": "deleted_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 10,
+          "name": "deleted_by",
+          "type_info": "Uuid"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Uuid",
+          "Text",
+          "Uuid",
+          "Uuid",
+          "Jsonb"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        true,
+        true
+      ]
+    }
+  },
+  "8be3c5b9dae389132fceb111ee5ffc931ca0e49a9e6eafe271bfb032ac5d058f": {
+    "query": "\n    with\n      _users_ids as (select * from user_access where object_type = 'Project' and object_id = any($1))\n    select\n      projects.id as \"id!\",\n      projects.name as \"name!\",\n      array(select user_id from _users_ids where object_id = projects.id) as \"user_ids!\",\n      projects.created_at as \"created_at!\",\n      projects.created_by as \"created_by!\",\n      projects.updated_at as \"updated_at!\",\n      projects.updated_by as \"updated_by!\"\n    from projects, users where projects.id = any($1);\n    ",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id!",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 1,
+          "name": "name!",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 2,
+          "name": "user_ids!",
+          "type_info": "UuidArray"
+        },
+        {
+          "ordinal": 3,
+          "name": "created_at!",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 4,
+          "name": "created_by!",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 5,
+          "name": "updated_at!",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 6,
+          "name": "updated_by!",
+          "type_info": "Uuid"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "UuidArray"
+        ]
+      },
+      "nullable": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true
+      ]
+    }
+  },
+  "8fb8df5d07b38a875d2baf7a2cdb221886ccfb0ae5ffaeb9dbf19949c7c6700a": {
+    "query": "select exists(select 1 from users where id = $1) as user_exists",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "user_exists",
+          "type_info": "Bool"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      },
+      "nullable": [
+        null
+      ]
+    }
+  },
+  "924d20960e8a26af0ae54dfb20f34308ea11815306099eeb598b28e1d50e7c25": {
+    "query": "select exists(select 1 from users where auth0id = $1) as user_exists",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "user_exists",
+          "type_info": "Bool"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      },
+      "nullable": [
+        null
+      ]
+    }
+  },
+  "92bef4a8b667d865f598e90e826360747588972ffea9216ac025731cd4869f6b": {
+    "query": "\n    with _user as (select * from users where auth0id = $1)\n    insert into connections (\n      block_id,\n      source_id,\n      sourcequery_id,\n      destination_id,\n      destination_type,\n      created_by,\n      updated_by\n    ) values (\n      $2,\n      $3,\n      $4,\n      $5,\n      $6,\n      (select id from _user),\n      (select id from _user)\n    )\n    returning *;\n    ",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 1,
+          "name": "block_id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 2,
+          "name": "source_id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 3,
+          "name": "sourcequery_id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 4,
+          "name": "destination_id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 5,
+          "name": "destination_type",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 6,
+          "name": "created_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 7,
+          "name": "created_by",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 8,
+          "name": "updated_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 9,
+          "name": "updated_by",
+          "type_info": "Uuid"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Uuid",
+          "Uuid",
+          "Uuid",
+          "Uuid",
+          "Text"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        true,
+        true,
+        true,
+        true,
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  },
+  "a95d2a945d0b16c441b3369950769cba1f79743ed037fb63d49aca169806c5db": {
+    "query": "select * from dashboards where project_id = any($1)",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 1,
+          "name": "name",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 2,
+          "name": "project_id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 3,
+          "name": "page_ids",
+          "type_info": "UuidArray"
+        },
+        {
+          "ordinal": 4,
+          "name": "created_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 5,
+          "name": "created_by",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 6,
+          "name": "updated_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 7,
+          "name": "updated_by",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 8,
+          "name": "deleted_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 9,
+          "name": "deleted_by",
+          "type_info": "Uuid"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "UuidArray"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        true,
+        true
+      ]
+    }
+  },
+  "a9efe1028ea01491be350df1800968d7140622f680138aea00a0b9d074db46f7": {
+    "query": "select * from blocks where page_id = $1",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 1,
+          "name": "name",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 2,
+          "name": "project_id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 3,
+          "name": "dashboard_id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 4,
+          "name": "page_id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 5,
+          "name": "block_type",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 6,
+          "name": "block_data",
+          "type_info": "Jsonb"
+        },
+        {
+          "ordinal": 7,
+          "name": "created_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 8,
+          "name": "created_by",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 9,
+          "name": "updated_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 10,
+          "name": "updated_by",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 11,
+          "name": "deleted_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 12,
+          "name": "deleted_by",
+          "type_info": "Uuid"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        true,
+        true
+      ]
+    }
+  },
+  "aa1a8e5ada92b65213bc8bd767bd00c1aca6816610177e9995432a443ea426dc": {
+    "query": "select exists(select 1 from users where email = $1) as user_exists",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "user_exists",
+          "type_info": "Bool"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      },
+      "nullable": [
+        null
+      ]
+    }
+  },
+  "ac42bf5851023c47480ee8157fd9cf26f73c6227410b511bd4f94852ce8fa709": {
+    "query": "select * from dashboards where id = any($1)",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 1,
+          "name": "name",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 2,
+          "name": "project_id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 3,
+          "name": "page_ids",
+          "type_info": "UuidArray"
+        },
+        {
+          "ordinal": 4,
+          "name": "created_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 5,
+          "name": "created_by",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 6,
+          "name": "updated_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 7,
+          "name": "updated_by",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 8,
+          "name": "deleted_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 9,
+          "name": "deleted_by",
+          "type_info": "Uuid"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "UuidArray"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        true,
+        true
+      ]
+    }
+  },
+  "b1cf280c7bb49e0fc0016497ffbcf0c44ff6993f4f37601e4916f7fe687da5d9": {
+    "query": "\n    select\n      id,\n      auth0id,\n      name,\n      nickname,\n      email,\n      status,\n      org_ids,\n      role_ids,\n      array(select object_id from user_access where user_id = users.id and object_type = 'Project') as \"project_ids!\",\n      created_at,\n      created_by,\n      updated_at,\n      updated_by\n    from users where id = $1;\n    ",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 1,
+          "name": "auth0id",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 2,
+          "name": "name",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 3,
+          "name": "nickname",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 4,
+          "name": "email",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 5,
+          "name": "status",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 6,
+          "name": "org_ids",
+          "type_info": "UuidArray"
+        },
+        {
+          "ordinal": 7,
+          "name": "role_ids",
+          "type_info": "UuidArray"
+        },
+        {
+          "ordinal": 8,
+          "name": "project_ids!",
+          "type_info": "UuidArray"
+        },
+        {
+          "ordinal": 9,
+          "name": "created_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 10,
+          "name": "created_by",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 11,
+          "name": "updated_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 12,
+          "name": "updated_by",
+          "type_info": "Uuid"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        null,
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  },
+  "b506765a056330367395c0e42f149dd22b858053c3da2f18d26ae1106083f654": {
+    "query": "delete from integrations where id = $1",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      },
+      "nullable": []
+    }
+  },
+  "c59aad1e3760d8db409261179889b0bd3e0c3a313eff2cd91a87307dc35e2e0c": {
+    "query": "select * from orgs where id = $1",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 1,
+          "name": "name",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 2,
+          "name": "personal",
+          "type_info": "Bool"
+        },
+        {
+          "ordinal": 3,
+          "name": "created_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 4,
+          "name": "created_by",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 5,
+          "name": "updated_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 6,
+          "name": "updated_by",
+          "type_info": "Uuid"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  },
+  "c79b95344079fa05e08eb8d59e4effb9808cfd84a5ad35bedeb417d34b5b8bed": {
+    "query": "\n      with _user as (select * from users where auth0id = $1)\n      insert into roles (role_type, created_by, updated_by) values ($2, (select id from _user), (select id from _user))\n      returning *\n      ",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 1,
+          "name": "role_type",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 2,
+          "name": "perms",
+          "type_info": "Jsonb"
+        },
+        {
+          "ordinal": 3,
+          "name": "created_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 4,
+          "name": "created_by",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 5,
+          "name": "updated_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 6,
+          "name": "updated_by",
+          "type_info": "Uuid"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Text"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  },
+  "ce6aa2d7655ebaf397dbf023f031c285dc17c6968b629d8473241e9aad3cfc44": {
+    "query": "\n    with _user as (select * from users where auth0id = $1)\n    insert into user_access (user_id, object_type, object_id, created_by, updated_by)\n    values ($2, 'Project', $3, (select id from _user), (select id from _user))\n  ",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Uuid",
+          "Uuid"
+        ]
+      },
+      "nullable": []
+    }
+  },
+  "cf060d3949cea77df52bd40160348b9e5526090cdecbb46e1ad14be0f50308ac": {
+    "query": "delete from blocks where page_id = $1",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      },
+      "nullable": []
+    }
+  },
+  "d8ec7a51a1922d976d7762d8cc882aef8507d8e2541396197469416f3442d29b": {
+    "query": "\n    select\n      id,\n      auth0id,\n      name,\n      nickname,\n      email,\n      status,\n      org_ids,\n      role_ids,\n      array(select object_id from user_access where user_id = users.id and object_type = 'Project') as \"project_ids!\",\n      created_at,\n      created_by,\n      updated_at,\n      updated_by\n    from users where id = any($1);\n    ",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 1,
+          "name": "auth0id",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 2,
+          "name": "name",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 3,
+          "name": "nickname",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 4,
+          "name": "email",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 5,
+          "name": "status",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 6,
+          "name": "org_ids",
+          "type_info": "UuidArray"
+        },
+        {
+          "ordinal": 7,
+          "name": "role_ids",
+          "type_info": "UuidArray"
+        },
+        {
+          "ordinal": 8,
+          "name": "project_ids!",
+          "type_info": "UuidArray"
+        },
+        {
+          "ordinal": 9,
+          "name": "created_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 10,
+          "name": "created_by",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 11,
+          "name": "updated_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 12,
+          "name": "updated_by",
+          "type_info": "Uuid"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "UuidArray"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        null,
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  },
+  "df5c6c8139bce8facab65772f30fcfb6eb09cadea5f4fdccc363cc085f681943": {
+    "query": "\n    with _user as (select * from users where auth0id = $1)\n    insert into integrations (name, portal_id, integration_type, integration_data, created_by, updated_by)\n    values ($2, $3, $4, $5, (select id from _user), (select id from _user))\n    returning *;\n    ",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 1,
+          "name": "name",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 2,
+          "name": "portal_id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 3,
+          "name": "integration_type",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 4,
+          "name": "integration_data",
+          "type_info": "Jsonb"
+        },
+        {
+          "ordinal": 5,
+          "name": "created_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 6,
+          "name": "created_by",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 7,
+          "name": "updated_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 8,
+          "name": "updated_by",
+          "type_info": "Uuid"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Text",
+          "Uuid",
+          "Text",
+          "Jsonb"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  },
+  "dff4aeebd60f62f1637a41521574809e1832d669dff22f38c33a2ea8c9f2984f": {
+    "query": "\n    with \n    _user as (select (id) from users where auth0id = $1),\n    _user_project as \n      (select resource_id as project_id\n       from policies\n       where policy_type = 'Project' and user_ids @> array(select id from _user))\n    select\n    id as \"id!\",\n    name as \"name!\",\n    array(select user_id from user_access where object_id = projects.id) as \"user_ids!\",\n    created_at as \"created_at!\",\n    created_by as \"created_by!\",\n    updated_at as \"updated_at!\",\n    updated_by as \"updated_by!\"\n  from projects where id = any(select project_id from _user_project);\n    ",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id!",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 1,
+          "name": "name!",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 2,
+          "name": "user_ids!",
+          "type_info": "UuidArray"
+        },
+        {
+          "ordinal": 3,
+          "name": "created_at!",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 4,
+          "name": "created_by!",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 5,
+          "name": "updated_at!",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 6,
+          "name": "updated_by!",
+          "type_info": "Uuid"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      },
+      "nullable": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true
+      ]
+    }
+  },
+  "e00afe2b0edc15e7e20ecd0b5ca985f39d63dde29e6dcb99951292c738cc34da": {
+    "query": "delete from blocks where id = any($1)",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Left": [
+          "UuidArray"
+        ]
+      },
+      "nullable": []
+    }
+  },
+  "e34c92bebde4bde2dc8e01ffb2845b94384085e248f3bdaab7fd4eec212629b7": {
+    "query": "\n  with _user as (select * from users where auth0id = $1)\n  insert into user_access (user_id, object_type, object_id, created_by, updated_by)\n  select $2, 'Dashboard', *, (select id from _user), (select id from _user)\n  from unnest($3::uuid[])\n  ",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Uuid",
+          "UuidArray"
+        ]
+      },
+      "nullable": []
+    }
+  },
+  "e89f223fb01eb3c1699e83732c0cb2f231bcfbe03de768ce1fc460b94542b093": {
+    "query": "select * from pages where dashboard_id = $1 and deleted_at is null",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 1,
+          "name": "name",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 2,
+          "name": "project_id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 3,
+          "name": "dashboard_id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 4,
+          "name": "grid",
+          "type_info": "Jsonb"
+        },
+        {
+          "ordinal": 5,
+          "name": "created_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 6,
+          "name": "created_by",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 7,
+          "name": "updated_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 8,
+          "name": "updated_by",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 9,
+          "name": "deleted_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 10,
+          "name": "deleted_by",
+          "type_info": "Uuid"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        true,
+        true
+      ]
+    }
+  },
+  "e8b79439e5a04f629f49d35afaac3a709393ccea9b434b069880761819fb75e6": {
+    "query": "\n    select * from policies\n    where user_ids @> $1 and resource_id = $2\n    ",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 1,
+          "name": "resource_id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 2,
+          "name": "policy_type",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 3,
+          "name": "permission_type",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 4,
+          "name": "grant_type",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 5,
+          "name": "user_ids",
+          "type_info": "UuidArray"
+        },
+        {
+          "ordinal": 6,
+          "name": "created_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 7,
+          "name": "created_by",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 8,
+          "name": "updated_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 9,
+          "name": "updated_by",
+          "type_info": "Uuid"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "UuidArray",
+          "Uuid"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  },
+  "ea93f78488c4b71c66d15e09dc5b55d5f243bfcf98e2c864c980c5de4a0db40a": {
+    "query": "select * from pages where id = $1 and deleted_at is null",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 1,
+          "name": "name",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 2,
+          "name": "project_id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 3,
+          "name": "dashboard_id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 4,
+          "name": "grid",
+          "type_info": "Jsonb"
+        },
+        {
+          "ordinal": 5,
+          "name": "created_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 6,
+          "name": "created_by",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 7,
+          "name": "updated_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 8,
+          "name": "updated_by",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 9,
+          "name": "deleted_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 10,
+          "name": "deleted_by",
+          "type_info": "Uuid"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        true,
+        true
+      ]
+    }
+  },
+  "ebbc4a01d902551f820459cd9785f1133eb7df3576b89fe6db50b984b89faa00": {
+    "query": "\n    select * from policies\n    where resource_id = any($1)\n    ",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 1,
+          "name": "resource_id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 2,
+          "name": "policy_type",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 3,
+          "name": "permission_type",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 4,
+          "name": "grant_type",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 5,
+          "name": "user_ids",
+          "type_info": "UuidArray"
+        },
+        {
+          "ordinal": 6,
+          "name": "created_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 7,
+          "name": "created_by",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 8,
+          "name": "updated_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 9,
+          "name": "updated_by",
+          "type_info": "Uuid"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "UuidArray"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  },
+  "ee0fdfb816202463d3420219f6b49d7eb52aac5ba2ed7dc4e5d4bdbf4a231bcd": {
+    "query": "select * from dashboards where id = $1",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 1,
+          "name": "name",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 2,
+          "name": "project_id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 3,
+          "name": "page_ids",
+          "type_info": "UuidArray"
+        },
+        {
+          "ordinal": 4,
+          "name": "created_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 5,
+          "name": "created_by",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 6,
+          "name": "updated_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 7,
+          "name": "updated_by",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 8,
+          "name": "deleted_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 9,
+          "name": "deleted_by",
+          "type_info": "Uuid"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        true,
+        true
+      ]
+    }
+  },
+  "f73b280cb3839ac425f2468cec8edea70d582bc93a08597372400de2cc898459": {
+    "query": "\n    with\n      _user_projects as (select * from user_access where object_type = 'Project' and object_id = any($1))\n    select\n      users.id as \"id!\",\n      users.auth0id as \"auth0id!\",\n      users.name as \"name!\",\n      users.nickname as \"nickname!\",\n      users.email as \"email!\",\n      users.status as \"status!\",\n      users.org_ids as \"org_ids!\",\n      users.role_ids as \"role_ids!\",\n      array(select object_id from user_access where user_id = users.id) as \"project_ids!\",\n      users.created_at as \"created_at!\",\n      users.created_by as \"created_by!\",\n      users.updated_at as \"updated_at!\",\n      users.updated_by as \"updated_by!\"\n    from \n      users\n    where \n      id = any(select user_id from _user_projects);\n    ",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id!",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 1,
+          "name": "auth0id!",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 2,
+          "name": "name!",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 3,
+          "name": "nickname!",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 4,
+          "name": "email!",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 5,
+          "name": "status!",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 6,
+          "name": "org_ids!",
+          "type_info": "UuidArray"
+        },
+        {
+          "ordinal": 7,
+          "name": "role_ids!",
+          "type_info": "UuidArray"
+        },
+        {
+          "ordinal": 8,
+          "name": "project_ids!",
+          "type_info": "UuidArray"
+        },
+        {
+          "ordinal": 9,
+          "name": "created_at!",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 10,
+          "name": "created_by!",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 11,
+          "name": "updated_at!",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 12,
+          "name": "updated_by!",
+          "type_info": "Uuid"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "UuidArray"
+        ]
+      },
+      "nullable": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true
+      ]
+    }
+  },
+  "fac576fa27b67fa7dbdc591842bbf6a5c5089de04e34c297d292b9fdda121d06": {
+    "query": "\n    with _user as (select * from users where auth0id = $1)\n    insert into blocks (name, project_id, dashboard_id, page_id, block_type, block_data, created_by, updated_by)\n    values ($2, $3, $4, $5, $6, $7, (select id from _user), (select id from _user))\n    returning *;\n    ",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 1,
+          "name": "name",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 2,
+          "name": "project_id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 3,
+          "name": "dashboard_id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 4,
+          "name": "page_id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 5,
+          "name": "block_type",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 6,
+          "name": "block_data",
+          "type_info": "Jsonb"
+        },
+        {
+          "ordinal": 7,
+          "name": "created_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 8,
+          "name": "created_by",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 9,
+          "name": "updated_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 10,
+          "name": "updated_by",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 11,
+          "name": "deleted_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 12,
+          "name": "deleted_by",
+          "type_info": "Uuid"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Text",
+          "Uuid",
+          "Uuid",
+          "Uuid",
+          "Text",
+          "Jsonb"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        true,
+        true
+      ]
+    }
+  },
+  "fdc16d7e41d3ec9b0ea2edcde28fc8fe33bcadf092af465ae29c3c055db11a1c": {
+    "query": "\n    with _user as (select * from users where auth0id = $1)\n    update dashboards\n    set \n      page_ids = array_remove(page_ids, $2),\n      updated_by = (select id from _user)\n    where id = $3\n    returning *;\n    ",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 1,
+          "name": "name",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 2,
+          "name": "project_id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 3,
+          "name": "page_ids",
+          "type_info": "UuidArray"
+        },
+        {
+          "ordinal": 4,
+          "name": "created_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 5,
+          "name": "created_by",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 6,
+          "name": "updated_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 7,
+          "name": "updated_by",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 8,
+          "name": "deleted_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 9,
+          "name": "deleted_by",
+          "type_info": "Uuid"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Uuid",
+          "Uuid"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        true,
+        true
+      ]
+    }
+  }
+}
