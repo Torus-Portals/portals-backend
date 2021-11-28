@@ -3,19 +3,16 @@ use chrono::{DateTime, Utc};
 use sqlx::{PgExecutor, PgPool};
 use uuid::Uuid;
 
-use crate::{
-  graphql::schema::{
+use crate::{graphql::schema::{
     dashboard::{NewDashboard, UpdateDashboard},
     policy::{GrantTypes, NewPolicy, PermissionTypes, PolicyTypes},
-  },
-  services::db::{
-    policy_service::{check_permission, create_policy},
-    project_service::{add_user_to_project, get_auth0_user_projects},
-    user_service::get_user_by_auth0_id,
-  },
-};
+  }, services::{db::{
+      policy_service::{check_permission, create_policy},
+      project_service::{add_user_to_project, get_auth0_user_projects},
+      user_service::get_user_by_auth0_id,
+    }, email_service::{EmailTemplate, EmailTemplateParams, EmailTemplateTypes, InviteNewUserToDashboardParams, send_email}}};
 
-use super::project_service::get_project;
+use super::{project_service::get_project, user_service::get_users};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -164,6 +161,7 @@ pub async fn add_user_to_dashboards(
   insert into user_access (user_id, object_type, object_id, created_by, updated_by)
   select $2, 'Dashboard', *, (select id from _user), (select id from _user)
   from unnest($3::uuid[])
+  on conflict (user_id, object_type, object_id) do nothing;
   "#,
     auth0_id,
     user_id,
@@ -260,9 +258,7 @@ pub async fn update_dashboard(
     updated_dashboard.id,
     updated_dashboard.name,
     updated_dashboard.project_id,
-    updated_dashboard
-      .page_ids
-      .as_deref()
+    updated_dashboard.page_ids.as_deref()
   )
   .fetch_one(pool)
   .await
@@ -307,12 +303,37 @@ pub async fn share_dashboard(
   // Adds user to containing Project as well -- but not other dashboards
   let dashboard = get_dashboard(&mut tx, dashboard_id).await?;
   let project = get_project(&mut tx, dashboard.project_id).await?;
-  for user_id in user_ids {
-    res += add_user_to_dashboard(&mut tx, auth0_id, user_id, dashboard_id).await?;
-    res += add_user_to_project(&mut tx, auth0_id, user_id, project.id).await?;
+  let db_users = get_users(&mut tx, user_ids).await?;
+  for user in db_users.iter() {
+    res += add_user_to_dashboard(&mut tx, auth0_id, user.id, dashboard_id).await?;
+    res += add_user_to_project(&mut tx, auth0_id, user.id, project.id).await?;
   }
 
   tx.commit().await?;
+
+  let to_addresses = db_users
+    .iter()
+    .map(|user| &user.email)
+    .cloned()
+    .collect::<Vec<String>>();
+  let params = db_users
+    .into_iter()
+    .map(|user| {
+      EmailTemplateParams::InviteNewUserToDashboard(InviteNewUserToDashboardParams {
+        user: user.name,
+        dashboard_link: format!(
+          "http://local.portals-rocks.dev/app/project/{}/dashboard/{}",
+          project.id, dashboard.id
+        ),
+      })
+    })
+    .collect::<Vec<EmailTemplateParams>>();
+  let email_template = EmailTemplate {
+    template_type: EmailTemplateTypes::InviteNewUserToDashboard,
+    to_addresses,
+    params,
+  };
+  send_email(email_template).await?;
 
   Ok(res)
 }

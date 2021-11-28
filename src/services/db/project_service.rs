@@ -8,7 +8,18 @@ use crate::{
     policy::{GrantTypes, NewPolicy, PermissionTypes, PolicyTypes},
     project::NewProject,
   },
-  services::db::{policy_service::create_policy, user_service::get_user_by_auth0_id},
+  services::{
+    db::{policy_service::create_policy, user_service::get_user_by_auth0_id},
+    email_service::{
+      send_email, EmailTemplate, EmailTemplateParams, EmailTemplateTypes,
+      InviteNewUserToProjectParams,
+    },
+  },
+};
+
+use super::{
+  dashboard_service::{add_user_to_dashboards, get_project_dashboards},
+  user_service::get_users,
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -149,6 +160,7 @@ pub async fn add_user_to_project(
     with _user as (select * from users where auth0id = $1)
     insert into user_access (user_id, object_type, object_id, created_by, updated_by)
     values ($2, 'Project', $3, (select id from _user), (select id from _user))
+    on conflict (user_id, object_type, object_id) do nothing;
   "#,
     auth0_id,
     user_id,
@@ -228,11 +240,34 @@ pub async fn share_project(
   let mut tx = pool.begin().await?;
   let mut res = 0;
 
-  for user_id in user_ids {
-    res += add_user_to_project(&mut tx, auth0_id, user_id, project_id).await?;
+  let db_users = get_users(&mut tx, user_ids).await?;
+  for db_user in db_users.iter() {
+    res += add_user_to_project(&mut tx, auth0_id, db_user.id, project_id).await?;
   }
 
   tx.commit().await?;
+
+  let to_addresses = db_users
+    .iter()
+    .map(|user| &user.email)
+    .cloned()
+    .collect::<Vec<String>>();
+  let params = db_users
+    .into_iter()
+    .map(|user| {
+      EmailTemplateParams::InviteNewUserToProject(InviteNewUserToProjectParams {
+        user: user.name,
+        project_link: format!("http://local.portals-rocks.dev/app/project/{}", project_id),
+      })
+    })
+    .collect::<Vec<EmailTemplateParams>>();
+  let email_template = EmailTemplate {
+    template_type: EmailTemplateTypes::InviteNewUserToProject,
+    to_addresses,
+    params,
+  };
+
+  send_email(email_template).await?;
 
   Ok(res)
 }
