@@ -1,6 +1,5 @@
-use juniper::{GraphQLEnum, GraphQLObject, GraphQLUnion};
+use juniper::{GraphQLEnum, GraphQLObject};
 use strum_macros::{Display, EnumString};
-use uuid::Uuid;
 
 // For now, basing this on how ReactCharts works.
 // https://react-charts.tanstack.com/docs/api

@@ -39,6 +39,8 @@ pub struct DBBlock {
 
   pub block_data: serde_json::Value,
 
+  pub block_config: serde_json::Value,
+
   pub created_at: DateTime<Utc>,
 
   pub created_by: Uuid,

@@ -4,6 +4,7 @@ use uuid::Uuid;
 
 pub mod block;
 pub mod blocks;
+pub mod block_configs;
 pub mod connection;
 pub mod connection_content;
 pub mod dashboard;

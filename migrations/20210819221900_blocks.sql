@@ -6,6 +6,7 @@ CREATE TABLE blocks (
   page_id UUID NOT NULL,
   block_type TEXT NOT NULL,
   block_data jsonb NOT NULL DEFAULT '{}'::jsonb,
+  block_config jsonb NOT NULL DEFAULT '{}'::jsonb,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   created_by UUID NOT NULL,
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
