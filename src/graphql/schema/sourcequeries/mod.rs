@@ -1,1 +1,1 @@
-pub mod block_sourcequery;
+pub mod table_block_sourcequery;
