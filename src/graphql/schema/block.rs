@@ -11,6 +11,7 @@ use super::blocks::empty_block::EmptyBlock;
 use super::blocks::table_block::TableBlock;
 use super::blocks::text_block::TextBlock;
 use super::blocks::cells_block::CellsBlock;
+use super::blocks::xy_chart_block::XYChartBlock;
 
 use super::Mutation;
 use super::Query;
@@ -30,6 +31,8 @@ pub enum GQLBlocks {
   Text(TextBlock),
 
   Cells(CellsBlock),
+
+  XYChart(XYChartBlock),
 }
 
 #[derive(Debug, Serialize, Deserialize, GraphQLEnum, EnumString, Display)]
@@ -45,6 +48,10 @@ pub enum BlockTypes {
   #[strum(serialize = "Cells")]
   #[graphql(name = "Cells")]
   Cells,
+
+  #[strum(serialize = "XYChart")]
+  #[graphql(name = "XYChart")]
+  XYChart
 }
 
 #[derive(GraphQLObject, Debug, Serialize, Deserialize)]
@@ -100,6 +107,11 @@ impl From<DBBlock> for Block {
         let b: CellsBlock =
           serde_json::from_value(db_block.block_data).expect("unable to deserialize cells block");
         GQLBlocks::Cells(b)
+      }
+      "XYChart" => {
+        let b: XYChartBlock =
+          serde_json::from_value(db_block.block_data).expect("unable to deserialize cells block");
+        GQLBlocks::XYChart(b)
       }
       &_ => GQLBlocks::Empty(EmptyBlock {
         block_type: String::from("nothing"),

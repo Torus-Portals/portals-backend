@@ -25,7 +25,7 @@ use crate::graphql::{graphql_routes, schema as graphql_schema};
 use crate::routes::general_routes::{get_health, get_info};
 use crate::services::auth0_service::Auth0Service;
 use crate::services::google_sheets_service::{GoogleSheetsService, OAuthService};
-use crate::services::s3_service::{self, S3Service};
+use crate::services::s3_service::{S3Service};
 use crate::state::State;
 use actix_cors::Cors;
 use actix_web::{web, App, HttpServer};
