@@ -18,6 +18,7 @@ pub struct Config {
   pub auth0: Auth0,
   pub oauth: OAuth,
   pub email_source: String,
+  pub email_ses_region: String,
   pub project_url: String,
   pub dashboard_url: String,
 }

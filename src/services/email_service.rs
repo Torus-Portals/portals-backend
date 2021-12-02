@@ -1,4 +1,4 @@
-use std::convert::{TryFrom, TryInto};
+use std::str::FromStr;
 
 use anyhow::Result;
 use rusoto_core::{self, Region};
@@ -77,7 +77,7 @@ impl From<EmailTemplate> for EmailContent {
 
 pub async fn send_email(template: EmailTemplate) -> Result<bool> {
   let config = config::server_config();
-  let client = SesClient::new(Region::ApSoutheast1);
+  let client = SesClient::new(Region::from_str(&config.email_ses_region)?);
   let EmailContent {
     template_name,
     to_addresses,
