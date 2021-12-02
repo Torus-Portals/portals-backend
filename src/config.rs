@@ -17,6 +17,9 @@ pub struct Config {
   pub database_url: String,
   pub auth0: Auth0,
   pub oauth: OAuth,
+  pub email_source: String,
+  pub project_url: String,
+  pub dashboard_url: String,
 }
 
 #[derive(Deserialize)]

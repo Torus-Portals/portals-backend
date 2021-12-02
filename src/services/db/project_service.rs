@@ -4,6 +4,7 @@ use sqlx::{PgExecutor, PgPool};
 use uuid::Uuid;
 
 use crate::{
+  config,
   graphql::schema::{
     policy::{GrantTypes, NewPolicy, PermissionTypes, PolicyTypes},
     project::NewProject,
@@ -237,6 +238,7 @@ pub async fn share_project(
   project_id: Uuid,
   user_ids: Vec<Uuid>,
 ) -> Result<i32> {
+  let config = config::server_config();
   let mut tx = pool.begin().await?;
   let mut res = 0;
 
@@ -257,7 +259,9 @@ pub async fn share_project(
     .map(|user| {
       EmailTemplateParams::InviteNewUserToProject(InviteNewUserToProjectParams {
         user: user.name,
-        project_link: format!("http://local.portals-rocks.dev/app/project/{}", project_id),
+        project_link: config
+          .project_url
+          .replace("project_id", &project_id.to_string()),
       })
     })
     .collect::<Vec<EmailTemplateParams>>();

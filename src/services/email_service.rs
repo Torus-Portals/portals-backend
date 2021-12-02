@@ -8,6 +8,8 @@ use rusoto_ses::{
 use serde_json::json;
 use strum_macros::Display;
 
+use crate::config;
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct EmailTemplate {
   pub template_type: EmailTemplateTypes,
@@ -74,6 +76,7 @@ impl From<EmailTemplate> for EmailContent {
 }
 
 pub async fn send_email(template: EmailTemplate) -> Result<bool> {
+  let config = config::server_config();
   let client = SesClient::new(Region::ApSoutheast1);
   let EmailContent {
     template_name,
@@ -98,7 +101,7 @@ pub async fn send_email(template: EmailTemplate) -> Result<bool> {
   let send_request = SendBulkTemplatedEmailRequest {
     destinations,
     // TODO: To change to definite server email source
-    source: "tedmundhtl@gmail.com".to_string(),
+    source: config.email_source.clone(),
     template: template_name,
     default_template_data: Some(json!({}).to_string()),
     ..Default::default()

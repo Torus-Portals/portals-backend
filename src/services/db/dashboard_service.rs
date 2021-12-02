@@ -3,14 +3,24 @@ use chrono::{DateTime, Utc};
 use sqlx::{PgExecutor, PgPool};
 use uuid::Uuid;
 
-use crate::{graphql::schema::{
+use crate::{
+  config,
+  graphql::schema::{
     dashboard::{NewDashboard, UpdateDashboard},
     policy::{GrantTypes, NewPolicy, PermissionTypes, PolicyTypes},
-  }, services::{db::{
+  },
+  services::{
+    db::{
       policy_service::{check_permission, create_policy},
       project_service::{add_user_to_project, get_auth0_user_projects},
       user_service::get_user_by_auth0_id,
-    }, email_service::{EmailTemplate, EmailTemplateParams, EmailTemplateTypes, InviteNewUserToDashboardParams, send_email}}};
+    },
+    email_service::{
+      send_email, EmailTemplate, EmailTemplateParams, EmailTemplateTypes,
+      InviteNewUserToDashboardParams,
+    },
+  },
+};
 
 use super::{project_service::get_project, user_service::get_users};
 
@@ -297,6 +307,7 @@ pub async fn share_dashboard(
   dashboard_id: Uuid,
   user_ids: Vec<Uuid>,
 ) -> Result<i32> {
+  let config = config::server_config();
   let mut tx = pool.begin().await?;
   let mut res = 0;
 
@@ -321,10 +332,9 @@ pub async fn share_dashboard(
     .map(|user| {
       EmailTemplateParams::InviteNewUserToDashboard(InviteNewUserToDashboardParams {
         user: user.name,
-        dashboard_link: format!(
-          "http://local.portals-rocks.dev/app/project/{}/dashboard/{}",
-          project.id, dashboard.id
-        ),
+        dashboard_link: config
+          .dashboard_url
+          .replace("dashboard_id", &dashboard.id.to_string()),
       })
     })
     .collect::<Vec<EmailTemplateParams>>();
