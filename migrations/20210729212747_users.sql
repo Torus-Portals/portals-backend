@@ -4,7 +4,7 @@ CREATE TABLE users (
   name TEXT NOT NULL,
   nickname TEXT NOT NULL,
   email TEXT NOT NULL,
-  status TEXT NOT NULL,
+  user_status jsonb NOT NULL DEFAULT '{}'::jsonb,
   org_ids UUID[] NOT NULL DEFAULT '{}'::UUID[],
   role_ids UUID[] NOT NULL DEFAULT '{}'::UUID[],
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),

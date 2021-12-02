@@ -4,6 +4,7 @@ use uuid::Uuid;
 
 use super::Mutation;
 use super::Query;
+use super::user::UserStatusInput;
 
 use crate::graphql::context::GQLContext;
 
@@ -193,7 +194,7 @@ impl Mutation {
           name: String::new(),
           nickname: String::new(),
           email: user_email.to_owned(),
-          status: String::from("invited"),
+          user_status: UserStatusInput::default(),
           org_ids: None,
           role_ids: None,
         };
