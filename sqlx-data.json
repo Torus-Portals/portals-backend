@@ -1,5 +1,91 @@
 {
   "db": "PostgreSQL",
+  "016cc43c968e2f3b907ccc491b1066cba5f02567c6796c08e38aa4c40ab41e66": {
+    "query": "\n    with _user as (select * from users where auth0id = $1)\n    insert into connections (\n      name,\n      block_id,\n      source_id,\n      sourcequery_id,\n      destination_id,\n      destination_type,\n      created_by,\n      updated_by\n    ) values (\n      $2,\n      $3,\n      $4,\n      $5,\n      $6,\n      $7,\n      (select id from _user),\n      (select id from _user)\n    )\n    returning *;\n    ",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 1,
+          "name": "block_id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 2,
+          "name": "source_id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 3,
+          "name": "sourcequery_id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 4,
+          "name": "destination_id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 5,
+          "name": "destination_type",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 6,
+          "name": "created_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 7,
+          "name": "created_by",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 8,
+          "name": "updated_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 9,
+          "name": "updated_by",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 10,
+          "name": "name",
+          "type_info": "Text"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Text",
+          "Uuid",
+          "Uuid",
+          "Uuid",
+          "Uuid",
+          "Text"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        true,
+        true,
+        true,
+        true,
+        false,
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  },
   "04a8e12f0fbef1cb08b71a2f01a5b654d6ca4cc2040e7a19b81c4367bbe0e727": {
     "query": "\n      with _user as (select * from users where auth0id = $1)\n      insert into policies (resource_id, policy_type, permission_type, grant_type, user_ids, created_by, updated_by)\n      select $2, $3, $4, *, $6, (select id from _user), (select id from _user)\n      from unnest($5::text[]);\n      ",
     "describe": {
@@ -166,6 +252,11 @@
           "ordinal": 12,
           "name": "deleted_by",
           "type_info": "Uuid"
+        },
+        {
+          "ordinal": 13,
+          "name": "block_config",
+          "type_info": "Jsonb"
         }
       ],
       "parameters": {
@@ -186,7 +277,8 @@
         false,
         false,
         true,
-        true
+        true,
+        false
       ]
     }
   },
@@ -326,6 +418,11 @@
           "ordinal": 12,
           "name": "deleted_by",
           "type_info": "Uuid"
+        },
+        {
+          "ordinal": 13,
+          "name": "block_config",
+          "type_info": "Jsonb"
         }
       ],
       "parameters": {
@@ -346,7 +443,8 @@
         false,
         false,
         true,
-        true
+        true,
+        false
       ]
     }
   },
@@ -530,6 +628,11 @@
           "ordinal": 12,
           "name": "deleted_by",
           "type_info": "Uuid"
+        },
+        {
+          "ordinal": 13,
+          "name": "block_config",
+          "type_info": "Jsonb"
         }
       ],
       "parameters": {
@@ -551,7 +654,8 @@
         false,
         false,
         true,
-        true
+        true,
+        false
       ]
     }
   },
@@ -623,6 +727,11 @@
           "ordinal": 12,
           "name": "deleted_by",
           "type_info": "Uuid"
+        },
+        {
+          "ordinal": 13,
+          "name": "block_config",
+          "type_info": "Jsonb"
         }
       ],
       "parameters": {
@@ -643,7 +752,8 @@
         false,
         false,
         true,
-        true
+        true,
+        false
       ]
     }
   },
@@ -1321,6 +1431,11 @@
           "ordinal": 9,
           "name": "updated_by",
           "type_info": "Uuid"
+        },
+        {
+          "ordinal": 10,
+          "name": "name",
+          "type_info": "Text"
         }
       ],
       "parameters": {
@@ -1335,6 +1450,7 @@
         true,
         true,
         true,
+        false,
         false,
         false,
         false,
@@ -2138,6 +2254,11 @@
           "ordinal": 12,
           "name": "deleted_by",
           "type_info": "Uuid"
+        },
+        {
+          "ordinal": 13,
+          "name": "block_config",
+          "type_info": "Jsonb"
         }
       ],
       "parameters": {
@@ -2161,7 +2282,8 @@
         false,
         false,
         true,
-        true
+        true,
+        false
       ]
     }
   },
@@ -2488,85 +2610,6 @@
       ]
     }
   },
-  "92bef4a8b667d865f598e90e826360747588972ffea9216ac025731cd4869f6b": {
-    "query": "\n    with _user as (select * from users where auth0id = $1)\n    insert into connections (\n      block_id,\n      source_id,\n      sourcequery_id,\n      destination_id,\n      destination_type,\n      created_by,\n      updated_by\n    ) values (\n      $2,\n      $3,\n      $4,\n      $5,\n      $6,\n      (select id from _user),\n      (select id from _user)\n    )\n    returning *;\n    ",
-    "describe": {
-      "columns": [
-        {
-          "ordinal": 0,
-          "name": "id",
-          "type_info": "Uuid"
-        },
-        {
-          "ordinal": 1,
-          "name": "block_id",
-          "type_info": "Uuid"
-        },
-        {
-          "ordinal": 2,
-          "name": "source_id",
-          "type_info": "Uuid"
-        },
-        {
-          "ordinal": 3,
-          "name": "sourcequery_id",
-          "type_info": "Uuid"
-        },
-        {
-          "ordinal": 4,
-          "name": "destination_id",
-          "type_info": "Uuid"
-        },
-        {
-          "ordinal": 5,
-          "name": "destination_type",
-          "type_info": "Text"
-        },
-        {
-          "ordinal": 6,
-          "name": "created_at",
-          "type_info": "Timestamptz"
-        },
-        {
-          "ordinal": 7,
-          "name": "created_by",
-          "type_info": "Uuid"
-        },
-        {
-          "ordinal": 8,
-          "name": "updated_at",
-          "type_info": "Timestamptz"
-        },
-        {
-          "ordinal": 9,
-          "name": "updated_by",
-          "type_info": "Uuid"
-        }
-      ],
-      "parameters": {
-        "Left": [
-          "Text",
-          "Uuid",
-          "Uuid",
-          "Uuid",
-          "Uuid",
-          "Text"
-        ]
-      },
-      "nullable": [
-        false,
-        false,
-        true,
-        true,
-        true,
-        true,
-        false,
-        false,
-        false,
-        false
-      ]
-    }
-  },
   "a95d2a945d0b16c441b3369950769cba1f79743ed037fb63d49aca169806c5db": {
     "query": "select * from dashboards where project_id = any($1)",
     "describe": {
@@ -2709,6 +2752,11 @@
           "ordinal": 12,
           "name": "deleted_by",
           "type_info": "Uuid"
+        },
+        {
+          "ordinal": 13,
+          "name": "block_config",
+          "type_info": "Jsonb"
         }
       ],
       "parameters": {
@@ -2729,7 +2777,8 @@
         false,
         false,
         true,
-        true
+        true,
+        false
       ]
     }
   },
@@ -3859,6 +3908,11 @@
           "ordinal": 12,
           "name": "deleted_by",
           "type_info": "Uuid"
+        },
+        {
+          "ordinal": 13,
+          "name": "block_config",
+          "type_info": "Jsonb"
         }
       ],
       "parameters": {
@@ -3885,7 +3939,8 @@
         false,
         false,
         true,
-        true
+        true,
+        false
       ]
     }
   },
