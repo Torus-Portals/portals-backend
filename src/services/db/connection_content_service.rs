@@ -4,11 +4,10 @@ use uuid::Uuid;
 
 use crate::{
   graphql::schema::{
-    blocks::table_block::{
-      TableBlock, TableBlockCell, TableBlockCellTypes, TableBlockCells, TableBlockColumnTypes,
-      TableBlockRow,
-    },
+    block::{Block, GQLBlocks},
     connection_content::{ConnectionContent, ContentTypes},
+    sourcequeries::table_block_sourcequery::{query_table_block, TableBlockQueryArgs},
+    sourcequery::{GQLSourceQueries, SourceQuery},
     sources::block_source::BlockSource,
   },
   utils::ir::{IRSink, IRTap},
@@ -22,17 +21,13 @@ use super::{
   user_service::get_user_by_auth0_id,
 };
 
-pub struct TableBlockQueryArgs {
-  user_id: Uuid,
-}
+// pub enum SourceQueryArgs {
+//   TableBlock(TableBlockQueryArgs),
+// }
 
-pub enum SourceQueryArgs {
-  TableBlock(TableBlockQueryArgs),
-}
-
-pub fn contruct_sourcequery_args(user_id: Uuid) -> SourceQueryArgs {
-  SourceQueryArgs::TableBlock(TableBlockQueryArgs { user_id })
-}
+// pub fn construct_sourcequery_args(user_id: Uuid) -> SourceQueryArgs {
+//   SourceQueryArgs::TableBlock(TableBlockQueryArgs { user_id })
+// }
 
 // TODO: This whole function sucks, and needs to be refactored.
 // pub fn query_block_source(
@@ -146,22 +141,8 @@ pub struct BlockConnectionData {
   // TODO: might want to add destination stuff to this struct.
 }
 
-// pub fn query_block(db_block: DBBlock, query_args: SourceQueryArgs)
-
-pub async fn query_block_source(
-  db_block: DBBlock,
-  db_source: DBSource,
-  block_source: BlockSource,
-  query_args: SourceQueryArgs,
-) -> Result<()> {
-  Ok(())
-}
-
 pub fn get_block_source(source: DBSource) -> Result<Option<BlockSource>> {
-  let bs = match source
-    .source_type
-    .as_str()
-  {
+  let bs = match source.source_type.as_str() {
     "Block" => {
       let block_source: BlockSource = serde_json::from_value(source.source_data)?;
       Some(block_source)
@@ -219,21 +200,15 @@ pub async fn get_connection_content(
   let collected = connections
     .into_iter()
     .map(|db_connection| {
-      let source = sources
-        .clone()
-        .into_iter()
-        .find(|s| match db_connection.source_id {
-          Some(id) => s.id == id,
-          None => false,
-        });
+      let source = match db_connection.source_id {
+        Some(id) => sources.iter().find(|s| s.id == id).cloned(),
+        None => None,
+      };
 
-      let sourcequery = sourcequeries
-        .clone()
-        .into_iter()
-        .find(|s| match db_connection.sourcequery_id {
-          Some(id) => s.id == id,
-          None => false,
-        });
+      let sourcequery = match db_connection.sourcequery_id {
+        Some(id) => sourcequeries.iter().find(|sq| sq.id == id).cloned(),
+        None => None,
+      };
 
       let block_source = source.clone().map(|s| {
         get_block_source(s)
@@ -243,19 +218,16 @@ pub async fn get_connection_content(
 
       let bs_id = block_source.map(|bs| bs.block_id.clone());
 
-      let db_block = db_blocks
-        .clone()
-        .into_iter()
-        .find(|b| match bs_id {
-          Some(id) => b.id == id,
-          None => false,
-        });
+      let db_block = match bs_id {
+        Some(id) => db_blocks.iter().find(|b| b.id == id).cloned(),
+        None => None,
+      };
 
       BlockConnectionData {
         connection: db_connection,
         source: source,
         sourcequery: sourcequery,
-        blocks: db_block,
+        blocks: db_block, // should this be generalized?
       }
     })
     .collect::<Vec<BlockConnectionData>>();
@@ -265,12 +237,44 @@ pub async fn get_connection_content(
   let conn_content = collected
     .into_iter()
     .filter(|c| c.source.is_some())
-    .map(|c| ConnectionContent {
-      source_id: c.source.unwrap().id,
-      content_type: ContentTypes::TableBlock,
-      content_data: "[]".to_string(),
+    .map(|c| {
+      let content_data = if let Some(db_block) = c.blocks {
+        match c.sourcequery {
+          // Source query found => Match on block_type to call correct query function
+          // and prepare correct sourcequery args
+          Some(sq) => match serde_json::from_value(sq.sourcequery_data) {
+            Ok(GQLSourceQueries::TableBlock(q)) => {
+              let block: Block = db_block.into();
+              let table_block = if let GQLBlocks::Table(b) = block.block_data {
+                b
+              } else {
+                return Err(anyhow!("Block is not of TableBlock type"));
+              };
+              // let sourcequery_args = construct_sourcequery_args(user.id);
+              let queried_block =
+                query_table_block(table_block, q, TableBlockQueryArgs { user_id: user.id })?;
+
+              Ok(serde_json::to_string(&queried_block).map_or_else(|_| "[]".to_string(), |d| d))
+            }
+            Err(e) => Err(anyhow!(format!(
+              "Failed to deserialize SourceQuery data: {}",
+              e
+            ))),
+          },
+          // No sourcequery to apply <=> identity transformation
+          None => Ok(db_block.block_data.to_string()),
+        }
+      } else {
+        Ok("[]".to_string())
+      }?;
+
+      Ok(ConnectionContent {
+        source_id: c.source.unwrap().id,
+        content_type: ContentTypes::TableBlock,
+        content_data,
+      })
     })
-    .collect::<Vec<ConnectionContent>>();
+    .collect::<Result<Vec<ConnectionContent>>>()?;
 
   tx.commit().await?;
 
