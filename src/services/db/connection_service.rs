@@ -9,6 +9,8 @@ use crate::graphql::schema::connection::NewConnection;
 pub struct DBConnection {
   pub id: Uuid,
 
+  pub name: String,
+
   pub block_id: Uuid,
 
   pub source_id: Option<Uuid>,
@@ -29,6 +31,8 @@ pub struct DBConnection {
 }
 
 pub struct DBNewConnection {
+  pub name: String,
+
   pub block_id: Uuid,
 
   pub source_id: Option<Uuid>,
@@ -47,9 +51,10 @@ impl From<NewConnection> for DBNewConnection {
     });
 
     Self {
+      name: new_connection.name,
       block_id: new_connection.block_id,
       source_id: new_connection.source_id,
-      sourcequery_id: new_connection.query_id,
+      sourcequery_id: new_connection.sourcequery_id,
       destination_id: new_connection.destination_id,
       destination_type,
     }
@@ -76,6 +81,7 @@ pub async fn create_connection(pool: impl PgExecutor<'_>, auth0_id: &str, connec
     r#"
     with _user as (select * from users where auth0id = $1)
     insert into connections (
+      name,
       block_id,
       source_id,
       sourcequery_id,
@@ -89,12 +95,14 @@ pub async fn create_connection(pool: impl PgExecutor<'_>, auth0_id: &str, connec
       $4,
       $5,
       $6,
+      $7,
       (select id from _user),
       (select id from _user)
     )
     returning *;
     "#,
     auth0_id,
+    connection.name,
     connection.block_id,
     connection.source_id,
     connection.sourcequery_id,

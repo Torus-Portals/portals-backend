@@ -22,6 +22,8 @@ pub enum ConnectionDestinationTypes {
 pub struct Connection {
   pub id: Uuid,
 
+  pub name: String,
+
   pub block_id: Uuid,
 
   pub source_id: Option<Uuid>,
@@ -52,6 +54,7 @@ impl From<DBConnection> for Connection {
 
     Connection {
       id: db_connection.id,
+      name: db_connection.name,
       block_id: db_connection.block_id,
       source_id: db_connection.source_id,
       sourcequery_id: db_connection.sourcequery_id,
@@ -67,11 +70,13 @@ impl From<DBConnection> for Connection {
 
 #[derive(GraphQLInputObject, Debug, Serialize, Deserialize)]
 pub struct NewConnection {
+  pub name: String,
+
   pub block_id: Uuid,
 
   pub source_id: Option<Uuid>,
 
-  pub query_id: Option<Uuid>,
+  pub sourcequery_id: Option<Uuid>,
 
   pub destination_id: Option<Uuid>,
 
@@ -82,9 +87,11 @@ pub struct NewConnection {
 pub struct UpdateConnection {
   pub id: Uuid,
 
+  pub name: Option<String>,
+
   pub source_id: Option<Uuid>,
 
-  pub query_id: Option<Uuid>,
+  pub sourcequery_id: Option<Uuid>,
 
   pub destination_id: Option<Uuid>,
 

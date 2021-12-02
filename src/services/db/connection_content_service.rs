@@ -1,6 +1,7 @@
 use anyhow::{anyhow, Result};
 use sqlx::PgPool;
 use uuid::Uuid;
+use std::convert::TryInto;
 
 use crate::{
   graphql::schema::{
@@ -182,8 +183,6 @@ pub async fn get_connection_content(
     .collect::<Vec<Uuid>>();
   let sourcequeries = get_sourcequeries(&mut tx, source_query_ids).await?;
 
-  // BlockSource is the source_data type for a Block source.
-  // and holds the block_id that is the source of the connection data.
   let source_blocks = sources
     .clone()
     .into_iter()
@@ -244,7 +243,7 @@ pub async fn get_connection_content(
           // and prepare correct sourcequery args
           Some(sq) => match serde_json::from_value(sq.sourcequery_data) {
             Ok(GQLSourceQueries::TableBlock(q)) => {
-              let block: Block = db_block.into();
+              let block: Block = db_block.try_into()?;
               let table_block = if let GQLBlocks::Table(b) = block.block_data {
                 b
               } else {

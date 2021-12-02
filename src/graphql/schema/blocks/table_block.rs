@@ -2,7 +2,7 @@ use juniper::{GraphQLEnum, GraphQLObject, GraphQLUnion};
 use strum_macros::{Display, EnumString};
 use uuid::Uuid;
 
-use crate::{utils::ir::*};
+use crate::utils::ir::*;
 
 #[derive(GraphQLObject, Clone, Debug, Serialize, Deserialize)]
 pub struct TableBlockRow {
@@ -29,6 +29,10 @@ pub enum TableBlockColumnTypes {
   #[graphql(name = "Text")]
   Text,
 
+  #[strum(serialize = "Number")]
+  #[graphql(name = "Number")]
+  Number,
+
   #[strum(serialize = "Member")]
   #[graphql(name = "Member")]
   Member,
@@ -38,6 +42,7 @@ impl From<TableBlockColumnTypes> for ColumnNodeTypes {
   fn from(column_type: TableBlockColumnTypes) -> ColumnNodeTypes {
     match column_type {
       TableBlockColumnTypes::Text => ColumnNodeTypes::Text,
+      TableBlockColumnTypes::Number => ColumnNodeTypes::Number,
       TableBlockColumnTypes::Member => ColumnNodeTypes::Member,
     }
   }
@@ -82,6 +87,10 @@ pub enum TableBlockCellTypes {
   #[graphql(name = "Text")]
   Text,
 
+  #[strum(serialize = "Number")]
+  #[graphql(name = "Number")]
+  Number,
+
   #[strum(serialize = "Member")]
   #[graphql(name = "Member")]
   Member,
@@ -92,6 +101,7 @@ impl From<TableBlockCellTypes> for CellNodeTypes {
     match cell_type {
       TableBlockCellTypes::Empty => CellNodeTypes::Empty,
       TableBlockCellTypes::Text => CellNodeTypes::Text,
+      TableBlockCellTypes::Number => CellNodeTypes::Number,
       TableBlockCellTypes::Member => CellNodeTypes::Member,
     }
   }
@@ -102,6 +112,7 @@ impl From<CellNodeTypes> for TableBlockCellTypes {
     match cell_type {
       CellNodeTypes::Empty => TableBlockCellTypes::Empty,
       CellNodeTypes::Text => TableBlockCellTypes::Text,
+      CellNodeTypes::Number => TableBlockCellTypes::Number,
       CellNodeTypes::Member => TableBlockCellTypes::Member,
     }
   }
@@ -120,6 +131,13 @@ pub struct TableBlockTextCell {
 }
 
 #[derive(GraphQLObject, Clone, Debug, Serialize, Deserialize)]
+pub struct TableBlockNumberCell {
+  pub id: Uuid,
+
+  pub number: f64,
+}
+
+#[derive(GraphQLObject, Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TableBlockMemberCell {
   pub id: Uuid,
@@ -133,6 +151,7 @@ pub struct TableBlockMemberCell {
 pub enum TableBlockCells {
   TableBlockEmptyCell(TableBlockEmptyCell),
   TableBlockTextCell(TableBlockTextCell),
+  TableBlockNumberCell(TableBlockNumberCell),
   TableBlockMemberCell(TableBlockMemberCell),
 }
 
@@ -168,6 +187,11 @@ impl From<TableBlockCell> for CellNode {
         id: cell.id,
         label: format!("Text for {}", cell.id),
         text: text.text,
+      })),
+      TableBlockCells::TableBlockNumberCell(number) => Some(NodeTypes::Float(FloatNode {
+        id: cell.id,
+        label: format!("Number for {}", cell.id),
+        value: number.number,
       })),
       TableBlockCells::TableBlockMemberCell(member_cell) => {
         let nodes = member_cell
@@ -296,6 +320,7 @@ impl IRVisitors for TableBlockVisitor {
   fn enter_column(&mut self, column: &ColumnNode, _state: &IRVisitorState) {
     let column_type = match column.column_type {
       ColumnNodeTypes::Text => TableBlockColumnTypes::Text,
+      ColumnNodeTypes::Number => TableBlockColumnTypes::Number,
       ColumnNodeTypes::Member => TableBlockColumnTypes::Member,
     };
 
@@ -327,16 +352,40 @@ impl IRVisitors for TableBlockVisitor {
   }
 
   fn exit_cell(&mut self, _cell_node: &CellNode, _state: &IRVisitorState) {
-    if let Some(cell) = self.current_cell.take() {
-      self.cells.push(cell);
+    if let Some(cell) = self
+      .current_cell
+      .take()
+    {
+      self
+        .cells
+        .push(cell);
     };
   }
 
   fn enter_text(&mut self, text_node: &TextNode, _state: &IRVisitorState) {
-    if let Some(cell) = self.current_cell.as_mut() {
+    if let Some(cell) = self
+      .current_cell
+      .as_mut()
+    {
       cell.cell_data = TableBlockCells::TableBlockTextCell(TableBlockTextCell {
         id: text_node.id,
-        text: text_node.text.to_owned(),
+        text: text_node
+          .text
+          .to_owned(),
+      });
+    }
+  }
+
+  fn enter_float(&mut self, float_node: &FloatNode, _state: &IRVisitorState) {
+    if let Some(cell) = self
+      .current_cell
+      .as_mut()
+    {
+      cell.cell_data = TableBlockCells::TableBlockNumberCell(TableBlockNumberCell {
+        id: float_node.id,
+        number: float_node
+          .value
+          .to_owned(),
       });
     }
   }
@@ -344,19 +393,24 @@ impl IRVisitors for TableBlockVisitor {
   fn enter_user(&mut self, user: &UserNode, _state: &IRVisitorState) {
     println!("enter_user");
 
-    if let Some(cell) = self.current_cell.as_mut() {
+    if let Some(cell) = self
+      .current_cell
+      .as_mut()
+    {
       match &mut cell.cell_data {
         TableBlockCells::TableBlockEmptyCell(_) => {
           cell.cell_data = TableBlockCells::TableBlockMemberCell(TableBlockMemberCell {
             id: cell.id,
             member_ids: vec![user.user_id],
           });
-        },
+        }
         TableBlockCells::TableBlockMemberCell(member_cell) => {
-          member_cell.member_ids.push(user.user_id);
-        },
+          member_cell
+            .member_ids
+            .push(user.user_id);
+        }
         _ => todo!(),
-    }
+      }
     };
   }
 }

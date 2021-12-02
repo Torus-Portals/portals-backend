@@ -1,6 +1,7 @@
 CREATE TABLE connections (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  block_id UUID NOT NULL, 
+  block_id UUID NOT NULL,
+  name TEXT NOT NULL,
   source_id UUID,
   sourcequery_id UUID,
   destination_id UUID,

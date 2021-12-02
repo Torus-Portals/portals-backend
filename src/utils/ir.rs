@@ -21,7 +21,7 @@ pub struct IntNode {
 pub struct FloatNode {
   pub id: Uuid,
   pub label: String,
-  pub value: f32,
+  pub value: f64,
 }
 
 #[derive(Debug, Clone)]
@@ -67,6 +67,7 @@ pub struct RowNode {
 #[derive(Clone, Debug, PartialEq)]
 pub enum ColumnNodeTypes {
   Text,
+  Number,
   Member,
 }
 
@@ -84,6 +85,7 @@ pub struct ColumnNode {
 pub enum CellNodeTypes {
   Empty,
   Text,
+  Number,
   Member,
 }
 
@@ -109,7 +111,7 @@ pub enum NodeTypes {
   Cell(Box<CellNode>),
   Text(TextNode),
   // Int(IntNode),
-  // Float(FloatNode),
+  Float(FloatNode),
   // Uuid(UuidNode),
   User(UserNode),
 }
@@ -322,12 +324,12 @@ pub fn visit_node_type<IRV: IRVisitors + Clone>(
 
     //   (visitor, state)
     // }
-    // NodeTypes::Float(float_node) => {
-    //   visitor.enter_float(float_node, &state);
-    //   visitor.exit_float(float_node, &state);
+    NodeTypes::Float(float_node) => {
+      visitor.enter_float(float_node, &state);
+      visitor.exit_float(float_node, &state);
 
-    //   (visitor, state)
-    // }
+      (visitor, state)
+    }
     // NodeTypes::Uuid(uuid_node) => {
     //   visitor.enter_uuid(uuid_node, &state);
     //   visitor.exit_uuid(uuid_node, &state);
