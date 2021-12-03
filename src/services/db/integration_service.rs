@@ -113,7 +113,7 @@ pub async fn create_integration<'e>(
 // ) -> Result<DBIntegration> {
 // }
 
-pub async fn delete_integration<'e>(
+pub async fn _delete_integration<'e>(
   pool: impl Executor<'e, Database = Postgres>,
   integration_id: Uuid,
 ) -> Result<i32> {
