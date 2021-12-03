@@ -4,7 +4,7 @@ use serde_json;
 use sqlx::{Executor, Postgres};
 use uuid::Uuid;
 
-use crate::graphql::schema::integration::{GoogleSheetsIntegration, NewIntegration};
+use crate::graphql::schema::integration::{NewIntegration};
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
