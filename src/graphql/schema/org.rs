@@ -109,7 +109,7 @@ impl Mutation {
       name: None,
       nickname: None,
       email: None,
-      status: None,
+      user_status: None,
       org_ids: Some(new_org_ids),
       role_ids: None,
     };

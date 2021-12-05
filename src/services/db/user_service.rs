@@ -4,7 +4,7 @@ use chrono::{DateTime, Utc};
 use sqlx::{Executor, PgExecutor, PgPool, Postgres};
 use uuid::Uuid;
 
-use crate::graphql::schema::user::UpdateUser;
+use crate::graphql::schema::user::{UpdateUser, UserStatus, UserStatusInput};
 
 use super::org_service::{create_org, DBNewOrg, DBOrg};
 
@@ -23,7 +23,7 @@ pub struct DBUser {
   pub email: String,
 
   // TODO: Maybe try to figure out how to use postgres enums with status.
-  pub status: String,
+  pub user_status: serde_json::Value,
 
   pub org_ids: Vec<Uuid>,
 
@@ -55,7 +55,7 @@ pub struct DBNewUser {
 
   pub email: String,
 
-  pub status: String,
+  pub user_status: serde_json::Value,
 
   pub org_ids: Vec<Uuid>,
 
@@ -74,7 +74,7 @@ pub struct DBUpdateUser {
 
   pub email: Option<String>,
 
-  pub status: Option<String>,
+  pub user_status: Option<serde_json::Value>,
 
   pub org_ids: Option<Vec<Uuid>>,
 
@@ -89,7 +89,9 @@ impl From<UpdateUser> for DBUpdateUser {
       name: update_user.name,
       nickname: update_user.nickname,
       email: update_user.email,
-      status: update_user.status,
+      user_status: update_user.user_status.map(|status| {
+        serde_json::to_value(&status).expect("Unable to serialize UserStatusInput")
+      }),
       org_ids: update_user.org_ids,
       role_ids: update_user.role_ids,
     }
@@ -163,7 +165,7 @@ pub async fn get_user(
       name,
       nickname,
       email,
-      status,
+      user_status,
       org_ids,
       role_ids,
       array(select object_id from user_access where user_id = users.id and object_type = 'Project') as "project_ids!",
@@ -193,7 +195,7 @@ pub async fn get_user_by_auth0_id(
       name,
       nickname,
       email,
-      status,
+      user_status,
       org_ids,
       role_ids,
       array(select object_id from user_access where user_id = users.id and object_type = 'Project') as "project_ids!",
@@ -223,7 +225,7 @@ pub async fn get_user_by_email(
       name,
       nickname,
       email,
-      status,
+      user_status,
       org_ids,
       role_ids,
       array(select object_id from user_access where user_id = users.id and object_type = 'Project') as "project_ids!",
@@ -253,7 +255,7 @@ pub async fn get_users(
       name,
       nickname,
       email,
-      status,
+      user_status,
       org_ids,
       role_ids,
       array(select object_id from user_access where user_id = users.id and object_type = 'Project') as "project_ids!",
@@ -285,7 +287,7 @@ pub async fn get_project_users(
       users.name as "name!",
       users.nickname as "nickname!",
       users.email as "email!",
-      users.status as "status!",
+      users.user_status as "user_status!",
       users.org_ids as "org_ids!",
       users.role_ids as "role_ids!",
       array(select object_id from user_access where user_id = users.id) as "project_ids!",
@@ -313,7 +315,7 @@ pub async fn create_user(
   sqlx::query_as!(
       DBUser,
       r#"
-      insert into users (auth0id, name, nickname, email, status, org_ids, role_ids, created_by, updated_by)
+      insert into users (auth0id, name, nickname, email, user_status, org_ids, role_ids, created_by, updated_by)
       values ($1, $2, $3, $4, $5, $6, $7, $8, $8)
       returning
       users.id as "id!",
@@ -321,7 +323,7 @@ pub async fn create_user(
       users.name as "name!",
       users.nickname as "nickname!",
       users.email as "email!",
-      users.status as "status!",
+      users.user_status as "user_status!",
       users.org_ids as "org_ids!",
       users.role_ids as "role_ids!",
       array(select object_id from user_access where user_id = users.id and object_type = 'Project') as "project_ids!",
@@ -334,7 +336,7 @@ pub async fn create_user(
       new_user.name,
       new_user.nickname,
       new_user.email,
-      new_user.status,
+      new_user.user_status,
       &new_user.org_ids,
       &new_user.role_ids,
       system_uuid
@@ -370,7 +372,7 @@ pub async fn create_user_with_new_org(
     name: None,
     nickname: None,
     email: None,
-    status: None,
+    user_status: None,
     org_ids: Some(user.org_ids),
     role_ids: None,
   };
@@ -402,7 +404,7 @@ pub async fn update_user(
           email = coalesce($6, email),
           org_ids = coalesce($7, org_ids),
           role_ids = coalesce($8, role_ids),
-          status = coalesce($9, status),
+          user_status = coalesce($9, user_status),
           updated_by = coalesce((select id from _user), '11111111-2222-3333-4444-555555555555')
       where id = $2
       returning
@@ -411,7 +413,7 @@ pub async fn update_user(
         users.name as "name!",
         users.nickname as "nickname!",
         users.email as "email!",
-        users.status as "status!",
+        users.user_status as "user_status!",
         users.org_ids as "org_ids!",
         users.role_ids as "role_ids!",
         array(select object_id from user_access where user_id = users.id and object_type = 'Project') as "project_ids!",
@@ -433,7 +435,7 @@ pub async fn update_user(
     update_user
       .role_ids
       .as_deref(),
-    update_user.status
+    update_user.user_status
   )
   .fetch_one(pool)
   .await
