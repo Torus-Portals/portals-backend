@@ -416,7 +416,7 @@ impl IRVisitors for TableBlockVisitor {
 }
 
 impl IRSink for TableBlock {
-  fn sink(&self, root_node: Node) -> Self {
+  fn sink(root_node: Node) -> Self {
     dbg!(&root_node);
 
     let state = IRVisitorState::new(root_node.clone());

@@ -42,7 +42,9 @@ impl From<NewSource> for DBNewSource {
       .expect("Failed to convert source data to serde value");
 
     Self {
-      source_type: new_source.source_type.to_string(),
+      source_type: new_source
+        .source_type
+        .to_string(),
       source_data,
     }
   }
@@ -74,7 +76,23 @@ pub async fn get_possible_sources(
   Ok(possible_sources)
 }
 
-pub async fn get_sources(pool: impl PgExecutor<'_>, source_ids: Vec<Uuid>) -> Result<Vec<DBSource>> {
+pub async fn get_source(pool: impl PgExecutor<'_>, source_id: Uuid) -> Result<DBSource> {
+  sqlx::query_as!(
+    DBSource,
+    r#"
+      select * from sources where id = $1
+    "#,
+    source_id
+  )
+  .fetch_one(pool)
+  .await
+  .map_err(anyhow::Error::from)
+}
+
+pub async fn get_sources(
+  pool: impl PgExecutor<'_>,
+  source_ids: Vec<Uuid>,
+) -> Result<Vec<DBSource>> {
   let sources = sqlx::query_as!(
     DBSource,
     r#"

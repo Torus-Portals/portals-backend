@@ -129,7 +129,7 @@ pub trait IRTap {
 }
 
 pub trait IRSink {
-  fn sink(&self, root_node: Node) -> Self;
+  fn sink(root_node: Node) -> Self;
 }
 
 #[derive(Debug, Clone)]

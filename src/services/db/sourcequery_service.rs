@@ -4,7 +4,11 @@ use sqlx::PgExecutor;
 use uuid::Uuid;
 
 use crate::graphql::schema::{
-  sourcequeries::table_block_sourcequery::TableBlockSourceQuery,
+  sourcequeries::{
+    cells_block_sourcequery::CellsBlockSourceQuery, table_block_sourcequery::TableBlockSourceQuery,
+    text_block_sourcequery::TextBlockSourceQuery,
+    xy_chart_block_sourcequery::XYChartBlockSourceQuery,
+  },
   sourcequery::{NewSourceQuery, SourceQueryTypes},
 };
 
@@ -41,7 +45,9 @@ impl From<NewSourceQuery> for DBNewSourceQuery {
     .expect("Unable to convert sourcequery data string to serde_json::Value");
 
     Self {
-      sourcequery_type: new_sourcequery.sourcequery_type.to_string(),
+      sourcequery_type: new_sourcequery
+        .sourcequery_type
+        .to_string(),
       sourcequery_data,
     }
   }
@@ -141,6 +147,18 @@ pub fn sq_string_to_serde_value(
     SourceQueryTypes::TableBlock => {
       let bsq: TableBlockSourceQuery = serde_json::from_str(&sq_data)?;
       serde_json::to_value(bsq)
+    }
+    SourceQueryTypes::TextBlock => {
+      let tsq: TextBlockSourceQuery = serde_json::from_str(&sq_data)?;
+      serde_json::to_value(tsq)
+    }
+    SourceQueryTypes::CellsBlock => {
+      let csq: CellsBlockSourceQuery = serde_json::from_str(&sq_data)?;
+      serde_json::to_value(csq)
+    }
+    SourceQueryTypes::XYChartBlock => {
+      let xysq: XYChartBlockSourceQuery = serde_json::from_str(&sq_data)?;
+      serde_json::to_value(xysq)
     }
   };
 
