@@ -1,8 +1,7 @@
-use juniper::{GraphQLEnum, GraphQLObject, GraphQLUnion};
-use strum_macros::{Display, EnumString};
+use juniper::GraphQLObject;
 use uuid::Uuid;
 
 #[derive(GraphQLObject, Clone, Debug, Serialize, Deserialize)]
 pub struct CellsBlock {
-    pub id: Uuid,
+  pub id: Uuid,
 }

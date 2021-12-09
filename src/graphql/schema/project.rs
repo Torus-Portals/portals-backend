@@ -4,6 +4,7 @@ use uuid::Uuid;
 
 use super::Mutation;
 use super::Query;
+use super::user::UserStatusInput;
 
 use crate::graphql::context::GQLContext;
 
@@ -11,6 +12,7 @@ use crate::graphql::schema::dashboard::Dashboard;
 use crate::graphql::schema::user::NewUser;
 use crate::graphql::schema::user::User;
 use crate::services::db::project_service::add_user_to_project;
+use crate::services::db::project_service::share_project;
 // use crate::services::db::project_service::share_project;
 use crate::services::db::project_service::{
   create_project, get_auth0_user_projects, get_project, DBNewProject, DBProject,
@@ -153,17 +155,17 @@ impl Query {
       .map_err(FieldError::from)
   }
 
-  // pub async fn share_project_impl(
-  //   ctx: &GQLContext,
-  //   project_id: Uuid,
-  //   user_ids: Vec<Uuid>,
-  // ) -> FieldResult<i32> {
-  //   let local_pool = ctx.pool.clone();
+  pub async fn share_project_impl(
+    ctx: &GQLContext,
+    project_id: Uuid,
+    user_ids: Vec<Uuid>,
+  ) -> FieldResult<i32> {
+    let local_pool = ctx.pool.clone();
     
-  //   share_project(local_pool, &ctx.auth0_user_id, project_id, user_ids)
-  //     .await
-  //     .map_err(FieldError::from)
-  // }
+    share_project(local_pool, &ctx.auth0_user_id, project_id, user_ids)
+      .await
+      .map_err(FieldError::from)
+  }
 }
 
 impl Mutation {
@@ -193,7 +195,7 @@ impl Mutation {
           name: String::new(),
           nickname: String::new(),
           email: user_email.to_owned(),
-          status: String::from("invited"),
+          user_status: UserStatusInput::default(),
           org_ids: None,
           role_ids: None,
         };

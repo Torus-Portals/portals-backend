@@ -4,7 +4,7 @@ use crate::services::db::user_service::{
   auth0_user_exists, DBNewUser, DBUser,
 };
 use chrono::{DateTime, Utc};
-use juniper::{graphql_object, FieldError, FieldResult, GraphQLInputObject};
+use juniper::{graphql_object, FieldError, FieldResult, GraphQLInputObject, GraphQLObject};
 use uuid::Uuid;
 
 use super::Mutation;
@@ -28,7 +28,7 @@ pub struct User {
   pub email: String,
 
   // TODO: Maybe try to figure out how to use postgres enums with status.
-  pub status: String,
+  pub user_status: UserStatus,
 
   pub org_ids: Vec<Uuid>,
 
@@ -73,8 +73,8 @@ impl User {
     self.email.clone()
   }
 
-  fn status(&self) -> String {
-    self.status.clone()
+  fn user_status(&self) -> UserStatus {
+    self.user_status.clone()
   }
 
   fn org_ids(&self) -> Vec<Uuid> {
@@ -132,7 +132,8 @@ impl From<DBUser> for User {
       name: db_user.name,
       nickname: db_user.nickname,
       email: db_user.email,
-      status: db_user.status,
+      // status: db_user.status,
+      user_status: serde_json::from_value(db_user.user_status).expect("Unable to deserialize UserStatus"),
       org_ids: db_user.org_ids,
       role_ids: db_user.role_ids,
       project_ids: db_user.project_ids,
@@ -154,7 +155,7 @@ pub struct NewUser {
 
   pub email: String,
 
-  pub status: String,
+  pub user_status: UserStatusInput,
 
   pub org_ids: Option<Vec<Uuid>>,
 
@@ -171,7 +172,7 @@ impl NewUser {
         .nickname
         .clone(),
       email: self.email.clone(),
-      status: self.status.clone(),
+      user_status: serde_json::to_value(&self.user_status).expect("Unable to serialize UserStatusInput"),
       org_ids: self
         .org_ids
         .clone()
@@ -196,11 +197,45 @@ pub struct UpdateUser {
 
   pub email: Option<String>,
 
-  pub status: Option<String>,
+  pub user_status: Option<UserStatusInput>,
 
   pub org_ids: Option<Vec<Uuid>>,
 
   pub role_ids: Option<Vec<Uuid>>,
+}
+
+// Not sure what's the best way to avoid duplication to satisfy GQL here
+#[derive(GraphQLObject, Clone, Debug, Serialize, Deserialize)]
+pub struct UserStatus {
+  pub active: bool,
+
+  pub has_logged_in: bool,
+
+  pub password_changed: bool,
+
+  pub onboarding_complete: bool,
+}
+
+#[derive(GraphQLInputObject, Clone, Debug, Serialize, Deserialize)]
+pub struct UserStatusInput {
+  pub active: bool,
+
+  pub has_logged_in: bool,
+
+  pub password_changed: bool,
+
+  pub onboarding_complete: bool,
+}
+
+impl Default for UserStatusInput {
+  fn default() -> Self {
+    UserStatusInput {
+      active: true,
+      has_logged_in: false,
+      password_changed: false,
+      onboarding_complete: false,
+    }
+  }
 }
 
 impl Query {
@@ -254,7 +289,8 @@ impl Query {
             name: Some(auth0user.name),
             nickname: Some(auth0user.nickname),
             email: None,
-            status: Some(String::from("active")),
+            // status: Some(String::from("active")),
+            user_status: Some(UserStatusInput::default()),
             org_ids: None,
             role_ids: None,
         };
@@ -269,7 +305,7 @@ impl Query {
           name: auth0user.name,
           nickname: auth0user.nickname,
           email: auth0user.email,
-          status: String::from("active"),
+          user_status: UserStatusInput::default(),
           org_ids: None,
           role_ids: None,
         };

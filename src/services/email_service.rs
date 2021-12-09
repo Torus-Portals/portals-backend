@@ -1,5 +1,6 @@
-use std::convert::{TryFrom, TryInto};
+use std::str::FromStr;
 
+use anyhow::Result;
 use rusoto_core::{self, Region};
 use rusoto_ses::{
   BulkEmailDestination, Destination, SendBulkTemplatedEmailRequest, Ses, SesClient,
@@ -7,20 +8,44 @@ use rusoto_ses::{
 use serde_json::json;
 use strum_macros::Display;
 
+use crate::config;
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct EmailTemplate {
+  pub template_type: EmailTemplateTypes,
+
+  pub to_addresses: Vec<String>,
+
+  pub params: Vec<EmailTemplateParams>,
+}
+
 #[derive(Serialize, Deserialize, Debug, Display, Clone)]
-pub enum EmailTemplate {
-  #[strum(serialize = "inviteNewUserToPortal")]
-  InviteNewUserToPortal(Vec<InviteNewUserToPortalParams>),
+pub enum EmailTemplateTypes {
+  #[strum(serialize = "inviteNewUserToProject")]
+  InviteNewUserToProject,
+
+  #[strum(serialize = "inviteNewUserToDashboard")]
+  InviteNewUserToDashboard,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct InviteNewUserToPortalParams {
-  // Skip the `to_address` field when serializing
-  // This allows us to pass the JSON string to `replacement_template_data` in `BulkEmailDestination` directly
-  #[serde(skip)]
-  to_address: String,
+pub enum EmailTemplateParams {
+  InviteNewUserToProject(InviteNewUserToProjectParams),
+  InviteNewUserToDashboard(InviteNewUserToDashboardParams),
+}
 
-  user: String,
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct InviteNewUserToProjectParams {
+  pub user: String,
+
+  pub project_link: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct InviteNewUserToDashboardParams {
+  pub user: String,
+
+  pub dashboard_link: String,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -33,29 +58,31 @@ pub struct EmailContent {
   pub template_data: Vec<String>,
 }
 
-impl TryFrom<EmailTemplate> for EmailContent {
-  type Error = anyhow::Error;
-
-  fn try_from(template: EmailTemplate) -> Result<Self, Self::Error> {
-    let params = match &template {
-      EmailTemplate::InviteNewUserToPortal(params) => params,
-    };
-
-    Ok(EmailContent {
-      template_name: template.to_string(),
-      to_addresses: params.iter().map(|p| p.to_address.clone()).collect(),
-      template_data: params.iter().map(|p| json!(p).to_string()).collect(),
-    })
+impl From<EmailTemplate> for EmailContent {
+  fn from(template: EmailTemplate) -> Self {
+    EmailContent {
+      template_name: template.template_type.to_string(),
+      to_addresses: template.to_addresses,
+      template_data: template
+        .params
+        .iter()
+        .map(|p| match p {
+          EmailTemplateParams::InviteNewUserToProject(params) => json!(params).to_string(),
+          EmailTemplateParams::InviteNewUserToDashboard(params) => json!(params).to_string(),
+        })
+        .collect(),
+    }
   }
 }
 
-pub async fn send_email(template: EmailTemplate) -> Result<bool, anyhow::Error> {
-  let client = SesClient::new(Region::ApSoutheast1);
+pub async fn send_email(template: EmailTemplate) -> Result<bool> {
+  let config = config::server_config();
+  let client = SesClient::new(Region::from_str(&config.email_ses_region)?);
   let EmailContent {
     template_name,
     to_addresses,
     template_data,
-  } = template.try_into()?;
+  } = template.into();
 
   let destinations: Vec<BulkEmailDestination> = to_addresses
     .into_iter()
@@ -74,7 +101,7 @@ pub async fn send_email(template: EmailTemplate) -> Result<bool, anyhow::Error> 
   let send_request = SendBulkTemplatedEmailRequest {
     destinations,
     // TODO: To change to definite server email source
-    source: "tedmundhtl@gmail.com".to_string(),
+    source: config.email_source.clone(),
     template: template_name,
     default_template_data: Some(json!({}).to_string()),
     ..Default::default()
