@@ -1,5 +1,5 @@
-use std::collections::HashMap;
 use juniper::{GraphQLEnum, GraphQLObject, GraphQLUnion};
+use std::collections::HashMap;
 use strum_macros::{Display, EnumString};
 use uuid::Uuid;
 
@@ -116,6 +116,10 @@ pub struct XYChartBlock {
 
   primary_axis: Option<Uuid>,
 
+  axes_names: Vec<String>,
+
+  axes_ids: Vec<Uuid>,
+
   series: Vec<XYChartSeries>,
 }
 
@@ -153,6 +157,8 @@ pub struct XYChartBlockVisitor {
 
   series: Vec<XYChartSeries>,
 
+  column_names: Vec<(String, Uuid)>,
+
   column_names_by_column_id: HashMap<Uuid, String>,
 }
 
@@ -163,6 +169,7 @@ impl XYChartBlockVisitor {
       primary_axis: None,
       current_series: None,
       series: vec![],
+      column_names: vec![],
       column_names_by_column_id: HashMap::new(),
     }
   }
@@ -184,9 +191,22 @@ impl IRVisitors for XYChartBlockVisitor {
   }
 
   fn enter_column(&mut self, column: &ColumnNode, _state: &IRVisitorState) {
+    let column_name = if column
+      .label
+      .is_empty()
+    {
+      format!("Column {}", column.index + 1)
+    } else {
+      column.label.clone()
+    };
+
+    self
+      .column_names
+      .push((column_name.clone(), column.id.clone()));
+
     self
       .column_names_by_column_id
-      .insert(column.id, column.label.clone());
+      .insert(column.id, column_name.clone());
   }
 
   fn enter_row(&mut self, row: &RowNode, _state: &IRVisitorState) {
@@ -272,12 +292,34 @@ impl IRSink for XYChartBlock {
   fn sink(root_node: Node) -> Self {
     let state = IRVisitorState::new(root_node.clone());
     let visitor = XYChartBlockVisitor::new();
-    let a = visit(root_node, visitor, state);
+    let results = visit(root_node, visitor, state);
+
+    let primary_axis = results
+      .0
+      .column_names
+      .first()
+      .map(|c| c.1.clone());
+
+    let axes_names = results
+      .0
+      .column_names
+      .iter()
+      .map(|(name, _)| name.clone())
+      .collect::<Vec<String>>();
+
+    let axes_ids = results
+      .0
+      .column_names
+      .iter()
+      .map(|(_, id)| id.clone())
+      .collect::<Vec<Uuid>>();
 
     XYChartBlock {
-      chart_type: a.0.chart_type,
-      primary_axis: None,
-      series: a.0.series,
+      chart_type: results.0.chart_type,
+      primary_axis,
+      axes_names,
+      axes_ids,
+      series: results.0.series,
     }
   }
 }
