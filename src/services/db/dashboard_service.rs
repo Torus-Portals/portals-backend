@@ -137,7 +137,7 @@ pub async fn get_project_dashboards(
   .map_err(anyhow::Error::from)
 }
 
-pub async fn _add_user_to_dashboard(
+pub async fn add_user_to_dashboard(
   pool: impl PgExecutor<'_>,
   auth0_id: &str,
   user_id: Uuid,
@@ -159,7 +159,7 @@ pub async fn _add_user_to_dashboard(
   .map_err(anyhow::Error::from)
 }
 
-pub async fn _add_user_to_dashboards(
+pub async fn add_user_to_dashboards(
   pool: impl PgExecutor<'_>,
   auth0_id: &str,
   user_id: Uuid,
