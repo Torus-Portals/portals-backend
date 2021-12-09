@@ -42,6 +42,7 @@ pub async fn get_connection_content(
   let mut tx = pool.begin().await?;
 
   // let user = get_user_by_auth0_id(&mut tx, auth0id).await?;
+  // TODO: Need to check if user has access to this block.
 
   // Get connections for a given block
   let connections = get_connections(&mut tx, block_id).await?;
@@ -91,6 +92,7 @@ pub async fn get_connection_content(
           source_id: source_block
             .id
             .clone(),
+          connection_id: conn.id.clone(),
           content_type,
           content_data,
         });

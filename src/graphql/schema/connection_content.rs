@@ -44,6 +44,8 @@ pub enum ConnectionContentData {
 pub struct ConnectionContent {
   pub source_id: Uuid,
 
+  pub connection_id: Uuid,
+
   pub content_type: ContentTypes,
 
   pub content_data: ConnectionContentData,
