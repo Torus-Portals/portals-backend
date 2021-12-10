@@ -24,7 +24,7 @@ impl S3Service {
     &self,
     request_data: S3RequestData,
   ) -> Result<String, anyhow::Error> {
-    let region = Region::ApSoutheast1;
+    let region = Region::UsWest2; // TODO: get region from config. This shouldn't be hardcoded.
     let creds_profile = ProfileProvider::new().unwrap();
     let creds = creds_profile.credentials().await.unwrap();
     let presigned_req_option = PreSignedRequestOption {

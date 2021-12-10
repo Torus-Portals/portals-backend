@@ -15,6 +15,7 @@ pub mod page;
 pub mod policy;
 pub mod project;
 pub mod role;
+pub mod file;
 pub mod s3;
 pub mod source;
 pub mod sourcequeries;
@@ -40,6 +41,7 @@ use source::{PossibleSource, PossibleSourceInput};
 use sourcequery::{NewSourceQuery, SourceQuery};
 use user::{NewUser, UpdateUser, User};
 use policy::{UpdatePolicy, Policy, UserPermissionInput};
+use file::{UploadFile, NewFile, File};
 
 pub type Schema = RootNode<'static, Query, Mutation, EmptySubscription<GQLContext>>;
 pub struct Query;
@@ -213,6 +215,11 @@ impl Query {
     Query::s3_download_presigned_url_impl(ctx, bucket, key).await
   }
 
+  // File
+
+  async fn upload_file(ctx: &GQLContext) -> FieldResult<UploadFile> {
+    Query::upload_file_impl(ctx).await
+  }
   
   // Permissions and Policies
   
@@ -386,7 +393,11 @@ impl Mutation {
     Mutation::authorize_google_sheets_impl(ctx, auth).await
   }
 
-  
+  // File
+
+  async fn create_file(ctx: &GQLContext, file: NewFile) -> FieldResult<File> {
+    Mutation::create_file_impl(ctx, file).await
+  }  
 }
 
 pub fn create_schema() -> Schema {
