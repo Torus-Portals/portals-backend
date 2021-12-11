@@ -71,6 +71,7 @@ pub async fn get_connection_content(
           // GQLBlocks::Text(_) => todo!(),
           // GQLBlocks::Cells(_) => todo!(),
           // GQLBlocks::XYChart(_) => todo!(),
+          // GQLBlocks::Files(_) => todo!(),
       };
 
       if let Some(destination_block) = connection_data.destination_block {
@@ -79,6 +80,7 @@ pub async fn get_connection_content(
           BlockTypes::Text => todo!(),
           BlockTypes::Cells => todo!(),
           BlockTypes::XYChart => ConnectionContentData::XYChartBlock(XYChartBlock::sink(tapped)),
+          BlockTypes::Files => todo!(),
         };
 
         let content_type = match destination_block.block_type {
@@ -86,6 +88,7 @@ pub async fn get_connection_content(
           BlockTypes::Text => ContentTypes::TextBlock,
           BlockTypes::Cells => ContentTypes::CellsBlock,
           BlockTypes::XYChart => ContentTypes::XYChartBlock,
+          BlockTypes::Files => ContentTypes::FilesBlock,
         };
 
         connection_content.push(ConnectionContent {

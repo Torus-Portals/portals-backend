@@ -8,6 +8,7 @@ use crate::{
       text_block::TextBlock,
       cells_block::CellsBlock,
       xy_chart_block::XYChartBlock,
+      files_block::FilesBlock,
     },
     policy::{GrantTypes, NewPolicy, PermissionTypes, PolicyTypes},
   },
@@ -311,6 +312,10 @@ pub fn block_string_to_serde_value(
     }
     BlockTypes::XYChart => {
       let block: XYChartBlock = serde_json::from_str(&bd)?;
+      serde_json::to_value(block)
+    }
+    BlockTypes::Files => {
+      let block: FilesBlock = serde_json::from_str(&bd)?;
       serde_json::to_value(block)
     }
   };

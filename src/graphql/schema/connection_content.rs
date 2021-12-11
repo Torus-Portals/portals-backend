@@ -28,6 +28,10 @@ pub enum ContentTypes {
   #[strum(serialize = "XYChartBlock")]
   #[graphql(name = "XYChartBlock")]
   XYChartBlock,
+
+  #[strum(serialize = "FilesBlock")]
+  #[graphql(name = "FilesBlock")]
+  FilesBlock,
 }
 
 #[derive(Debug, GraphQLUnion, Serialize, Deserialize)]

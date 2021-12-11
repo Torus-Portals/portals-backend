@@ -13,12 +13,14 @@ use super::blocks::empty_block::EmptyBlock;
 use super::blocks::table_block::TableBlock;
 use super::blocks::text_block::TextBlock;
 use super::blocks::xy_chart_block::XYChartBlock;
+use super::blocks::files_block::FilesBlock;
 
 use super::block_configs::cells_block_config::CellsBlockConfig;
 use super::block_configs::empty_block_config::EmptyBlockConfig;
 use super::block_configs::table_block_config::TableBlockConfig;
 use super::block_configs::text_block_config::TextBlockConfig;
 use super::block_configs::xy_chart_block_config::XYChartBlockConfig;
+use super::block_configs::files_block_config::FilesBlockConfig;
 
 use super::Mutation;
 use super::Query;
@@ -40,6 +42,8 @@ pub enum GQLBlocks {
   Cells(CellsBlock),
 
   XYChart(XYChartBlock),
+
+  Files(FilesBlock),
 }
 
 #[derive(Debug, Serialize, Deserialize, GraphQLEnum, EnumString, Display)]
@@ -59,6 +63,10 @@ pub enum BlockTypes {
   #[strum(serialize = "XYChart")]
   #[graphql(name = "XYChart")]
   XYChart,
+
+  #[strum(serialize = "Files")]
+  #[graphql(name = "Files")]
+  Files,
 }
 
 #[derive(Debug, GraphQLUnion, Serialize, Deserialize)]
@@ -69,6 +77,7 @@ pub enum BlockConfigs {
   Text(TextBlockConfig),
   Cells(CellsBlockConfig),
   XYChart(XYChartBlockConfig),
+  Files(FilesBlockConfig),
 }
 
 #[derive(GraphQLObject, Debug, Serialize, Deserialize)]
@@ -133,6 +142,11 @@ impl TryFrom<DBBlock> for Block {
         let b: XYChartBlock =
           serde_json::from_value(db_block.block_data).expect("unable to deserialize cells block");
         GQLBlocks::XYChart(b)
+      }
+      "Files" => {
+        let b: FilesBlock =
+          serde_json::from_value(db_block.block_data).expect("unable to deserialize files block");
+        GQLBlocks::Files(b)
       }
       &_ => GQLBlocks::Empty(EmptyBlock {
         block_type: String::from("nothing"),
@@ -277,6 +291,10 @@ pub fn block_config_serde_value_to_block_config(
     BlockTypes::XYChart => {
       let c: XYChartBlockConfig = serde_json::from_value(value)?;
       BlockConfigs::XYChart(c)
+    }
+    BlockTypes::Files => {
+      let c: FilesBlockConfig = serde_json::from_value(value)?;
+      BlockConfigs::Files(c)
     }
   };
 

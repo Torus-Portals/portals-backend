@@ -4,7 +4,11 @@
 
 This Project uses [SQLx](https://github.com/launchbadge/sqlx) for database interactions, which means that an instance of a Postgres DB must be found in order to run this service.
 
-There are many ways to get a local Postgres DB instance, and I recommend using a [Postgres Docker image](https://hub.docker.com/_/postgres).
+There are many ways to get a local Postgres DB instance. I recommend using a [Postgres Docker image](https://hub.docker.com/_/postgres).
+
+```bash
+docker run --name portals-local-db -e POSTGRES_USER=<db-username> -e POSTGRES_PASSWORD=<db_password> -p 5432:5432 -d postgres
+```
 
 ### Migrations
 
