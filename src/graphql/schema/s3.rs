@@ -15,6 +15,7 @@ pub enum S3RequestData {
 pub struct S3GetParams {
   pub bucket: String,
   pub key: String,
+  pub name: String,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -54,7 +55,7 @@ impl Query {
     let s3 = ctx.s3.lock().await;
 
     Ok(
-      s3.s3_presigned_url(S3RequestData::GetObject(S3GetParams { bucket, key }))
+      s3.s3_presigned_url(S3RequestData::GetObject(S3GetParams { bucket, key, name: "Don't use this".to_string() }))
         .await?,
     )
   }

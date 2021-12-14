@@ -23,6 +23,8 @@ pub mod sourcequery;
 pub mod sources;
 pub mod user;
 
+use crate::graphql::schema::file::DownloadFile;
+
 use self::{integrations::google_sheets::GoogleSheetsAuthorization};
 
 use super::context::GQLContext;
@@ -41,7 +43,7 @@ use source::{PossibleSource, PossibleSourceInput};
 use sourcequery::{NewSourceQuery, SourceQuery};
 use user::{NewUser, UpdateUser, User};
 use policy::{UpdatePolicy, Policy, UserPermissionInput};
-use file::{UploadFile, NewFile, File};
+use file::{UploadFile, NewFile, File, UploadFileParams};
 
 pub type Schema = RootNode<'static, Query, Mutation, EmptySubscription<GQLContext>>;
 pub struct Query;
@@ -217,8 +219,16 @@ impl Query {
 
   // File
 
-  async fn upload_file(ctx: &GQLContext) -> FieldResult<UploadFile> {
-    Query::upload_file_impl(ctx).await
+  async fn upload_file(ctx: &GQLContext, params: UploadFileParams) -> FieldResult<UploadFile> {
+    Query::upload_file_impl(ctx, params).await
+  }
+
+  async fn download_file(ctx: &GQLContext, file_id: Uuid) -> FieldResult<DownloadFile> {
+    Query::download_file_impl(ctx, file_id).await
+  }
+
+  async fn files(ctx: &GQLContext, file_ids: Vec<Uuid>) -> FieldResult<Vec<File>> {
+    Query::files_impl(ctx, file_ids).await
   }
   
   // Permissions and Policies

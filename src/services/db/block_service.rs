@@ -315,6 +315,8 @@ pub fn block_string_to_serde_value(
       serde_json::to_value(block)
     }
     BlockTypes::Files => {
+      dbg!(&bd);
+      
       let block: FilesBlock = serde_json::from_str(&bd)?;
       serde_json::to_value(block)
     }

@@ -33,9 +33,11 @@ impl S3Service {
 
     let url = match request_data {
       S3RequestData::GetObject(params) => {
+        let rcd = format!("attachment; filename =\"{}\"", params.name);
         let req = GetObjectRequest {
           bucket: params.bucket,
           key: params.key,
+          response_content_disposition: Some(rcd),
           ..Default::default()
         };
 
