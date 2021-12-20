@@ -417,20 +417,20 @@ impl IRVisitors for TableBlockVisitor {
 
 impl IRSink for TableBlock {
   fn sink(root_node: Node) -> Self {
-    dbg!(&root_node);
+    // dbg!(&root_node);
 
     let state = IRVisitorState::new(root_node.clone());
     let visitor = TableBlockVisitor::new();
     let a = visit(root_node, visitor, state);
 
-    dbg!(&a.0.rows);
-    dbg!(&a.0.columns);
-    dbg!(&a.0.cells);
+    // dbg!(&a.0.rows);
+    // dbg!(&a.0.columns);
+    // dbg!(&a.0.cells);
 
     TableBlock {
-      rows: vec![],
-      columns: vec![],
-      cells: vec![],
+      rows: a.0.rows,
+      columns: a.0.columns,
+      cells: a.0.cells,
     }
   }
 }

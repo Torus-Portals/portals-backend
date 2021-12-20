@@ -18,6 +18,7 @@ use super::sourcequeries::table_block_sourcequery::TableBlockSourceQuery;
 use super::sourcequeries::text_block_sourcequery::TextBlockSourceQuery;
 use super::sourcequeries::cells_block_sourcequery::CellsBlockSourceQuery;
 use super::sourcequeries::xy_chart_block_sourcequery::XYChartBlockSourceQuery;
+use super::sourcequeries::files_block_sourcequery::FilesBlockSourceQuery;
 
 #[derive(Debug, Serialize, Deserialize, GraphQLEnum, EnumString, Display)]
 pub enum SourceQueryTypes {
@@ -36,6 +37,10 @@ pub enum SourceQueryTypes {
   #[strum(serialize = "XYChartBlock")]
   #[graphql(name = "XYChartBlock")]
   XYChartBlock,
+
+  #[strum(serialize = "FilesBlock")]
+  #[graphql(name = "FilesBlock")]
+  FilesBlock,
 }
 
 #[derive(Debug, GraphQLUnion, Serialize, Deserialize)]
@@ -45,6 +50,7 @@ pub enum GQLSourceQueries {
   TextBlock(TextBlockSourceQuery),
   CellsBlock(CellsBlockSourceQuery),
   XYChartBlock(XYChartBlockSourceQuery),
+  FilesBlock(FilesBlockSourceQuery),
 }
 
 impl GQLSourceQueries {
@@ -68,6 +74,10 @@ impl GQLSourceQueries {
       SourceQueryTypes::XYChartBlock => {
         let xy_chart_block_sourcequery: XYChartBlockSourceQuery = serde_json::from_value(value)?;
         Ok(GQLSourceQueries::XYChartBlock(xy_chart_block_sourcequery))
+      }
+      SourceQueryTypes::FilesBlock => {
+        let files_block_sourcequery: FilesBlockSourceQuery = serde_json::from_value(value)?;
+        Ok(GQLSourceQueries::FilesBlock(files_block_sourcequery))
       }
     }
   }
@@ -120,6 +130,8 @@ impl TryFrom<DBSourceQuery> for SourceQuery {
 #[derive(GraphQLInputObject, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct NewSourceQuery {
+  pub id: Uuid,
+  
   pub sourcequery_type: SourceQueryTypes,
 
   pub sourcequery_data: String,

@@ -7,6 +7,7 @@ use super::Mutation;
 use super::Query;
 
 use super::user::{UpdateUser, User};
+use std::convert::{TryFrom, TryInto};
 
 use crate::graphql::context::GQLContext;
 use crate::services::db::org_service::{create_org, get_org, DBNewOrg, DBOrg};
@@ -95,10 +96,7 @@ impl Mutation {
     .map(|org| -> Org { org.into() })
     .map_err(FieldError::from)?;
 
-    let user = get_user_by_auth0_id(&ctx.pool, &ctx.auth0_user_id)
-      .await
-      .map(|db_user| -> User { db_user.into() })
-      .map_err(FieldError::from)?;
+    let user: User = get_user_by_auth0_id(&ctx.pool, &ctx.auth0_user_id).await?.try_into()?;
 
     let mut new_org_ids = user.org_ids.clone();
     new_org_ids.push(created_org.id);
@@ -109,13 +107,13 @@ impl Mutation {
       name: None,
       nickname: None,
       email: None,
-      user_status: None,
+      meta: None,
       org_ids: Some(new_org_ids),
       role_ids: None,
     };
 
     // Add the user who created the org to the org.
-    update_user(&ctx.pool, &ctx.auth0_user_id, user_patch.into())
+    update_user(&ctx.pool, &ctx.auth0_user_id, user_patch.try_into()?)
       .await
       .map_err(FieldError::from)?;
 

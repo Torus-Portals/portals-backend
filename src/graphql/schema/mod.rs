@@ -21,9 +21,12 @@ pub mod source;
 pub mod sourcequeries;
 pub mod sourcequery;
 pub mod sources;
+pub mod query_options;
 pub mod user;
 
+use crate::graphql::schema::connection_content::SourceQueryArgs;
 use crate::graphql::schema::file::DownloadFile;
+use crate::graphql::schema::query_options::BlockQueryOptions;
 
 use self::{integrations::google_sheets::GoogleSheetsAuthorization};
 
@@ -164,8 +167,9 @@ impl Query {
   async fn connection_content(
     ctx: &GQLContext,
     block_id: Uuid,
+    sourcequery_args: SourceQueryArgs
   ) -> FieldResult<Vec<ConnectionContent>> {
-    Query::connection_content_impl(ctx, block_id).await
+    Query::connection_content_impl(ctx, block_id, sourcequery_args).await
   }
 
   // Source
@@ -181,6 +185,10 @@ impl Query {
 
   async fn sourcequery(ctx: &GQLContext, sourcequery_id: Uuid) -> FieldResult<SourceQuery> {
     Query::sourcequery_impl(ctx, sourcequery_id).await
+  }
+
+  async fn block_query_options(ctx: &GQLContext, block_id: Uuid) -> FieldResult<BlockQueryOptions> {
+    Query::block_query_options_impl(ctx, block_id).await
   }
 
   // Integration

@@ -5,8 +5,8 @@ use uuid::Uuid;
 
 use crate::graphql::schema::{
   sourcequeries::{
-    cells_block_sourcequery::CellsBlockSourceQuery, table_block_sourcequery::TableBlockSourceQuery,
-    text_block_sourcequery::TextBlockSourceQuery,
+    cells_block_sourcequery::CellsBlockSourceQuery, files_block_sourcequery::FilesBlockSourceQuery,
+    table_block_sourcequery::TableBlockSourceQuery, text_block_sourcequery::TextBlockSourceQuery,
     xy_chart_block_sourcequery::XYChartBlockSourceQuery,
   },
   sourcequery::{NewSourceQuery, SourceQueryTypes},
@@ -31,6 +31,8 @@ pub struct DBSourceQuery {
 }
 
 pub struct DBNewSourceQuery {
+  pub id: Uuid,
+
   pub sourcequery_type: String,
 
   pub sourcequery_data: serde_json::Value,
@@ -44,7 +46,8 @@ impl From<NewSourceQuery> for DBNewSourceQuery {
     )
     .expect("Unable to convert sourcequery data string to serde_json::Value");
 
-    Self {
+    DBNewSourceQuery {
+      id: new_sourcequery.id,
       sourcequery_type: new_sourcequery
         .sourcequery_type
         .to_string(),
@@ -80,7 +83,7 @@ pub async fn get_sourcequery(
   .map_err(anyhow::Error::from)
 }
 
-pub async fn get_sourcequeries(
+pub async fn _get_sourcequeries(
   pool: impl PgExecutor<'_>,
   sourcequery_ids: Vec<Uuid>,
 ) -> Result<Vec<DBSourceQuery>> {
@@ -117,6 +120,7 @@ pub async fn create_sourcequery(
     r#"
     with _user as (select * from users where auth0id = $1)
     insert into sourcequeries (
+      id,
       sourcequery_type,
       sourcequery_data,
       created_by,
@@ -125,12 +129,14 @@ pub async fn create_sourcequery(
     values (
       $2,
       $3,
+      $4,
       (select id from _user),
       (select id from _user)
     )
     returning *;
     "#,
     auth0_user_id,
+    new_sourcequery.id,
     new_sourcequery.sourcequery_type,
     new_sourcequery.sourcequery_data,
   )
@@ -159,6 +165,10 @@ pub fn sq_string_to_serde_value(
     SourceQueryTypes::XYChartBlock => {
       let xysq: XYChartBlockSourceQuery = serde_json::from_str(&sq_data)?;
       serde_json::to_value(xysq)
+    }
+    SourceQueryTypes::FilesBlock => {
+      let fsq: FilesBlockSourceQuery = serde_json::from_str(&sq_data)?;
+      serde_json::to_value(fsq)
     }
   };
 

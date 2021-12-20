@@ -4,7 +4,7 @@ use uuid::Uuid;
 
 use super::Mutation;
 use super::Query;
-use super::user::UserStatusInput;
+use super::user::UserMetaInput;
 
 use crate::graphql::context::GQLContext;
 
@@ -195,7 +195,7 @@ impl Mutation {
           name: String::new(),
           nickname: String::new(),
           email: user_email.to_owned(),
-          user_status: UserStatusInput::default(),
+          meta: UserMetaInput::default(),
           org_ids: None,
           role_ids: None,
         };
@@ -203,7 +203,7 @@ impl Mutation {
         let user_and_org = create_user_with_new_org(
           ctx.pool.clone(),
           &ctx.auth0_user_id,
-          new_user.into_db_new_user(String::new()),
+          new_user.into_db_new_user(String::new())?,
         )
         .await?;
 

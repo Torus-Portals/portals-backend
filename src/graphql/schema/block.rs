@@ -30,7 +30,7 @@ use crate::services::db::block_service::{
   create_block, delete_block, delete_blocks, get_block, get_blocks, get_page_blocks, update_block,
 };
 
-#[derive(Debug, GraphQLUnion, Serialize, Deserialize)]
+#[derive(Debug, Clone, GraphQLUnion, Serialize, Deserialize)]
 #[graphql(Context = GQLContext)]
 pub enum GQLBlocks {
   Empty(EmptyBlock),
@@ -46,7 +46,7 @@ pub enum GQLBlocks {
   Files(FilesBlock),
 }
 
-#[derive(Debug, Serialize, Deserialize, GraphQLEnum, EnumString, Display)]
+#[derive(Debug, Clone, Serialize, Deserialize, GraphQLEnum, EnumString, Display)]
 pub enum BlockTypes {
   #[strum(serialize = "Table")]
   #[graphql(name = "Table")]
@@ -69,7 +69,7 @@ pub enum BlockTypes {
   Files,
 }
 
-#[derive(Debug, GraphQLUnion, Serialize, Deserialize)]
+#[derive(Debug, Clone, GraphQLUnion, Serialize, Deserialize)]
 #[graphql(Context = GQLContext)]
 pub enum BlockConfigs {
   Empty(EmptyBlockConfig),
@@ -80,7 +80,7 @@ pub enum BlockConfigs {
   Files(FilesBlockConfig),
 }
 
-#[derive(GraphQLObject, Debug, Serialize, Deserialize)]
+#[derive(GraphQLObject, Clone, Debug, Serialize, Deserialize)]
 #[graphql(Context = GQLContext)]
 #[serde(rename_all = "camelCase")]
 pub struct Block {

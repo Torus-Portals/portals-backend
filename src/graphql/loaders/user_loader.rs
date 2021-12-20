@@ -4,6 +4,7 @@ use dataloader::BatchFn;
 use sqlx::PgPool;
 use std::collections::HashMap;
 use uuid::Uuid;
+use std::convert::{TryFrom, TryInto};
 
 use crate::graphql::schema::user::User;
 use crate::services::db::user_service::get_project_users;
@@ -30,7 +31,7 @@ impl BatchFn<Uuid, Vec<User>> for UserBatcher {
                   .project_ids
                   .contains(project_id)
               })
-              .map(|db_user| db_user.into())
+              .map(|db_user| db_user.try_into().unwrap())
               .collect::<Vec<User>>();
             acc.insert(project_id.to_owned(), users);
             acc

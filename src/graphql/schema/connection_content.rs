@@ -1,4 +1,4 @@
-use juniper::{FieldResult, GraphQLEnum, GraphQLObject, GraphQLUnion};
+use juniper::{FieldResult, GraphQLEnum, GraphQLObject, GraphQLUnion, GraphQLInputObject};
 use strum_macros::{Display, EnumString};
 use uuid::Uuid;
 
@@ -55,13 +55,26 @@ pub struct ConnectionContent {
   pub content_data: ConnectionContentData,
 }
 
+#[derive(GraphQLInputObject, Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SourceQueryArgs {
+  pub user_id: Uuid,
+}
+
 impl Query {
   pub async fn connection_content_impl(
     ctx: &GQLContext,
     block_id: Uuid,
+    sourcequery_args: SourceQueryArgs,
   ) -> FieldResult<Vec<ConnectionContent>> {
     let local_pool = ctx.pool.clone();
-    let conn_content = get_connection_content(local_pool, &ctx.auth0_user_id, block_id).await?;
+    let conn_content = get_connection_content(
+      local_pool,
+      &ctx.auth0_user_id,
+      block_id,
+      sourcequery_args,
+    )
+    .await?;
 
     Ok(conn_content)
   }

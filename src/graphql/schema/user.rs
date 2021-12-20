@@ -1,10 +1,11 @@
-use crate::services::db::user_service::user_exists_by_email;
 use crate::services::db::user_service::{
-  create_user, create_user_with_new_org, get_user, get_user_by_auth0_id, get_user_by_email, get_users, update_user,
-  auth0_user_exists, DBNewUser, DBUser,
+  auth0_user_exists, create_user, create_user_with_new_org, get_user, get_user_by_auth0_id,
+  get_user_by_email, get_users, update_user, DBNewUser, DBUser,
 };
+use crate::services::db::user_service::{user_exists_by_email, DBUpdateUser};
 use chrono::{DateTime, Utc};
 use juniper::{graphql_object, FieldError, FieldResult, GraphQLInputObject, GraphQLObject};
+use std::convert::{TryFrom, TryInto};
 use uuid::Uuid;
 
 use super::Mutation;
@@ -28,7 +29,7 @@ pub struct User {
   pub email: String,
 
   // TODO: Maybe try to figure out how to use postgres enums with status.
-  pub user_status: UserStatus,
+  pub meta: UserMeta,
 
   pub org_ids: Vec<Uuid>,
 
@@ -73,8 +74,8 @@ impl User {
     self.email.clone()
   }
 
-  fn user_status(&self) -> UserStatus {
-    self.user_status.clone()
+  fn meta(&self) -> UserMeta {
+    self.meta.clone()
   }
 
   fn org_ids(&self) -> Vec<Uuid> {
@@ -104,7 +105,9 @@ impl User {
   }
 
   fn project_ids(&self) -> Vec<Uuid> {
-    self.project_ids.clone()
+    self
+      .project_ids
+      .clone()
   }
 
   fn created_at(&self) -> DateTime<Utc> {
@@ -124,16 +127,21 @@ impl User {
   }
 }
 
-impl From<DBUser> for User {
-  fn from(db_user: DBUser) -> Self {
-    User {
+impl TryFrom<DBUser> for User {
+  type Error = anyhow::Error;
+
+  fn try_from(db_user: DBUser) -> anyhow::Result<Self> {
+    let meta: UserMeta = serde_json::from_value(db_user.meta)?;
+
+    Ok(User {
       id: db_user.id,
       auth0id: db_user.auth0id,
       name: db_user.name,
       nickname: db_user.nickname,
       email: db_user.email,
       // status: db_user.status,
-      user_status: serde_json::from_value(db_user.user_status).expect("Unable to deserialize UserStatus"),
+      // user_status: serde_json::from_value(db_user.user_status).expect("Unable to deserialize UserStatus"),
+      meta,
       org_ids: db_user.org_ids,
       role_ids: db_user.role_ids,
       project_ids: db_user.project_ids,
@@ -141,7 +149,7 @@ impl From<DBUser> for User {
       created_by: db_user.created_by,
       updated_at: db_user.updated_at,
       updated_by: db_user.updated_by,
-    }
+    })
   }
 }
 
@@ -155,7 +163,7 @@ pub struct NewUser {
 
   pub email: String,
 
-  pub user_status: UserStatusInput,
+  pub meta: UserMetaInput,
 
   pub org_ids: Option<Vec<Uuid>>,
 
@@ -163,16 +171,18 @@ pub struct NewUser {
 }
 
 impl NewUser {
-  pub fn into_db_new_user(&self, auth0id: String) -> DBNewUser {
+  pub fn into_db_new_user(&self, auth0id: String) -> anyhow::Result<DBNewUser> {
     // I'm sure there is a better way to do this besides all these clones...
-    DBNewUser {
+    let meta = serde_json::to_value(&self.meta)?;
+
+    Ok(DBNewUser {
       auth0id,
       name: self.name.clone(),
       nickname: self
         .nickname
         .clone(),
       email: self.email.clone(),
-      user_status: serde_json::to_value(&self.user_status).expect("Unable to serialize UserStatusInput"),
+      meta,
       org_ids: self
         .org_ids
         .clone()
@@ -181,7 +191,7 @@ impl NewUser {
         .role_ids
         .clone()
         .unwrap_or_else(|| vec![]),
-    }
+    })
   }
 }
 
@@ -197,7 +207,7 @@ pub struct UpdateUser {
 
   pub email: Option<String>,
 
-  pub user_status: Option<UserStatusInput>,
+  pub meta: Option<UserMetaInput>,
 
   pub org_ids: Option<Vec<Uuid>>,
 
@@ -206,7 +216,7 @@ pub struct UpdateUser {
 
 // Not sure what's the best way to avoid duplication to satisfy GQL here
 #[derive(GraphQLObject, Clone, Debug, Serialize, Deserialize)]
-pub struct UserStatus {
+pub struct UserMeta {
   pub active: bool,
 
   pub has_logged_in: bool,
@@ -217,7 +227,7 @@ pub struct UserStatus {
 }
 
 #[derive(GraphQLInputObject, Clone, Debug, Serialize, Deserialize)]
-pub struct UserStatusInput {
+pub struct UserMetaInput {
   pub active: bool,
 
   pub has_logged_in: bool,
@@ -227,9 +237,9 @@ pub struct UserStatusInput {
   pub onboarding_complete: bool,
 }
 
-impl Default for UserStatusInput {
+impl Default for UserMetaInput {
   fn default() -> Self {
-    UserStatusInput {
+    UserMetaInput {
       active: true,
       has_logged_in: false,
       password_changed: false,
@@ -242,15 +252,23 @@ impl Query {
   pub async fn user_impl(ctx: &GQLContext, user_id: Uuid) -> FieldResult<User> {
     get_user(&ctx.pool, user_id)
       .await
-      .map(|db_user| -> User { db_user.into() })
-      .map_err(FieldError::from)
+      .map(|db_user| {
+        db_user
+          .try_into()
+          .map_err(FieldError::from)
+      })
+      .map_err(FieldError::from)?
   }
-  
+
   pub async fn user_by_email_impl(ctx: &GQLContext, user_email: String) -> FieldResult<User> {
     get_user_by_email(&ctx.pool, &user_email)
       .await
-      .map(|db_user| -> User { db_user.into() })
-      .map_err(FieldError::from)
+      .map(|db_user| {
+        db_user
+          .try_into()
+          .map_err(FieldError::from)
+      })
+      .map_err(FieldError::from)?
   }
 
   pub async fn current_user_impl(ctx: &GQLContext) -> FieldResult<User> {
@@ -259,8 +277,12 @@ impl Query {
     if user_exists {
       get_user_by_auth0_id(&ctx.pool, &ctx.auth0_user_id)
         .await
-        .map(|db_user| -> User { db_user.into() })
-        .map_err(FieldError::from)
+        .map(|db_user| {
+          db_user
+            .try_into()
+            .map_err(FieldError::from)
+        })
+        .map_err(FieldError::from)?
     } else {
       println!("user does not exist");
       let mut auth_api = ctx
@@ -272,7 +294,7 @@ impl Query {
         .get_auth0_user(&ctx.auth0_user_id)
         .await?;
 
-      // TODO: Need to come up with a check for auth0user.email_verified. 
+      // TODO: Need to come up with a check for auth0user.email_verified.
       //       Might need to still query the Auth0 service until it's done.
 
       dbg!(&auth0user);
@@ -284,20 +306,21 @@ impl Query {
         let user = get_user_by_email(&ctx.pool, &auth0user.email).await?;
 
         let user_update = UpdateUser {
-            id: user.id,
-            auth0id: Some(auth0user.user_id),
-            name: Some(auth0user.name),
-            nickname: Some(auth0user.nickname),
-            email: None,
-            // status: Some(String::from("active")),
-            user_status: Some(UserStatusInput::default()),
-            org_ids: None,
-            role_ids: None,
+          id: user.id,
+          auth0id: Some(auth0user.user_id),
+          name: Some(auth0user.name),
+          nickname: Some(auth0user.nickname),
+          email: None,
+          // status: Some(String::from("active")),
+          meta: Some(UserMetaInput::default()),
+          org_ids: None,
+          role_ids: None,
         };
 
-        let updated_user = update_user(&ctx.pool, &ctx.auth0_user_id, user_update.into()).await?;
+        let updated_user =
+          update_user(&ctx.pool, &ctx.auth0_user_id, user_update.try_into()?).await?;
 
-        Ok(updated_user.into())
+        Ok(updated_user.try_into()?)
       } else {
         println!("email user does not exist!");
         // create new user (and org for now)
@@ -305,11 +328,11 @@ impl Query {
           name: auth0user.name,
           nickname: auth0user.nickname,
           email: auth0user.email,
-          user_status: UserStatusInput::default(),
+          meta: UserMetaInput::default(),
           org_ids: None,
           role_ids: None,
         };
-  
+
         // While we figure out what to do with Orgs, each user will have a personal org created when they are first created.
         // This will help in making sure that portals are coupled to Orgs, and not users.
         let user_and_org = create_user_with_new_org(
@@ -319,14 +342,14 @@ impl Query {
             ctx
               .auth0_user_id
               .to_owned(),
-          ),
+          )?,
         )
         .await?;
-  
+
         Ok(
           user_and_org
             .0
-            .into(),
+            .try_into()?,
         )
       }
     }
@@ -338,7 +361,11 @@ impl Query {
       .map(|db_users| {
         db_users
           .into_iter()
-          .map(|db_user| db_user.into())
+          .filter_map(|db_user| {
+            db_user
+              .try_into()
+              .ok()
+          })
           .collect()
       })
       .map_err(FieldError::from)
@@ -355,17 +382,27 @@ impl Mutation {
         ctx
           .auth0_user_id
           .to_owned(),
-      ),
+      )?,
     )
     .await
-    .map(|db_user| -> User { db_user.into() })
-    .map_err(FieldError::from)
+    .map(|db_user| {
+      db_user
+        .try_into()
+        .map_err(FieldError::from)
+    })
+    .map_err(FieldError::from)?
   }
 
   pub async fn update_user_impl(ctx: &GQLContext, updated_user: UpdateUser) -> FieldResult<User> {
-    update_user(&ctx.pool, &ctx.auth0_user_id, updated_user.into())
+    let uu: DBUpdateUser = updated_user.try_into()?;
+
+    update_user(&ctx.pool, &ctx.auth0_user_id, uu)
       .await
-      .map(|db_user| -> User { db_user.into() })
-      .map_err(FieldError::from)
+      .map(|db_user| {
+        db_user
+          .try_into()
+          .map_err(FieldError::from)
+      })
+      .map_err(FieldError::from)?
   }
 }

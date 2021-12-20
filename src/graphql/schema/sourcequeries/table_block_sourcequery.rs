@@ -2,24 +2,21 @@ use anyhow::{anyhow, Result};
 use juniper::GraphQLObject;
 use uuid::Uuid;
 
-use crate::graphql::schema::blocks::table_block::{
+use crate::graphql::schema::{blocks::table_block::{
   TableBlock, TableBlockCell, TableBlockCells, TableBlockColumnTypes, TableBlockRow,
-};
+}, connection_content::SourceQueryArgs};
 
 #[derive(GraphQLObject, Debug, Serialize, Deserialize)]
 pub struct TableBlockSourceQuery {
   pub member: bool,
 }
 
-pub struct TableBlockQueryArgs {
-  pub user_id: Uuid,
-}
-
 pub fn filter_table_block_member(
   table_block: TableBlock,
-  query_args: TableBlockQueryArgs,
+  sourcequery_args: SourceQueryArgs,
 ) -> Result<TableBlock> {
   // Extract the member column id
+  // TODO: which member column to use should be configured via the query args.
   let member_column_id = table_block
     .columns
     .iter()
@@ -37,7 +34,7 @@ pub fn filter_table_block_member(
   let user_filtered_row_ids = member_cells
     .into_iter()
     .filter(|c| match &c.cell_data {
-      TableBlockCells::TableBlockMemberCell(mc) => mc.member_ids.contains(&query_args.user_id),
+      TableBlockCells::TableBlockMemberCell(mc) => mc.member_ids.contains(&sourcequery_args.user_id),
       _ => false,
     })
     .map(|c| c.row_id)
@@ -69,7 +66,7 @@ pub fn filter_table_block_member(
 pub fn query_table_block(
   table_block: TableBlock,
   sourcequery: TableBlockSourceQuery,
-  sourcequery_args: TableBlockQueryArgs,
+  sourcequery_args: SourceQueryArgs,
 ) -> Result<TableBlock> {
   let TableBlockSourceQuery { member } = sourcequery;
   let mut final_table_block = table_block;

@@ -1,10 +1,11 @@
 use anyhow::Result;
 use chrono::{DateTime, Utc};
+use std::convert::{TryFrom, TryInto};
 
 use sqlx::{Executor, PgExecutor, PgPool, Postgres};
 use uuid::Uuid;
 
-use crate::graphql::schema::user::{UpdateUser, UserStatus, UserStatusInput};
+use crate::graphql::schema::user::{UpdateUser, UserMeta, UserMetaInput};
 
 use super::org_service::{create_org, DBNewOrg, DBOrg};
 
@@ -22,8 +23,7 @@ pub struct DBUser {
 
   pub email: String,
 
-  // TODO: Maybe try to figure out how to use postgres enums with status.
-  pub user_status: serde_json::Value,
+  pub meta: serde_json::Value,
 
   pub org_ids: Vec<Uuid>,
 
@@ -55,7 +55,7 @@ pub struct DBNewUser {
 
   pub email: String,
 
-  pub user_status: serde_json::Value,
+  pub meta: serde_json::Value,
 
   pub org_ids: Vec<Uuid>,
 
@@ -74,34 +74,36 @@ pub struct DBUpdateUser {
 
   pub email: Option<String>,
 
-  pub user_status: Option<serde_json::Value>,
+  pub meta: Option<serde_json::Value>,
 
   pub org_ids: Option<Vec<Uuid>>,
 
   pub role_ids: Option<Vec<Uuid>>,
 }
 
-impl From<UpdateUser> for DBUpdateUser {
-  fn from(update_user: UpdateUser) -> Self {
-    DBUpdateUser {
+impl TryFrom<UpdateUser> for DBUpdateUser {
+  type Error = anyhow::Error;
+
+  fn try_from(update_user: UpdateUser) -> Result<Self> {
+    let meta = match update_user.meta {
+      Some(meta) => Some(serde_json::to_value(meta)?),
+      None => None,
+    };
+
+    Ok(DBUpdateUser {
       id: update_user.id,
       auth0id: update_user.auth0id,
       name: update_user.name,
       nickname: update_user.nickname,
       email: update_user.email,
-      user_status: update_user.user_status.map(|status| {
-        serde_json::to_value(&status).expect("Unable to serialize UserStatusInput")
-      }),
+      meta,
       org_ids: update_user.org_ids,
       role_ids: update_user.role_ids,
-    }
+    })
   }
 }
 
-pub async fn auth0_user_exists(
-  pool: impl PgExecutor<'_>,
-  auth0_user_id: &str,
-) -> Result<bool> {
+pub async fn auth0_user_exists(pool: impl PgExecutor<'_>, auth0_user_id: &str) -> Result<bool> {
   sqlx::query!(
     "select exists(select 1 from users where auth0id = $1) as user_exists",
     auth0_user_id
@@ -116,10 +118,7 @@ pub async fn auth0_user_exists(
   .map_err(anyhow::Error::from)
 }
 
-pub async fn _user_exists(
-  pool: impl PgExecutor<'_>,
-  user_id: Uuid,
-) -> Result<bool> {
+pub async fn _user_exists(pool: impl PgExecutor<'_>, user_id: Uuid) -> Result<bool> {
   sqlx::query!(
     "select exists(select 1 from users where id = $1) as user_exists",
     user_id
@@ -134,10 +133,7 @@ pub async fn _user_exists(
   .map_err(anyhow::Error::from)
 }
 
-pub async fn user_exists_by_email(
-  pool: impl PgExecutor<'_>,
-  email: &str,
-) -> Result<bool> {
+pub async fn user_exists_by_email(pool: impl PgExecutor<'_>, email: &str) -> Result<bool> {
   sqlx::query!(
     "select exists(select 1 from users where email = $1) as user_exists",
     email
@@ -152,10 +148,7 @@ pub async fn user_exists_by_email(
   .map_err(anyhow::Error::from)
 }
 
-pub async fn get_user(
-  pool: impl PgExecutor<'_>,
-  user_id: Uuid,
-) -> Result<DBUser> {
+pub async fn get_user(pool: impl PgExecutor<'_>, user_id: Uuid) -> Result<DBUser> {
   sqlx::query_as!(
     DBUser,
     r#"
@@ -165,7 +158,7 @@ pub async fn get_user(
       name,
       nickname,
       email,
-      user_status,
+      meta,
       org_ids,
       role_ids,
       array(select object_id from user_access where user_id = users.id and object_type = 'Project') as "project_ids!",
@@ -195,7 +188,7 @@ pub async fn get_user_by_auth0_id(
       name,
       nickname,
       email,
-      user_status,
+      meta,
       org_ids,
       role_ids,
       array(select object_id from user_access where user_id = users.id and object_type = 'Project') as "project_ids!",
@@ -212,10 +205,7 @@ pub async fn get_user_by_auth0_id(
   .map_err(anyhow::Error::from)
 }
 
-pub async fn get_user_by_email(
-  pool: impl PgExecutor<'_>,
-  email: &str,
-) -> Result<DBUser> {
+pub async fn get_user_by_email(pool: impl PgExecutor<'_>, email: &str) -> Result<DBUser> {
   sqlx::query_as!(
     DBUser,
     r#"
@@ -225,7 +215,7 @@ pub async fn get_user_by_email(
       name,
       nickname,
       email,
-      user_status,
+      meta,
       org_ids,
       role_ids,
       array(select object_id from user_access where user_id = users.id and object_type = 'Project') as "project_ids!",
@@ -242,10 +232,7 @@ pub async fn get_user_by_email(
 }
 
 // NOTE: This is not at all secure, and some kinda permissions check for this should be done in the future.
-pub async fn get_users(
-  pool: impl PgExecutor<'_>,
-  user_ids: Vec<Uuid>,
-) -> Result<Vec<DBUser>> {
+pub async fn get_users(pool: impl PgExecutor<'_>, user_ids: Vec<Uuid>) -> Result<Vec<DBUser>> {
   sqlx::query_as!(
     DBUser,
     r#"
@@ -255,7 +242,7 @@ pub async fn get_users(
       name,
       nickname,
       email,
-      user_status,
+      meta,
       org_ids,
       role_ids,
       array(select object_id from user_access where user_id = users.id and object_type = 'Project') as "project_ids!",
@@ -287,7 +274,7 @@ pub async fn get_project_users(
       users.name as "name!",
       users.nickname as "nickname!",
       users.email as "email!",
-      users.user_status as "user_status!",
+      users.meta as "meta!",
       users.org_ids as "org_ids!",
       users.role_ids as "role_ids!",
       array(select object_id from user_access where user_id = users.id) as "project_ids!",
@@ -307,15 +294,12 @@ pub async fn get_project_users(
   .map_err(anyhow::Error::from)
 }
 
-pub async fn create_user(
-  pool: impl PgExecutor<'_>,
-  new_user: DBNewUser,
-) -> Result<DBUser> {
+pub async fn create_user(pool: impl PgExecutor<'_>, new_user: DBNewUser) -> Result<DBUser> {
   let system_uuid = Uuid::parse_str("11111111-2222-3333-4444-555555555555")?;
   sqlx::query_as!(
       DBUser,
       r#"
-      insert into users (auth0id, name, nickname, email, user_status, org_ids, role_ids, created_by, updated_by)
+      insert into users (auth0id, name, nickname, email, meta, org_ids, role_ids, created_by, updated_by)
       values ($1, $2, $3, $4, $5, $6, $7, $8, $8)
       returning
       users.id as "id!",
@@ -323,7 +307,7 @@ pub async fn create_user(
       users.name as "name!",
       users.nickname as "nickname!",
       users.email as "email!",
-      users.user_status as "user_status!",
+      users.meta as "meta!",
       users.org_ids as "org_ids!",
       users.role_ids as "role_ids!",
       array(select object_id from user_access where user_id = users.id and object_type = 'Project') as "project_ids!",
@@ -336,7 +320,7 @@ pub async fn create_user(
       new_user.name,
       new_user.nickname,
       new_user.email,
-      new_user.user_status,
+      new_user.meta,
       &new_user.org_ids,
       &new_user.role_ids,
       system_uuid
@@ -372,7 +356,7 @@ pub async fn create_user_with_new_org(
     name: None,
     nickname: None,
     email: None,
-    user_status: None,
+    meta: None,
     org_ids: Some(user.org_ids),
     role_ids: None,
   };
@@ -404,7 +388,7 @@ pub async fn update_user(
           email = coalesce($6, email),
           org_ids = coalesce($7, org_ids),
           role_ids = coalesce($8, role_ids),
-          user_status = coalesce($9, user_status),
+          meta = coalesce($9, meta),
           updated_by = coalesce((select id from _user), '11111111-2222-3333-4444-555555555555')
       where id = $2
       returning
@@ -413,7 +397,7 @@ pub async fn update_user(
         users.name as "name!",
         users.nickname as "nickname!",
         users.email as "email!",
-        users.user_status as "user_status!",
+        users.meta as "meta!",
         users.org_ids as "org_ids!",
         users.role_ids as "role_ids!",
         array(select object_id from user_access where user_id = users.id and object_type = 'Project') as "project_ids!",
@@ -435,7 +419,7 @@ pub async fn update_user(
     update_user
       .role_ids
       .as_deref(),
-    update_user.user_status
+    update_user.meta
   )
   .fetch_one(pool)
   .await
