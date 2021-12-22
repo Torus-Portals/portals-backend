@@ -2,9 +2,12 @@ use anyhow::{anyhow, Result};
 use juniper::GraphQLObject;
 use uuid::Uuid;
 
-use crate::graphql::schema::{blocks::table_block::{
-  TableBlock, TableBlockCell, TableBlockCells, TableBlockColumnTypes, TableBlockRow,
-}, connection_content::SourceQueryArgs};
+use crate::graphql::schema::{
+  blocks::table_block::{
+    TableBlock, TableBlockCell, TableBlockCells, TableBlockColumnTypes, TableBlockRow,
+  },
+  connection_content::SourceQueryArgs,
+};
 
 #[derive(GraphQLObject, Debug, Serialize, Deserialize)]
 pub struct TableBlockSourceQuery {
@@ -34,7 +37,9 @@ pub fn filter_table_block_member(
   let user_filtered_row_ids = member_cells
     .into_iter()
     .filter(|c| match &c.cell_data {
-      TableBlockCells::TableBlockMemberCell(mc) => mc.member_ids.contains(&sourcequery_args.user_id),
+      TableBlockCells::TableBlockMemberCell(mc) => mc
+        .member_ids
+        .contains(&sourcequery_args.user_id),
       _ => false,
     })
     .map(|c| c.row_id)
@@ -47,7 +52,9 @@ pub fn filter_table_block_member(
     .filter(|row| user_filtered_row_ids.contains(&row.id))
     .cloned()
     .collect::<Vec<TableBlockRow>>();
-  let user_columns = table_block.columns.clone();
+  let user_columns = table_block
+    .columns
+    .clone();
 
   // Get all cells the user has access to
   let user_filtered_cells = table_block
