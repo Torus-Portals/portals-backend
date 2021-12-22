@@ -19,7 +19,6 @@ use crate::{
 };
 
 use super::{
-  dashboard_service::{add_user_to_dashboards, get_project_dashboards},
   user_service::get_users,
 };
 
@@ -76,7 +75,7 @@ pub async fn get_project(pool: impl PgExecutor<'_>, project_id: Uuid) -> Result<
   .map_err(anyhow::Error::from)
 }
 
-pub async fn get_projects(
+pub async fn _get_projects(
   pool: impl PgExecutor<'_>,
   project_ids: &[Uuid],
 ) -> Result<Vec<DBProject>> {

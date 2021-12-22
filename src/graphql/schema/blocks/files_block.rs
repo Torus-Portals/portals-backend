@@ -1,4 +1,4 @@
-use juniper::{GraphQLEnum, GraphQLObject, GraphQLUnion};
+use juniper::{GraphQLObject};
 use uuid::Uuid;
 
 #[derive(GraphQLObject, Clone, Debug, Serialize, Deserialize)]

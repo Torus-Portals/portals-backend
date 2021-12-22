@@ -105,7 +105,7 @@ pub fn query_block(
 
 pub async fn get_connection_content(
   pool: PgPool,
-  auth0id: &str,
+  _auth0id: &str,
   block_id: Uuid,
   sourcequery_args: SourceQueryArgs,
 ) -> Result<Vec<ConnectionContent>> {

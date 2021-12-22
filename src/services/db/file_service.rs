@@ -1,9 +1,9 @@
-use anyhow::{anyhow, Result};
+use anyhow::{Result};
 use chrono::{DateTime, Utc};
-use sqlx::{PgExecutor, PgPool};
+use sqlx::{PgExecutor};
 use uuid::Uuid;
 
-use crate::graphql::schema::{file::NewFile, project};
+use crate::graphql::schema::{file::NewFile};
 
 pub struct DBFile {
   pub id: Uuid,

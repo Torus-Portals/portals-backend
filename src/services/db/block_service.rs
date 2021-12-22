@@ -285,7 +285,7 @@ pub async fn delete_blocks(pool: impl PgExecutor<'_>, block_ids: Vec<Uuid>) -> R
     .map_err(anyhow::Error::from)
 }
 
-pub async fn delete_page_blocks(pool: impl PgExecutor<'_>, page_id: Uuid) -> Result<i32> {
+pub async fn _delete_page_blocks(pool: impl PgExecutor<'_>, page_id: Uuid) -> Result<i32> {
   sqlx::query!("delete from blocks where page_id = $1", page_id)
     .execute(pool)
     .await

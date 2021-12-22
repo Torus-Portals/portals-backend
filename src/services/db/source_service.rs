@@ -89,7 +89,7 @@ pub async fn get_source(pool: impl PgExecutor<'_>, source_id: Uuid) -> Result<DB
   .map_err(anyhow::Error::from)
 }
 
-pub async fn get_sources(
+pub async fn _get_sources(
   pool: impl PgExecutor<'_>,
   source_ids: Vec<Uuid>,
 ) -> Result<Vec<DBSource>> {

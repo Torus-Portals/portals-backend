@@ -147,6 +147,7 @@ impl IRTap for XYChartBlock {
   }
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct XYChartBlockVisitor {
   chart_type: XYChartTypes,

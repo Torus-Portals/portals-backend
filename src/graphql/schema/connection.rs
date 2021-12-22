@@ -124,8 +124,8 @@ impl Mutation {
   }
 
   pub async fn update_connection_impl(
-    ctx: &GQLContext,
-    updated_connection: UpdateConnection,
+    _ctx: &GQLContext,
+    _updated_connection: UpdateConnection,
   ) -> FieldResult<Connection> {
     unimplemented!()
   }

@@ -7,7 +7,7 @@ use std::convert::TryInto;
 use crate::graphql::schema::{connection::NewConnection, sources::block_source::BlockSource, block::Block};
 
 use super::{
-  block_service::{get_block, DBBlock},
+  block_service::{get_block},
   source_service::{get_source, DBSource},
   sourcequery_service::{get_sourcequery, DBSourceQuery},
 };

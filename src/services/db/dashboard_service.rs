@@ -12,7 +12,7 @@ use crate::{
   services::{
     db::{
       policy_service::{check_permission, create_policy},
-      project_service::{add_user_to_project, get_auth0_user_projects},
+      project_service::{add_user_to_project},
       user_service::get_user_by_auth0_id,
     },
     email_service::{
@@ -159,7 +159,7 @@ pub async fn add_user_to_dashboard(
   .map_err(anyhow::Error::from)
 }
 
-pub async fn add_user_to_dashboards(
+pub async fn _add_user_to_dashboards(
   pool: impl PgExecutor<'_>,
   auth0_id: &str,
   user_id: Uuid,

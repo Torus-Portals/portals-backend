@@ -1,11 +1,11 @@
 use anyhow::Result;
 use chrono::{DateTime, Utc};
-use std::convert::{TryFrom, TryInto};
+use std::convert::{TryFrom};
 
-use sqlx::{Executor, PgExecutor, PgPool, Postgres};
+use sqlx::{PgExecutor, PgPool};
 use uuid::Uuid;
 
-use crate::graphql::schema::user::{UpdateUser, UserMeta, UserMetaInput};
+use crate::graphql::schema::user::{UpdateUser};
 
 use super::org_service::{create_org, DBNewOrg, DBOrg};
 

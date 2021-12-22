@@ -7,7 +7,7 @@ use super::Mutation;
 use super::Query;
 
 use super::user::{UpdateUser, User};
-use std::convert::{TryFrom, TryInto};
+use std::convert::{TryInto};
 
 use crate::graphql::context::GQLContext;
 use crate::services::db::org_service::{create_org, get_org, DBNewOrg, DBOrg};

@@ -1,7 +1,7 @@
 use juniper::{
-  FieldError, FieldResult, GraphQLEnum, GraphQLInputObject, GraphQLObject, GraphQLUnion,
+  FieldResult, GraphQLObject, GraphQLUnion,
 };
-use std::convert::{TryFrom, TryInto};
+use std::convert::{TryInto};
 
 use uuid::Uuid;
 

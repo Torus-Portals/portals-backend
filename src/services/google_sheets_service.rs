@@ -11,21 +11,22 @@ use serde::Deserialize;
 
 use crate::config::CONFIG;
 
-const SHEETS_READ_URL: &str =
-  "https://sheets.googleapis.com/v4/spreadsheets/spreadsheetId/values:batchGet";
-const SPREADSHEET_SHEETS_URL: &str = "https://sheets.googleapis.com/v4/spreadsheets/spreadsheetId";
+// const SHEETS_READ_URL: &str =
+//   "https://sheets.googleapis.com/v4/spreadsheets/spreadsheetId/values:batchGet";
+// const SPREADSHEET_SHEETS_URL: &str = "https://sheets.googleapis.com/v4/spreadsheets/spreadsheetId";
 
-fn get_spreadsheet_id(sheet_url: &str) -> &str {
+fn _get_spreadsheet_id(sheet_url: &str) -> &str {
   let mut split_iter = sheet_url.split("/").skip(5);
   split_iter.next().unwrap()
 }
 
 #[derive(Deserialize)]
 struct OAuthRequest {
-  code: Option<String>,
-  state: Option<String>,
+  _code: Option<String>,
+  _state: Option<String>,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Deserialize)]
 struct OAuthTokenResponse {
   access_token: String,
@@ -35,6 +36,7 @@ struct OAuthTokenResponse {
   token_type: String,
 }
 
+#[allow(dead_code)]
 #[derive(Deserialize)]
 struct OAuthRefreshTokenResponse {
   access_token: String,
@@ -45,12 +47,13 @@ struct OAuthRefreshTokenResponse {
 
 #[derive(Deserialize)]
 pub struct GoogleSheetsParams {
-  sheet_url: String,
-  sheet_name: Option<String>,
+  _sheet_url: String,
+  _sheet_name: Option<String>,
   // Allow for pulling of entire sheet
-  range: Option<String>,
+  _range: Option<String>,
 }
 
+#[allow(dead_code)]
 #[derive(Clone, Debug)]
 pub struct OAuthService {
   access_token: Option<String>,
@@ -84,7 +87,7 @@ impl OAuthService {
     }
   }
 
-  async fn fetch_token(&mut self, code: String) -> Result<String, anyhow::Error> {
+  async fn _fetch_token(&mut self, code: String) -> Result<String, anyhow::Error> {
     let oauth_config = &CONFIG.get().unwrap().oauth;
     let client = reqwest::Client::new();
     let form_params = [
@@ -113,7 +116,7 @@ impl OAuthService {
 
   // Retrieves access token from client. Refreshes it with Google's server if necessary.
   // Note that this does not automatically fetch the access token if not present -- the authorization code is needed for that.
-  async fn get_token(&mut self) -> Result<String, anyhow::Error> {
+  async fn _get_token(&mut self) -> Result<String, anyhow::Error> {
     // Refresh token protocol. See: https://developers.google.com/identity/protocols/oauth2/web-server#offline
     let now = Utc::now().timestamp();
     if self.access_token_expiration != 0 && now >= self.access_token_expiration {

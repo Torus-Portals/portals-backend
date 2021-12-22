@@ -44,7 +44,7 @@ pub struct Integration {
 
 impl Integration {
   // TODO: Allow for fetching of >1 cells (possibly return Vec<Vec<String>> instead)
-  pub async fn fetch_value(&self, dims: Vec<String>) -> FieldResult<String> {
+  pub async fn _fetch_value(&self, _dims: Vec<String>) -> FieldResult<String> {
     // match &self.integration_data {
     //   IntegrationData::GoogleSheets(data) => {
     //     let mut dims = dims.into_iter();

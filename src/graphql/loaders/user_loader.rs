@@ -4,7 +4,7 @@ use dataloader::BatchFn;
 use sqlx::PgPool;
 use std::collections::HashMap;
 use uuid::Uuid;
-use std::convert::{TryFrom, TryInto};
+use std::convert::{TryInto};
 
 use crate::graphql::schema::user::User;
 use crate::services::db::user_service::get_project_users;
